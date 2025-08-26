@@ -1,63 +1,42 @@
 "use client";
 import { useState } from "react";
 import { Mail, Lock, Eye } from "lucide-react";
-import Image from "next/image";
+import AuthLeftSection from "../components/AuthLeftSection";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+  const router = useRouter()
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
+  const handleForgotPassword = () => {
+    router.replace("/forgot-password")
+  };
+
   return (
     <div className="flex min-h-screen bg-gray-50 p-6">
       <div className="flex w-full rounded-3xl overflow-hidden shadow-lg">
-        {/* Left Section */}
-        <div className="hidden lg:flex flex-col justify-between w-1/2 relative">
-          {/* Background Image */}
-          <Image
-            src="/Background.jpg" // put your image in /public/login-bg.jpg
-            alt="Background"
-            fill
-            className="object-cover"
-            priority
-          />
-          <div className="absolute inset-0 bg-black/20 rounded-l-3xl"></div>
-
-          {/* Content */}
-          <div className="flex flex-col justify-between h-full p-12 relative z-10">
-            <div className="text-2xl font-bold tracking-wide text-white">
-              LetterCraft
-            </div>
-
-            {/* Bottom text */}
-            <div className="mt-auto">
-              <h1 className="text-4xl font-bold mb-4 leading-tight text-white">
-                Your credit history, <br /> simplified and verified.
-              </h1>
-              <p className="text-white/90 text-base leading-relaxed">
-                Lorem ipsum dolor sit amet, consectetur <br />
-                adipiscing elit. Pellentesque at.
-              </p>
-            </div>
-
-            {/* Slider dots */}
-            <div className="flex gap-2 mt-10">
-              <span className="w-8 h-2 rounded-full bg-white"></span>
-              <span className="w-2 h-2 rounded-full bg-white/40"></span>
-              <span className="w-2 h-2 rounded-full bg-white/40"></span>
-            </div>
-          </div>
-        </div>
+        {/* Left Section - Reusable Component */}
+        <AuthLeftSection />
 
         {/* Right Section */}
         <div className="flex flex-col justify-center items-center w-full lg:w-1/2 px-8 py-12">
           <div className="w-full max-w-sm">
-            <h2 className="text-3xl font-bold mb-2 text-gray-900 text-center">Login</h2>
-            <p className="text-gray-500 mb-2 text-sm">
+            <h2 className="text-[34px] font-bold font-Inter mb-2 text-gray-900 text-center">
+              Login
+            </h2>
+            <p className="text-gray-500 mb-2 text-[14px] text-center font-normal">
               Welcome back! Please enter your details below.
             </p>
 
-            <div className="text-xs text-gray-400 mb-8">Login with email</div>
+            <div className="flex items-center my-4 md:my-8">
+              <div className="flex-grow border-t border-gray-300"></div>
+              <span className="px-2 md:px-4 text-sm md:text-base text-gray-600">
+                Login with email
+              </span>
+              <div className="flex-grow border-t border-gray-300"></div>
+            </div>
 
             <div className="space-y-5">
               {/* Email */}
@@ -74,7 +53,7 @@ export default function LoginPage() {
                     placeholder="johnmiles@example.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 placeholder-gray-400"
+                    className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-400 placeholder-gray-400"
                   />
                 </div>
               </div>
@@ -93,7 +72,7 @@ export default function LoginPage() {
                     placeholder="••••••••"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-900 placeholder-gray-400"
+                    className="block w-full pl-10 pr-10 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent outline-none text-gray-400 placeholder-gray-400"
                   />
                   <button
                     type="button"
@@ -114,12 +93,13 @@ export default function LoginPage() {
                   />
                   Remember me
                 </label>
-                <a
-                  href="#"
+                <button
+                  type="button"
+                  onClick={handleForgotPassword}
                   className="text-sm text-blue-600 hover:text-blue-700 font-medium"
                 >
                   Forgot Password?
-                </a>
+                </button>
               </div>
 
               {/* Login Button */}

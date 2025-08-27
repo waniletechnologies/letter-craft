@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, KeyboardEvent, ClipboardEvent } from "react";
-import { ArrowLeft } from "lucide-react";
 import AuthLeftSection from "../components/AuthLeftSection";
 import { useRouter } from "next/navigation";
 
@@ -80,9 +79,6 @@ export default function VerificationCodePage() {
     } else {
       setError(false);
       router.replace('/reset-password')
-    //   alert("Verification successful! Code: " + verificationCode);
-
-      // Navigate to the next page here
     }
   };
 
@@ -123,7 +119,6 @@ export default function VerificationCodePage() {
                 {code.map((digit, index) => (
                   <input
                     key={index}
-                    ref={(el) => (inputRefs.current[index] = el)}
                     type="text"
                     inputMode="numeric"
                     pattern="[0-9]*"
@@ -142,7 +137,7 @@ export default function VerificationCodePage() {
 
               {error && (
                 <p className="text-red-500 text-sm text-center flex  gap-1">
-                  <span className="text-red-500">⚠</span>
+                  <p className="text-red-500">⚠</p>
                   Incorrect verification code
                 </p>
               )}
@@ -169,7 +164,7 @@ export default function VerificationCodePage() {
             {/* Resend Code */}
             <div className="mt-6">
               <p className="text-gray-500 text-sm">
-                If you don't receive any code.{" "}
+                If you don&apos;t receive any code.{" "}
                 <button
                   type="button"
                   onClick={handleResend}
@@ -184,7 +179,7 @@ export default function VerificationCodePage() {
         </div>
       </div>
 
-      <style jsx>{`
+      <style >{`
         @keyframes shake {
           0%,
           100% {

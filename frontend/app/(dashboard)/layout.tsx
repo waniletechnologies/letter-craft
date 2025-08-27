@@ -2,7 +2,7 @@
 
 import React from "react";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   ChevronDown,
@@ -126,6 +126,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const pathname = usePathname();
+  const router = useRouter()
   const heading = getHeadingForPath(pathname);
   const currentLink = [...MAIN_LINKS, ...SUPPORT_LINKS].find(
     (l) => l.href === pathname,
@@ -141,7 +142,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
 
   const handleLogout = () => {
     // Placeholder logout logic
-    console.log("Logout clicked");
+    router.replace('/login')
   };
 
   const { state, isMobile } = useSidebar();

@@ -48,16 +48,6 @@ export default function PasswordResetSuccessPage() {
                     Continue
                   </Button>
                 </div>
-
-                {/* Back to Sign In */}
-                <div className="text-center mt-8">
-                  <button
-                    onClick={() => router.push("/login")}
-                    className="text-blue-600 hover:text-blue-800 text-sm font-medium transition-colors"
-                  >
-                    Back to Sign in
-                  </button>
-                </div>
               </CardContent>
             </Card>
           </div>

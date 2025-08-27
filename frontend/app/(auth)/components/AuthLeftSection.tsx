@@ -1,5 +1,6 @@
 import Image from "next/image";
-import { Background } from "../../../public/Images";
+import { Background } from "../../../public/images";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 
 export default function AuthLeftSection() {
   return (
@@ -12,24 +13,35 @@ export default function AuthLeftSection() {
         className="object-cover"
         priority
       />
+      
+      {/* Overlay */}
       <div className="absolute inset-0 bg-black/20 rounded-l-3xl"></div>
 
       {/* Content */}
       <div className="flex flex-col justify-between h-full p-12 relative z-10">
-        <div className="text-2xl font-bold tracking-wide text-white">
-          LetterCraft
-        </div>
+        {/* Logo */}
+        <Card className="bg-transparent border-none shadow-none w-fit">
+          <CardContent className="p-0">
+            <div className="text-2xl font-bold tracking-wide text-white">
+              LetterCraft
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Bottom text */}
-        <div className="mt-auto">
-          <h1 className="text-4xl font-bold mb-4 leading-tight text-white">
-            Your credit history, <br /> simplified and verified.
-          </h1>
-          <p className="text-white/90 text-base leading-relaxed">
-            Lorem ipsum dolor sit amet, consectetur <br />
-            adipiscing elit. Pellentesque at.
-          </p>
-        </div>
+        <Card className="bg-transparent border-none shadow-none mt-auto">
+          <CardHeader className="p-0 pb-4">
+            <h1 className="text-4xl font-bold leading-tight text-white">
+              Your credit history, <br /> simplified and verified.
+            </h1>
+          </CardHeader>
+          <CardContent className="p-0">
+            <p className="text-white/90 text-base leading-relaxed">
+              Lorem ipsum dolor sit amet, consectetur <br />
+              adipiscing elit. Pellentesque at.
+            </p>
+          </CardContent>
+        </Card>
 
         {/* Slider dots */}
         <div className="flex gap-2 mt-10">

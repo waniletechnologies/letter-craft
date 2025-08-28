@@ -59,13 +59,13 @@ function SidebarLink({
   icon: Icon,
   isActive,
   state,
-}: {
+}: Readonly<{
   href: string;
   label: string;
   icon: React.ElementType;
   isActive: boolean;
   state: string;
-}) {
+}>) {
   const { setOpenMobile, isMobile } = useSidebar();
   const router = useRouter();
   const [isPending, startTransition] = useTransition();

@@ -89,7 +89,7 @@ const DashboardPage = () => {
   return (
     <div className="space-y-6">
       {/* Welcome Section - Exact match to image */}
-      <div className="mb-8 mt-4">
+      <div className="sm:p-8 p-4">
         <h1 className="text-3xl font-semibold text-gray-900 mb-2 flex items-center">
           <p className="mr-2">👋</p>
           Welcome back, John
@@ -101,86 +101,86 @@ const DashboardPage = () => {
       </div>
 
       {/* Stats Cards - Exact match to image */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         {/* Total Clients Card */}
-        <Card className="border border-gray-200 rounded-lg shadow-none">
-          <CardContent className="p-4">
+        <Card className="h-[139px] border border-gray-200 rounded-lg shadow-none">
+          <CardContent className="">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">
                   Total Clients
                 </p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">47</p>
-                <p className="text-xs text-green-600 mt-1 flex items-center">
+                <p className="text-2xl font-bold text-gray-900 mt-3">47</p>
+                <p className="text-xs text-green-600 mt-3 flex items-center">
                   <FiTrendingUp className="w-3 h-3 mr-1" />
                   +12% from last month
                 </p>
               </div>
-              <div className="p-2 bg-blue-100 rounded-full">
-                <FiUsers className="w-5 h-5 text-blue-600" />
+              <div className="p-2 rounded-full">
+                <FiUsers className="w-5 h-5 " />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Active Disputes Card */}
-        <Card className="border border-gray-200 rounded-lg shadow-none">
-          <CardContent className="p-4">
+        <Card className=" h-[139px] border border-gray-200 rounded-lg shadow-none">
+          <CardContent className="">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">
                   Active Disputes
                 </p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">23</p>
-                <p className="text-xs text-green-600 mt-1 flex items-center">
+                <p className="text-2xl font-bold text-gray-900 mt-3">23</p>
+                <p className="text-xs text-green-600 mt-3 flex items-center">
                   <FiTrendingUp className="w-3 h-3 mr-1" />
                   +5% from last month
                 </p>
               </div>
-              <div className="p-2 bg-amber-100 rounded-full">
-                <FiAlertCircle className="w-5 h-5 text-amber-600" />
+              <div className="p-2  rounded-full">
+                <FiAlertCircle className="w-5 h-5 " />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Letters Sent Card */}
-        <Card className="border border-gray-200 rounded-lg shadow-none">
-          <CardContent className="p-4">
+        <Card className="h-[139px] border border-gray-200 rounded-lg shadow-none">
+          <CardContent className="">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">
                   Letters Sent
                 </p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">156</p>
-                <p className="text-xs text-green-600 mt-1 flex items-center">
+                <p className="text-2xl font-bold text-gray-900 mt-3">156</p>
+                <p className="text-xs text-green-600 mt-3 flex items-center">
                   <FiTrendingUp className="w-3 h-3 mr-1" />
                   +18% from last month
                 </p>
               </div>
-              <div className="p-2 bg-green-100 rounded-full">
-                <FiSend className="w-5 h-5 text-green-600" />
+              <div className="p-2  rounded-full">
+                <FiSend className="w-5 h-5 " />
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Reports Imported Card */}
-        <Card className="border border-gray-200 rounded-lg shadow-none">
-          <CardContent className="p-4">
+        <Card className="h-[139px] border border-gray-200 rounded-lg shadow-none">
+          <CardContent className="">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600">
                   Reports Imported
                 </p>
-                <p className="text-2xl font-bold text-gray-900 mt-1">31</p>
-                <p className="text-xs text-green-600 mt-1 flex items-center">
+                <p className="text-2xl font-bold text-gray-900 mt-3">31</p>
+                <p className="text-xs text-green-600 mt-3 flex items-center">
                   <FiTrendingUp className="w-3 h-3 mr-1" />
                   +8% from last month
                 </p>
               </div>
-              <div className="p-2 bg-purple-100 rounded-full">
-                <FiFileText className="w-5 h-5 text-purple-600" />
+              <div className="p-2 rounded-full">
+                <FiFileText className="w-5 h-5 " />
               </div>
             </div>
           </CardContent>
@@ -217,10 +217,12 @@ const DashboardPage = () => {
 
                   {/* Details */}
                   <div className="ml-3 flex-1 min-w-0">
-                    <p className="text-sm font-medium text-gray-900">
+                    <p className="text-[14px] font-medium text-[#3D3D3D]">
                       {activity.name}
                     </p>
-                    <p className="text-sm text-gray-600">{activity.action}</p>
+                    <p className="text-[11px] text-[##897E9A]">
+                      {activity.action}
+                    </p>
                   </div>
 
                   {/* Time */}
@@ -255,11 +257,7 @@ const DashboardPage = () => {
                   data={clientGrowthData}
                   margin={{ top: 10, right: 20, left: 20, bottom: 20 }} // extra chart margin
                 >
-                  <CartesianGrid
-                    strokeDasharray="3 3"
-                    vertical={false}
-                    stroke="#f3f4f6"
-                  />
+                  <CartesianGrid vertical={false} stroke="#01012E14" />
                   <XAxis
                     dataKey="month"
                     axisLine={false}
@@ -278,10 +276,10 @@ const DashboardPage = () => {
                   <Line
                     type="monotone"
                     dataKey="clients"
-                    stroke="#3b82f6"
+                    stroke="#2196F3"
                     strokeWidth={2}
-                    dot={{ r: 4, fill: "#3b82f6" }}
-                    activeDot={{ r: 6 }}
+                    dot={false}
+                    activeDot={false}
                   />
                 </LineChart>
               </ResponsiveContainer>

@@ -11,7 +11,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Upload } from "lucide-react";
+import { Calendar, Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 export default function EditClientPage() {
@@ -43,16 +43,16 @@ export default function EditClientPage() {
     middleName: "Alex",
     lastName: "Doe",
     suffix: "Jr, sr, etc",
-    email: "",
-    dateOfBirth: "",
+    email: "johndoe@example.com",
+    dateOfBirth: "2002-05-25",
     mailingAddress: "Mailing Address",
-    city: "",
+    city: "United Kingdom",
     state: "",
     zipCode: "",
     country: "United States",
-    phoneMobile: "",
-    phoneAlternate: "",
-    phoneWork: "",
+    phoneMobile: "(208) 555-0112",
+    phoneAlternate: "(208) 555-0112",
+    phoneWork: "(208) 555-0112",
     fax: "",
     ssn: "232135465456",
     experianReportNumber: "354854564879",
@@ -60,11 +60,11 @@ export default function EditClientPage() {
   });
 
   const [uploadedFiles, setUploadedFiles] = useState<{
-    [key: string]: File | null;
+    [key: string]: { name: string; size: string } | null;
   }>({
-    driversLicense: null,
-    proofOfSS: null,
-    proofOfAddress: null,
+    driversLicense: { name: "Driver's License.jpg", size: "900kb" },
+    proofOfSS: { name: "Proof of SS.jpg", size: "900kb" },
+    proofOfAddress: { name: "Proof of Address.jpg", size: "900kb" },
     ftcReport: null,
   });
 
@@ -79,17 +79,27 @@ export default function EditClientPage() {
     type: string,
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    const file = event.target.files?.[0] || null;
+    const file = event.target.files?.[0];
+    if (file) {
+      const sizeInKb = Math.round(file.size / 1024);
+      setUploadedFiles((prev) => ({
+        ...prev,
+        [type]: { name: file.name, size: `${sizeInKb}kb` },
+      }));
+    }
+  };
+
+  const handleFileRemove = (type: string) => {
     setUploadedFiles((prev) => ({
       ...prev,
-      [type]: file,
+      [type]: null,
     }));
   };
 
   const handleSubmit = () => {
     console.log("Client Data:", formData);
     console.log("Uploaded Files:", uploadedFiles);
-    alert("Client added successfully!");
+    alert("Client updated successfully!");
     router.push("/clients");
   };
 
@@ -150,7 +160,7 @@ export default function EditClientPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         {/* Header */}
-        <div className="bg-gray-100 px-6 py-4 border-b border-gray-200">
+        <div className="bg-[#F6F6F6] px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <h1 className="text-xl font-semibold text-gray-900">
@@ -158,15 +168,14 @@ export default function EditClientPage() {
               </h1>
             </div>
             <div className="flex gap-2">
-              <Button variant="ghost" className="text-sm h-9">
-                {" "}
-                Back to clients list{" "}
+              <Button variant="ghost" className="text-sm h-9 text-gray-600">
+                Back to clients list
               </Button>
               <Button
                 onClick={handleSubmit}
-                className="primary hover:bg-blue-700 text-white h-9 px-4"
+                className="bg-[#2196F3] hover:bg-blue-700 text-white h-9 px-4"
               >
-                Edit Client
+                Add Client
               </Button>
             </div>
           </div>
@@ -181,7 +190,7 @@ export default function EditClientPage() {
                   htmlFor="firstName"
                   className="text-sm font-medium mb-2 block"
                 >
-                  First Name *
+                  First Name <span className="text-[#DC2626]"> *</span>
                 </Label>
                 <Input
                   id="firstName"
@@ -213,7 +222,7 @@ export default function EditClientPage() {
                   htmlFor="lastName"
                   className="text-sm font-medium mb-2 block"
                 >
-                  Last Name *
+                  Last Name <span className="text-[#DC2626]"> *</span>
                 </Label>
                 <Input
                   id="lastName"
@@ -281,8 +290,8 @@ export default function EditClientPage() {
 
           {/* Address Information */}
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
+            <div className="flex flex-wrap gap-4">
+              <div className="w-[311px]">
                 <Label
                   htmlFor="mailingAddress"
                   className="text-sm font-medium mb-2 block"
@@ -292,11 +301,14 @@ export default function EditClientPage() {
                 <Input
                   id="mailingAddress"
                   value={formData.mailingAddress}
-                  onChange={(e) => handleInputChange("city", e.target.value)}
-                  className="h-10 "
+                  onChange={(e) =>
+                    handleInputChange("mailingAddress", e.target.value)
+                  }
+                  className="h-10"
                 />
               </div>
-              <div>
+
+              <div className="w-[315px]">
                 <Label
                   htmlFor="city"
                   className="text-sm font-medium mb-2 block"
@@ -310,7 +322,8 @@ export default function EditClientPage() {
                   className="h-10"
                 />
               </div>
-              <div>
+
+              <div className="w-[148px]">
                 <Label
                   htmlFor="state"
                   className="text-sm font-medium mb-2 block"
@@ -323,7 +336,7 @@ export default function EditClientPage() {
                     handleInputChange("state", value)
                   }
                 >
-                  <SelectTrigger className="h-10">
+                  <SelectTrigger className="h-10 w-[148px]">
                     <SelectValue placeholder="---" />
                   </SelectTrigger>
                   <SelectContent>
@@ -335,7 +348,8 @@ export default function EditClientPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+
+              <div className="w-[148px] h-[70px]">
                 <Label
                   htmlFor="zipCode"
                   className="text-sm font-medium mb-2 block"
@@ -346,87 +360,7 @@ export default function EditClientPage() {
                   id="zipCode"
                   value={formData.zipCode}
                   onChange={(e) => handleInputChange("zipCode", e.target.value)}
-                  className="h-10"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <div >
-                <Label
-                  htmlFor="country"
-                  className="text-sm font-medium mb-2 block"
-                >
-                  Country
-                </Label>
-                <Input
-                  id="country"
-                  value={formData.country}
-                  onChange={(e) => handleInputChange("country", e.target.value)}
-                  className="h-10"
-                />
-              </div>
-              <div>
-                <Label
-                  htmlFor="phoneMobile"
-                  className="text-sm font-medium mb-2 block"
-                >
-                  Phone (Mobile)
-                </Label>
-                <Input
-                  id="phoneMobile"
-                  type="tel"
-                  value={formData.phoneMobile}
-                  onChange={(e) =>
-                    handleInputChange("phoneMobile", e.target.value)
-                  }
-                  className="h-10"
-                />
-              </div>
-              <div>
-                <Label
-                  htmlFor="phoneAlternate"
-                  className="text-sm font-medium mb-2 block"
-                >
-                  Phone (Alternate)
-                </Label>
-                <Input
-                  id="phoneAlternate"
-                  type="tel"
-                  value={formData.phoneAlternate}
-                  onChange={(e) =>
-                    handleInputChange("phoneAlternate", e.target.value)
-                  }
-                  className="h-10"
-                />
-              </div>
-              <div>
-                <Label
-                  htmlFor="phoneWork"
-                  className="text-sm font-medium mb-2 block"
-                >
-                  Phone (Work)
-                </Label>
-                <Input
-                  id="phoneWork"
-                  type="tel"
-                  value={formData.phoneWork}
-                  onChange={(e) =>
-                    handleInputChange("phoneWork", e.target.value)
-                  }
-                  className="h-10"
-                />
-              </div>
-              <div>
-                <Label htmlFor="fax" className="text-sm font-medium mb-2 block">
-                  Fax
-                </Label>
-                <Input
-                  id="fax"
-                  type="tel"
-                  value={formData.fax}
-                  onChange={(e) => handleInputChange("fax", e.target.value)}
-                  className="h-10"
+                  className="h-[35px]"
                 />
               </div>
             </div>
@@ -494,35 +428,55 @@ export default function EditClientPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               {[
-                { key: "driversLicense", label: "Upload for Driver's License" },
-                { key: "proofOfSS", label: "Upload for Proof of SS" },
-                { key: "proofOfAddress", label: "Upload for Proof of Address" },
+                { key: "driversLicense", label: "Driver's License.jpg" },
+                { key: "proofOfSS", label: "Proof of SS.jpg" },
+                { key: "proofOfAddress", label: "Proof of Address.jpg" },
               ].map(({ key, label }) => (
-                <div
-                  key={key}
-                  className="border border-gray-200 rounded-lg p-4 text-center"
-                >
-                  <div className="text-sm text-gray-600 mb-3">{label}</div>
-                  <input
-                    type="file"
-                    id={key}
-                    className="hidden"
-                    onChange={(e) => handleFileUpload(key, e)}
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                  />
-                  <label htmlFor={key} className="cursor-pointer">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="cursor-pointer bg-blue-600 text-white hover:bg-blue-700 h-8 px-3"
-                    >
-                      <Upload className="h-3 w-3 mr-1" />
-                      Upload
-                    </Button>
-                  </label>
-                  {uploadedFiles[key] && (
-                    <div className="text-xs text-green-600 mt-2">
-                      {uploadedFiles[key]?.name}
+                <div key={key} className="space-y-2">
+                  {uploadedFiles[key] ? (
+                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50">
+                      <div className="flex items-center space-x-3">
+                        <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
+                          <div className="w-4 h-4 bg-blue-600 rounded-sm"></div>
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {uploadedFiles[key]?.name}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {uploadedFiles[key]?.size}
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleFileRemove(key)}
+                        className="p-1 hover:bg-gray-200 rounded"
+                      >
+                        <X className="h-4 w-4 text-gray-400" />
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="border border-gray-200 rounded-lg p-4 text-center">
+                      <div className="text-sm text-gray-600 mb-3">
+                        Upload for {label}
+                      </div>
+                      <input
+                        type="file"
+                        id={key}
+                        className="hidden"
+                        onChange={(e) => handleFileUpload(key, e)}
+                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                      />
+                      <label htmlFor={key} className="cursor-pointer">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="cursor-pointer bg-blue-600 text-white hover:bg-blue-700 h-8 px-3"
+                        >
+                          <Upload className="h-3 w-3 mr-1" />
+                          Upload
+                        </Button>
+                      </label>
                     </div>
                   )}
                 </div>
@@ -530,7 +484,7 @@ export default function EditClientPage() {
             </div>
 
             {/* FTC Report Upload */}
-            <div>
+            {/* <div>
               <h3 className="font-medium mb-3 text-sm text-gray-900">
                 Upload Your FTC Report
               </h3>
@@ -560,7 +514,7 @@ export default function EditClientPage() {
                   </div>
                 )}
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </div>

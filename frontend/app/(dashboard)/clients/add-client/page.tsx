@@ -150,7 +150,7 @@ export default function AddClientPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         {/* Header */}
-        <div className="bg-white px-6 py-4 border-b border-gray-200">
+        <div className="bg-[#F6F6F6] px-6 py-4 border-b border-gray-200">
           <div className="flex items-center justify-between">
             <div className="flex items-center">
               <h1 className="text-xl font-semibold text-gray-900">
@@ -181,7 +181,7 @@ export default function AddClientPage() {
                   htmlFor="firstName"
                   className="text-sm font-medium mb-2 block"
                 >
-                  First Name *
+                  First Name <span className="text-[#DC2626]"> *</span>
                 </Label>
                 <Input
                   id="firstName"
@@ -213,7 +213,7 @@ export default function AddClientPage() {
                   htmlFor="lastName"
                   className="text-sm font-medium mb-2 block"
                 >
-                  Last Name *
+                  Last Name <span className="text-[#DC2626]"> *</span>
                 </Label>
                 <Input
                   id="lastName"
@@ -281,8 +281,8 @@ export default function AddClientPage() {
 
           {/* Address Information */}
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-              <div>
+            <div className="flex flex-wrap gap-4">
+              <div className="w-[311px]">
                 <Label
                   htmlFor="mailingAddress"
                   className="text-sm font-medium mb-2 block"
@@ -292,11 +292,14 @@ export default function AddClientPage() {
                 <Input
                   id="mailingAddress"
                   value={formData.mailingAddress}
-                  onChange={(e) => handleInputChange("city", e.target.value)}
-                  className="h-10 "
+                  onChange={(e) =>
+                    handleInputChange("mailingAddress", e.target.value)
+                  }
+                  className="h-10"
                 />
               </div>
-              <div>
+
+              <div className="w-[315px]">
                 <Label
                   htmlFor="city"
                   className="text-sm font-medium mb-2 block"
@@ -310,7 +313,8 @@ export default function AddClientPage() {
                   className="h-10"
                 />
               </div>
-              <div>
+
+              <div className="w-[148px]">
                 <Label
                   htmlFor="state"
                   className="text-sm font-medium mb-2 block"
@@ -323,7 +327,7 @@ export default function AddClientPage() {
                     handleInputChange("state", value)
                   }
                 >
-                  <SelectTrigger className="h-10">
+                  <SelectTrigger className="h-10 w-[148px]">
                     <SelectValue placeholder="---" />
                   </SelectTrigger>
                   <SelectContent>
@@ -335,7 +339,8 @@ export default function AddClientPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div>
+
+              <div className="w-[148px] h-[70px]">
                 <Label
                   htmlFor="zipCode"
                   className="text-sm font-medium mb-2 block"
@@ -346,87 +351,7 @@ export default function AddClientPage() {
                   id="zipCode"
                   value={formData.zipCode}
                   onChange={(e) => handleInputChange("zipCode", e.target.value)}
-                  className="h-10"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              <div >
-                <Label
-                  htmlFor="country"
-                  className="text-sm font-medium mb-2 block"
-                >
-                  Country
-                </Label>
-                <Input
-                  id="country"
-                  value={formData.country}
-                  onChange={(e) => handleInputChange("country", e.target.value)}
-                  className="h-10"
-                />
-              </div>
-              <div>
-                <Label
-                  htmlFor="phoneMobile"
-                  className="text-sm font-medium mb-2 block"
-                >
-                  Phone (Mobile)
-                </Label>
-                <Input
-                  id="phoneMobile"
-                  type="tel"
-                  value={formData.phoneMobile}
-                  onChange={(e) =>
-                    handleInputChange("phoneMobile", e.target.value)
-                  }
-                  className="h-10"
-                />
-              </div>
-              <div>
-                <Label
-                  htmlFor="phoneAlternate"
-                  className="text-sm font-medium mb-2 block"
-                >
-                  Phone (Alternate)
-                </Label>
-                <Input
-                  id="phoneAlternate"
-                  type="tel"
-                  value={formData.phoneAlternate}
-                  onChange={(e) =>
-                    handleInputChange("phoneAlternate", e.target.value)
-                  }
-                  className="h-10"
-                />
-              </div>
-              <div>
-                <Label
-                  htmlFor="phoneWork"
-                  className="text-sm font-medium mb-2 block"
-                >
-                  Phone (Work)
-                </Label>
-                <Input
-                  id="phoneWork"
-                  type="tel"
-                  value={formData.phoneWork}
-                  onChange={(e) =>
-                    handleInputChange("phoneWork", e.target.value)
-                  }
-                  className="h-10"
-                />
-              </div>
-              <div>
-                <Label htmlFor="fax" className="text-sm font-medium mb-2 block">
-                  Fax
-                </Label>
-                <Input
-                  id="fax"
-                  type="tel"
-                  value={formData.fax}
-                  onChange={(e) => handleInputChange("fax", e.target.value)}
-                  className="h-10"
+                  className="h-[35px]"
                 />
               </div>
             </div>

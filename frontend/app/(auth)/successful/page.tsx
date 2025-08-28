@@ -15,44 +15,42 @@ export default function PasswordResetSuccessPage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50 p-6">
-      <div className="flex w-full rounded-3xl overflow-hidden shadow-lg bg-white">
-        {/* Left Section */}
-        <AuthLeftSection />
+      {/* <div className="flex w-full rounded-3xl overflow-hidden shadow-lg bg-white"> */}
+      {/* Left Section */}
+      <AuthLeftSection />
 
-        {/* Right Section - Success Message */}
-        <div className="flex flex-col justify-center items-center w-full lg:w-1/2 px-8 py-12">
-          <div className="w-full max-w-sm">
-            <Card className="border-0 shadow-none">
-              <CardContent className="p-0">
-                {/* Success Icon */}
-                <div className="flex justify-center mb-6">
-                  <div className="w-20 h-20 rounded-full bg-green-100 flex items-center justify-center">
-                    <FaCheckCircle className="h-12 w-12 text-green-600" />
-                  </div>
-                </div>
+      {/* Right Section - Success Message */}
+      <div className="flex flex-col justify-center items-center w-full lg:w-1/2 px-8 py-12">
+        <div className="w-full max-w-sm">
+          <Card className="border-0 shadow-none">
+            <CardContent className="p-0">
+              {/* Success Icon */}
+              <div className="flex justify-center mb-6">
+                <FaCheckCircle className="h-12 w-12 text-[#2196F3]" />
+              </div>
 
-                {/* Success Message */}
-                <h2 className="text-3xl font-bold text-center text-gray-900 mb-3">
-                  Your Password has been reset
-                </h2>
-                <p className="text-xl font-semibold text-green-600 text-center mb-8">
-                  Successfully
-                </p>
+              {/* Success Message */}
+              <p className="text-[18px] font-bold text-center text-[#AAABAF] mb-3">
+                Your Password has been reset
+              </p>
+              <p className="text-xl font-semibold text-[#2A2020] text-center mb-8">
+                Successfully
+              </p>
 
-                {/* Continue Button */}
-                <div className="mt-8">
-                  <Button
-                    onClick={handleContinue}
-                    className="w-full h-12 text-base font-semibold bg-blue-600 hover:bg-blue-700"
-                  >
-                    Continue
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              {/* Continue Button */}
+              <div className="mt-8 item-center justify-center text-center">
+                <Button
+                  onClick={handleContinue}
+                  className="w-[162px] h-[40px] text-base font-semibold bg-[#2196F3] hover:bg-blue-700"
+                >
+                  Continue
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>
+    // </div>
   );
 }

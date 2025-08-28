@@ -23,7 +23,7 @@ const dashboardLink = [
     
     {
         label: "Letter Library",
-        href: "/letter-library"
+        href: "/letters"
     },
     {
         label: "Creditors",

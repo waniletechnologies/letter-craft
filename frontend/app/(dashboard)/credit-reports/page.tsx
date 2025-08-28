@@ -11,6 +11,7 @@ import ViewCreditReport from './components/view-credit-report'
 import ExportCreditReport from './components/export-credit-report'
 import { creditReports } from '@/lib/data'
 import CustomPagination from '@/components/Pagination'
+import { useRouter } from 'next/navigation'
 
 interface CreditReport {
   id: number;
@@ -24,6 +25,7 @@ interface CreditReport {
 }
 
 const Page = () => {
+  const router = useRouter();
   const [currentPage, setCurrentPage] = useState(1);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [overlayOpen, setOverlayOpen] = useState(false);
@@ -44,6 +46,8 @@ const Page = () => {
     setTimeout(() => setSteps((s) => s.map((x, i) => ({ ...x, status: i === 0 ? 'done' : i === 1 ? 'done' : i === 2 ? 'running' : x.status }))), 1600);
     setTimeout(() => setSteps((s) => s.map((x) => ({ ...x, status: 'done' }))), 2400);
     setTimeout(() => setOverlayOpen(false), 3300);
+
+    router.push('/preview-credit-report');
   };
 
   return (

@@ -121,4 +121,59 @@ export const creditInquiryRows: CreditInquiryRow[] = [
 export const publicRecordRows = [
   { id: 'bankruptcy', label: '', values: { Experian: '', Equifax: '', TransUnion: '' } },
 ];
+
+export const accountInfoRows = [
+  {
+    id: 'amex',
+    accountName: 'AMEX',
+    accountNumber: '3499924260393523',
+    highBalance: '$6,961',
+    lastVerified: '05/08/2025',
+    status: 'Positive',
+    values: { 
+      Experian: { accountName: 'AMEX', accountNumber: '3499924260393523', highBalance: '$6,961', lastVerified: '', status: 'Positive' },
+      Equifax: { accountName: 'AMEX', accountNumber: '-3499924260393523', highBalance: '$0', lastVerified: '', status: 'Positive' },
+      TransUnion: { accountName: 'AMEX', accountNumber: '3499924260393523', highBalance: '$6,961', lastVerified: '05/08/2025', status: 'Positive' }
+    }
+  },
+  {
+    id: 'capital_one',
+    accountName: 'CAPITAL ONE',
+    accountNumber: '517805925494',
+    highBalance: '$4,884',
+    lastVerified: '05/17/2025',
+    status: 'Positive',
+    values: { 
+      Experian: { accountName: 'CAPITAL ONE', accountNumber: '517805925494', highBalance: '$4,884', lastVerified: '', status: 'Positive' },
+      Equifax: { accountName: 'CAPITAL ONE', accountNumber: '517805925494', highBalance: '$0', lastVerified: '', status: 'Positive' },
+      TransUnion: { accountName: 'CAPITAL ONE', accountNumber: '517805925494', highBalance: '$4,884', lastVerified: '05/17/2025', status: 'Positive' }
+    }
+  },
+  {
+    id: 'discover_card',
+    accountName: 'DISCOVERCARD',
+    accountNumber: '601100602255',
+    highBalance: '$2,839',
+    lastVerified: '05/11/2025',
+    status: 'Negative',
+    values: { 
+      Experian: { accountName: 'DISCOVERCARD', accountNumber: '601100602255', highBalance: '$2,839', lastVerified: '', status: 'Negative' },
+      Equifax: { accountName: 'DISCOVERCARD', accountNumber: '601100602255', highBalance: '$0', lastVerified: '', status: 'Negative' },
+      TransUnion: { accountName: 'DISCOVERCARD', accountNumber: '601100602255', highBalance: '$2,839', lastVerified: '05/11/2025', status: 'Negative' }
+    }
+  },
+  {
+    id: 'ally_financial',
+    accountName: 'ALLY FINCL',
+    accountNumber: '227972474932',
+    highBalance: '$20,874',
+    lastVerified: '09/07/2023',
+    status: 'Positive',
+    values: { 
+      Experian: { accountName: 'ALLY FINCL', accountNumber: '227972474932', highBalance: '$20,874', lastVerified: '', status: 'Positive' },
+      Equifax: { accountName: 'ALLY FINCL', accountNumber: '227972474932', highBalance: '$20,874', lastVerified: '', status: 'Positive' },
+      TransUnion: { accountName: 'ALLY FINCL', accountNumber: '227972474932', highBalance: '$20,874', lastVerified: '09/07/2023', status: 'Positive' }
+    }
+  },
+];
   

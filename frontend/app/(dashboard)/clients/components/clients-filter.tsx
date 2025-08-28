@@ -1,8 +1,9 @@
 "use client";
 
-import { Search, Filter, Plus } from "lucide-react";
+import { Search, Plus } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { LuListFilter } from 'react-icons/lu'
 
 interface Props {
   searchTerm: string;
@@ -27,10 +28,13 @@ export function ClientsFilter({
         />
       </div>
 
-      <Button variant="outline" className="flex items-center gap-2">
-        <Filter className="w-4 h-4" />
-        Filters
-      </Button>
+      <Button
+                  variant="ghost"
+                  className="text-[#292524] cursor-pointer bg-white hover:bg-transparent hover:text-[#2563EB] transition"
+                >
+                  <LuListFilter className="h-5 w-5 mr-2" />
+                  Filter
+                </Button>
 
       <Button
         onClick={onAddClient}

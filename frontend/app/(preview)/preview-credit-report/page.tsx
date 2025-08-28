@@ -1,3 +1,5 @@
+"use client"
+
 import React from 'react'
 import PersonalInfoTable from './components/personal-info'
 import CreditSummaryTable from './components/credit-summary'
@@ -5,7 +7,7 @@ import CreditInquiryTable from './components/credit-inquiries'
 import PublicRecordTable from './components/public-record'
 import { personalInfoRows, creditSummaryRows, creditInquiryRows, publicRecordRows } from '@/lib/data'
 
-const page = () => {
+const Page = () => {
   return (
     <div>
         <div className="flex gap-2 mb-6">
@@ -67,4 +69,4 @@ const page = () => {
   )
 }
 
-export default page
+export default Page

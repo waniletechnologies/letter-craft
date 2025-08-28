@@ -35,7 +35,7 @@ export interface ViewCreditReportProps {
   negativeItems?: NegativeItem[];
 }
 
-const ProgressBar: React.FC<{ label: string; value: number; max?: number }> = ({ label, value, max = 100 }) => (
+const ProgressBar: React.FC<{ label: string; value: number }> = ({ label, value }) => (
   <div className="space-y-1">
     <div className="flex items-center justify-between text-xs text-[#6B7280]"><span>{label}</span><span>{value}%</span></div>
     <div className="h-2 w-full rounded-full bg-[#F1F5F9]"><div className="h-2 rounded-full bg-[#2563EB]" style={{ width: `${Math.min(100, Math.max(0, value))}%` }} /></div>

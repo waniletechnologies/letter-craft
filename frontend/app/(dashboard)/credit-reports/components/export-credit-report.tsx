@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
-import { FileText, FileDown, Settings, FileOutput } from "lucide-react";
+import { FileText, Settings } from "lucide-react";
 
 interface ExportCreditReportProps {
   open: boolean;
@@ -74,7 +74,6 @@ export const ExportCreditReport: React.FC<ExportCreditReportProps> = ({
   provider,
   bureaus,
 }) => {
-  const [format] = useState<'PDF'>('PDF');
   const [includeScore, setIncludeScore] = useState(true);
   const [includeAccounts, setIncludeAccounts] = useState(true);
   const [includeNegatives, setIncludeNegatives] = useState(true);

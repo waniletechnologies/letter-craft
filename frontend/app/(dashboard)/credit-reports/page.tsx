@@ -1,7 +1,7 @@
 'use client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import React, { useEffect, useState } from 'react'
+import React, { useState } from 'react'
 import { FaRegFile } from 'react-icons/fa'
 import { LuListFilter, LuSearch } from 'react-icons/lu'
 import ReportCard from './components/report-card'
@@ -12,13 +12,24 @@ import ExportCreditReport from './components/export-credit-report'
 import { creditReports } from '@/lib/data'
 import CustomPagination from '@/components/Pagination'
 
-const page = () => {
+interface CreditReport {
+  id: number;
+  name: string;
+  status: string;
+  imported_on: string;
+  source: string;
+  credit_bureaus: string[];
+  accounts: number;
+  negative_items: number;
+}
+
+const Page = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  const [selectedReport, setSelectedReport] = useState<any | null>(null);
+  const [selectedReport, setSelectedReport] = useState<CreditReport | null>(null);
   const [steps, setSteps] = useState<{ id: string; label: string; status: ImportStepStatus }[]>([
     { id: 'connect', label: 'Connecting to MyFreeScoreNow', status: 'pending' },
     { id: 'access', label: 'Accessing Report Data', status: 'pending' },
@@ -148,4 +159,4 @@ const page = () => {
   )
 }
 
-export default page
+export default Page

@@ -8,7 +8,6 @@ import { Textarea } from "@/components/ui/textarea";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -20,7 +19,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { LuEye, LuEyeOff, LuX } from "react-icons/lu";
+import { LuEye, LuEyeOff } from "react-icons/lu";
 
 interface ImportCreditReportProps {
   open: boolean;

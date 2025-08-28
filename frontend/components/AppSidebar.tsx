@@ -68,7 +68,7 @@ function SidebarLink({
 }>) {
   const { setOpenMobile, isMobile } = useSidebar();
   const router = useRouter();
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
   const handleClick = () => {
     startTransition(() => {

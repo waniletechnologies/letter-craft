@@ -51,7 +51,7 @@ const Page = () => {
   };
 
   return (
-    <>
+    <div className='p-6'>
       <div className="mb-6">
         <h1 className="font-semibold text-[32px] leading-[100%] -tracking-[0.07em] text-[#3D3D3D] mb-2">Credit Reports</h1>
         <p className="font-medium text-[16px] leading-[100%] -tracking-[0.07em] text-[#606060]">Import and manage credit reports from various providers.</p>
@@ -161,7 +161,7 @@ const Page = () => {
           bureaus={selectedReport.credit_bureaus}
         />
       )}
-    </>
+    </div>
   )
 }
 

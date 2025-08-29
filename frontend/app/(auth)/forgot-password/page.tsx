@@ -11,10 +11,10 @@ export default function ForgotPasswordPage() {
   const router = useRouter();
   const [email, setEmail] = useState("");
 
-  const handleSubmit = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     // Handle forgot password logic here
-    router.replace("/reset-password");
+    router.push("/verification");
   };
 
   const handleBackToLogin = () => {
@@ -38,7 +38,7 @@ export default function ForgotPasswordPage() {
             No worries, we&apos;ll send you reset instructions.
           </p>
 
-          <form onSubmit={() => handleSubmit} className="space-y-5">
+          <form onSubmit={handleSubmit} className="space-y-5">
             {/* Email */}
             <div className="px-[25px]">
               <label className="block text-sm font-medium text-gray-700 mb-2">

@@ -17,7 +17,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Client } from "../page";
-import { useState, useEffect } from "react";
+import { useState, } from "react";
 
 interface Props {
   clients: Client[];

@@ -13,6 +13,8 @@ import {
 } from "@/components/ui/select";
 import { Calendar, Upload, X } from "lucide-react";
 import { useRouter } from "next/navigation";
+import Image from "next/image";
+import { UploadFile } from "../../../../public/images";
 
 export default function EditClientPage() {
   const router = useRouter();
@@ -434,23 +436,30 @@ export default function EditClientPage() {
               ].map(({ key, label }) => (
                 <div key={key} className="space-y-2">
                   {uploadedFiles[key] ? (
-                    <div className="flex items-center justify-between p-3 border border-gray-200 rounded-lg bg-gray-50">
+                    <div className="flex items-center justify-between p-3 rounded-lg bg-[#EFEFEF]">
                       <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center">
-                          <div className="w-4 h-4 bg-blue-600 rounded-sm"></div>
+                        <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center overflow-hidden relative">
+                          <Image
+                            src={UploadFile || "/placeholder.svg"}
+                            alt="file icon"
+                            fill
+                            className="object-contain"
+                            priority
+                          />
                         </div>
+
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-[12px] font-medium text-gray-900">
                             {uploadedFiles[key]?.name}
                           </div>
-                          <div className="text-xs text-gray-500">
+                          <div className="text-[12px] text-gray-500">
                             {uploadedFiles[key]?.size}
                           </div>
                         </div>
                       </div>
                       <button
                         onClick={() => handleFileRemove(key)}
-                        className="p-1 hover:bg-gray-200 rounded"
+                        className="p-1 bg-[#BBBBBB] hover:bg-gray-200 rounded-xl border-[#BBBBBB]"
                       >
                         <X className="h-4 w-4 text-gray-400" />
                       </button>

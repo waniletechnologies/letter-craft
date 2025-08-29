@@ -113,7 +113,7 @@ export default function ResetPasswordPage() {
       // Handle password reset logic here
       console.log("Password reset successful");
       alert("Password has been reset successfully!");
-      router.push("/login");
+      router.push("/successful");
     }
   };
 

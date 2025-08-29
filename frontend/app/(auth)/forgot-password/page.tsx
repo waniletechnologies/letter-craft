@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import { Mail, ArrowLeft } from "lucide-react";
+import {  ArrowLeft } from "lucide-react";
 import AuthLeftSection from "../components/AuthLeftSection";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";

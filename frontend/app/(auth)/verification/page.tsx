@@ -73,14 +73,8 @@ export default function VerificationCodePage() {
       return;
     }
 
-    // For demo purposes, check if code is "273273"
-    if (verificationCode !== "273273") {
-      setError(true);
-      triggerShakeAnimation();
-    } else {
-      setError(false);
-      router.replace('/reset-password')
-    }
+    setError(false);
+    router.replace('/reset-password')
   };
 
   const handleResend = () => {
@@ -128,7 +122,9 @@ export default function VerificationCodePage() {
                   onChange={(e) => handleInputChange(index, e.target.value)}
                   onKeyDown={(e) => handleKeyDown(index, e)}
                   onPaste={index === 0 ? handlePaste : undefined}
-                  ref={(el) => (inputRefs.current[index] = el)}
+                  ref={(el) => {
+                    inputRefs.current[index] = el;
+                  }}
                   className={`w-[50px] h-[68px] text-center text-xl text-[#000000] font-semibold border rounded-lg focus:ring-2 focus:ring-[#1379F2] focus:border-transparent outline-none transition-colors ${
                     error ? "border-[#1379F2]" : "border-gray-300"
                   }`}

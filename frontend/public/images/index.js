@@ -7,4 +7,10 @@ import UploadFile from './UploadFile.png';
 
 import Background from './Background.jpg';
 
-export { Logo, UploadFile, Upload, Experian, Equifax, TransUnion, Background };
+import License from './license.svg';
+import Proof from './proof.svg';
+import Address from './address.svg';
+import Pdf from './pdf.svg'
+import CloudMail from './cloudMail.svg'
+
+export { Logo, UploadFile, Upload, Experian, Equifax, TransUnion, Background, License, Proof, Address, Pdf, CloudMail };

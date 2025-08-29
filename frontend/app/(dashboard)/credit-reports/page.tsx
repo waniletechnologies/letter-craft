@@ -75,7 +75,9 @@ const Page = () => {
           </Button>
         </div>
         <div className='flex space-x-4'>
-          <Button className="bg-[#EFEFEF] text-[#3E3E3E] !hover:[#EFEFEF]/90 px-4 py-2 rounded transition">
+          <Button
+          variant="outline"
+           className="bg-[#EFEFEF] text-[#3E3E3E] !hover:[#EFEFEF]/90 px-4 py-2 rounded transition">
             <FaRegFile className="h-4 w-4 mr-0" />
             View Groups 
           </Button>

@@ -4,12 +4,22 @@ import React, { useState } from "react";
 import Stepper from "../components/Stepper";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Bold, Italic, Underline, List, AlignLeft, Wand2 } from "lucide-react";
+import { FileText, Bold, Italic, Underline, List, AlignLeft, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { Experian, Equifax, TransUnion } from "@/public/images";
+import SaveLetterDialog, { SaveLetterData } from "./components/save-letter";
 
 const GenerateLetterPage = () => {
   const [phase] = useState(1);
+  const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+
+  const handleSaveLetter = (data: SaveLetterData) => {
+    console.log("Saving letter with data:", data);
+  };
+
+  const handleSaveAndContinue = () => {
+    setIsSaveDialogOpen(true);
+  };
 
   return (
     <div className="p-6">
@@ -61,19 +71,20 @@ const GenerateLetterPage = () => {
 
       {/* Letter Envelope Information */}
       <div className="rounded-xl bg-white py-6 px-12 mb-4">
-        <div className="text-xs text-[#6B7280] mb-2">Letter Envelope Information (Only For CloudMail)</div>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div className="font-medium text-xs leading-[150%] -tracking-[0.03em] capitalize text-[#292524] mb-2">Letter Envelope Information (Only For CloudMail)</div>
+      <div className="border border-[#00000014] rounded-lg">
+        <div className="flex flex-row justify-between px-8 py-4">
           <div className="rounded-md p-3">
-            <div className="text-xs text-[#6B7280] mb-2">Send From Address:</div>
-            <div className="text-xs text-[#111827] leading-5">
+            <div className="font-medium text-xs leading-[150%] -tracking-[0.03em] capitalize text-[#292524] mb-2">Send From Address:</div>
+            <div className="font-semibold text-xs leading-[150%] -tracking-[0.03em] capitalize text-[#292524]">
               Michael Yaldo<br/>
               4823 Bantry Dr<br/>
               West Bloomfield, Michigan 48322
             </div>
           </div>
           <div className="rounded-md p-3">
-            <div className="text-xs text-[#6B7280] mb-2">Send To Address:</div>
-            <div className="text-xs text-[#111827] leading-5">
+            <div className="font-medium text-xs leading-[150%] -tracking-[0.03em] capitalize text-[#292524] mb-2">Send To Address:</div>
+            <div className="font-semibold text-xs leading-[150%] -tracking-[0.03em] capitalize text-[#292524]">
               Equifax Information Services LLC<br/>
               P.O. Box 740256<br/>
               Atlanta, GA 30374
@@ -81,7 +92,7 @@ const GenerateLetterPage = () => {
           </div>
         </div>
       </div>
-
+      </div>
       {/* Editor */}
       <div className="px-12">
       <div className="rounded-xl border border-[#E5E7EB] bg-white">
@@ -104,8 +115,8 @@ const GenerateLetterPage = () => {
             <br />
             Michael Ron Yaldo
           </div>
-          <Button size="sm" variant="outline" className="absolute right-4 bottom-4 flex items-center gap-2">
-            Generate with AI <Wand2 className="h-4 w-4" />
+          <Button size="sm" variant="outline" className="absolute border-primary right-4 bottom-4 flex items-center gap-2">
+            Generate with AI <Sparkles className="h-4 w-4 text-primary" />
           </Button>
         </div>
       </div>
@@ -114,10 +125,22 @@ const GenerateLetterPage = () => {
       <div className="flex justify-end my-4 mr-12">
         <div className="flex gap-2">
           <Button variant="outline">Save For Later</Button>
-          <Button className="bg-primary hover:bg-primary/90">Save & Continue</Button>
+          <Button 
+            className="bg-primary hover:bg-primary/90"
+            onClick={handleSaveAndContinue}
+          >
+            Save & Continue
+          </Button>
         </div>
       </div>
       </div>
+
+      {/* Save Letter Dialog */}
+      <SaveLetterDialog
+        isOpen={isSaveDialogOpen}
+        onClose={() => setIsSaveDialogOpen(false)}
+        onSave={handleSaveLetter}
+      />
     </div>
   );
 };

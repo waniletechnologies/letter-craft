@@ -51,7 +51,7 @@ const Page = () => {
   };
 
   return (
-    <>
+    <div className='p-6'>
       <div className="mb-6">
         <h1 className="font-semibold text-[32px] leading-[100%] -tracking-[0.07em] text-[#3D3D3D] mb-2">Credit Reports</h1>
         <p className="font-medium text-[16px] leading-[100%] -tracking-[0.07em] text-[#606060]">Import and manage credit reports from various providers.</p>
@@ -75,7 +75,9 @@ const Page = () => {
           </Button>
         </div>
         <div className='flex space-x-4'>
-          <Button className="bg-[#EFEFEF] text-[#3E3E3E] !hover:[#EFEFEF]/90 px-4 py-2 rounded transition">
+          <Button
+          variant="outline"
+           className="bg-[#EFEFEF] text-[#3E3E3E] !hover:[#EFEFEF]/90 px-4 py-2 rounded transition">
             <FaRegFile className="h-4 w-4 mr-0" />
             View Groups 
           </Button>
@@ -159,7 +161,7 @@ const Page = () => {
           bureaus={selectedReport.credit_bureaus}
         />
       )}
-    </>
+    </div>
   )
 }
 

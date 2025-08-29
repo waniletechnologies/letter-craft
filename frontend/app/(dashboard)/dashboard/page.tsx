@@ -79,10 +79,10 @@ const recentActivity = [
 
 const clientGrowthData = [
   { month: "Feb", clients: 22 },
-  { month: "Mar", clients: 27 },
+  { month: "Mar", clients: 47 },
   { month: "Apr", clients: 31 },
-  { month: "May", clients: 38 },
-  { month: "Jun", clients: 47 },
+  { month: "May", clients: 58 },
+  { month: "Jun", clients: 12 },
 ];
 
 const DashboardPage = () => {
@@ -103,84 +103,101 @@ const DashboardPage = () => {
       {/* Stats Cards - Exact match to image */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
         {/* Total Clients Card */}
-        <Card className="h-[139px] border border-gray-200 rounded-lg shadow-none">
-          <CardContent className="">
-            <div className="flex items-center justify-between">
+        <Card className="h-[139px] rounded-lg shadow-none">
+          <CardContent>
+            <div className="flex items-start justify-between">
+              {/* Left content */}
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-[14px] font-medium text-[#171744] font-inter">
                   Total Clients
                 </p>
-                <p className="text-2xl font-bold text-gray-900 mt-3">47</p>
-                <p className="text-xs text-green-600 mt-3 flex items-center">
+                <p className="font-inter text-[24px] font-bold text-[#000000] mt-3">
+                  47
+                </p>
+                <p className="text-[12px] font-poppins text-[#22C55E] font-medium mt-3 flex items-center">
                   <FiTrendingUp className="w-3 h-3 mr-1" />
                   +12% from last month
                 </p>
               </div>
-              <div className="p-2 rounded-full">
-                <FiUsers className="w-5 h-5 " />
+
+              {/* Right icon aligned with first p */}
+              <div className=" rounded-full self-start">
+                <FiUsers className="w-5 h-5" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Active Disputes Card */}
-        <Card className=" h-[139px] border border-gray-200 rounded-lg shadow-none">
-          <CardContent className="">
-            <div className="flex items-center justify-between">
+        <Card className="h-[139px] rounded-lg shadow-none">
+          <CardContent>
+            <div className="flex items-start justify-between">
+              {/* Left content */}
               <div>
-                <p className="text-sm font-medium text-gray-600">
+                <p className="text-[14px] font-medium text-[#171744] font-inter">
                   Active Disputes
                 </p>
-                <p className="text-2xl font-bold text-gray-900 mt-3">23</p>
-                <p className="text-xs text-green-600 mt-3 flex items-center">
-                  <FiTrendingUp className="w-3 h-3 mr-1" />
-                  +5% from last month
+                <p className="font-inter text-[24px] font-bold text-[#000000] mt-3">
+                  33
                 </p>
-              </div>
-              <div className="p-2  rounded-full">
-                <FiAlertCircle className="w-5 h-5 " />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Letters Sent Card */}
-        <Card className="h-[139px] border border-gray-200 rounded-lg shadow-none">
-          <CardContent className="">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">
-                  Letters Sent
-                </p>
-                <p className="text-2xl font-bold text-gray-900 mt-3">156</p>
-                <p className="text-xs text-green-600 mt-3 flex items-center">
-                  <FiTrendingUp className="w-3 h-3 mr-1" />
-                  +18% from last month
-                </p>
-              </div>
-              <div className="p-2  rounded-full">
-                <FiSend className="w-5 h-5 " />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Reports Imported Card */}
-        <Card className="h-[139px] border border-gray-200 rounded-lg shadow-none">
-          <CardContent className="">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">
-                  Reports Imported
-                </p>
-                <p className="text-2xl font-bold text-gray-900 mt-3">31</p>
-                <p className="text-xs text-green-600 mt-3 flex items-center">
+                <p className="text-[12px] font-poppins text-[#22C55E] font-medium mt-3 flex items-center">
                   <FiTrendingUp className="w-3 h-3 mr-1" />
                   +8% from last month
                 </p>
               </div>
-              <div className="p-2 rounded-full">
-                <FiFileText className="w-5 h-5 " />
+
+              {/* Right icon aligned with first p */}
+              <div className=" rounded-full self-start">
+                <FiAlertCircle className="w-5 h-5" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="h-[139px] rounded-lg shadow-none">
+          <CardContent>
+            <div className="flex items-start justify-between">
+              {/* Left content */}
+              <div>
+                <p className="text-[14px] font-medium text-[#171744] font-inter">
+                  Letters Sent
+                </p>
+                <p className="font-inter text-[24px] font-bold text-[#000000] mt-3">
+                  57
+                </p>
+                <p className="text-[12px] font-poppins text-[#22C55E] font-medium mt-3 flex items-center">
+                  <FiTrendingUp className="w-3 h-3 mr-1" />
+                  +16% from last month
+                </p>
+              </div>
+
+              {/* Right icon aligned with first p */}
+              <div className=" rounded-full self-start">
+                <FiSend className="w-5 h-5" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="h-[139px] rounded-lg shadow-none">
+          <CardContent>
+            <div className="flex items-start justify-between">
+              {/* Left content */}
+              <div>
+                <p className="text-[14px] font-medium text-[#171744] font-inter">
+                  Reports Imported
+                </p>
+                <p className="font-inter text-[24px] font-bold text-[#000000] mt-3">
+                  40
+                </p>
+                <p className="text-[12px] font-poppins text-[#22C55E] font-medium mt-3 flex items-center">
+                  <FiTrendingUp className="w-3 h-3 mr-1" />
+                  +18% from last month
+                </p>
+              </div>
+
+              {/* Right icon aligned with first p */}
+              <div className=" rounded-full self-start">
+                <FiFileText className="w-5 h-5 border-[#000000]" />
               </div>
             </div>
           </CardContent>
@@ -204,12 +221,12 @@ const DashboardPage = () => {
               {recentActivity.map((activity) => (
                 <div
                   key={activity.id}
-                  className="flex items-start bg-gray-50 rounded-lg p-3"
+                  className="flex items-start bg-[#F9FAFB] rounded-lg p-3"
                 >
                   {/* Avatar */}
                   <div className="flex-shrink-0">
-                    <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center">
-                      <span className="text-xs font-medium text-gray-700">
+                    <div className="h-8 w-8 rounded-full bg-[#F1F5F9] flex items-center justify-center">
+                      <span className="text-[14px] font-medium text-[#3D3D3D]">
                         {activity.initials}
                       </span>
                     </div>
@@ -220,15 +237,17 @@ const DashboardPage = () => {
                     <p className="text-[14px] font-medium text-[#3D3D3D]">
                       {activity.name}
                     </p>
-                    <p className="text-[11px] text-[##897E9A]">
-                      {activity.action}
-                    </p>
-                  </div>
-
-                  {/* Time */}
-                  <div className="flex items-center text-xs text-gray-500 whitespace-nowrap mt-2">
-                    <FiClock className="w-3 h-3 mr-1" />
-                    {activity.time}
+                    <div className="flex items-start justify-between">
+                      <div>
+                        <p className="text-[11px] text-[#897E9A]">
+                          {activity.action}
+                        </p>
+                      </div>
+                      <div className="flex items-center text-xs text-[#897E9A] whitespace-nowrap ">
+                        <FiClock className="w-3 h-3 mr-1" />
+                        {activity.time}
+                      </div>
+                    </div>
                   </div>
                 </div>
               ))}

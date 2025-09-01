@@ -130,7 +130,7 @@ const PreviewLayout: React.FC<{ children: React.ReactNode }> = ({ children }) =>
                     </DropdownMenu>
                 </div>
             </div>
-            <div className="bg-white px-12 py-6 w-full h-full flex flex-col gap-4">
+            <div className="bg-white sm:px-12 sm:py-6 px-4 py-2 w-full h-full flex flex-col gap-4">
                 {children}
             </div>
     </>

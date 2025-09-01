@@ -12,6 +12,11 @@ import ExportCreditReport from './components/export-credit-report'
 import { creditReports } from '@/lib/data'
 import CustomPagination from '@/components/Pagination'
 import { useRouter } from 'next/navigation'
+import { GoCreditCard } from 'react-icons/go'
+import { RiHome2Line } from "react-icons/ri";
+import { Car } from 'lucide-react'
+import { SlGraduation } from 'react-icons/sl'
+
 
 interface CreditReport {
   id: number;
@@ -51,13 +56,13 @@ const Page = () => {
   };
 
   return (
-    <div className='p-6'>
+    <div className='p-0 md:p-6'>
       <div className="mb-6">
         <h1 className="font-semibold text-[32px] leading-[100%] -tracking-[0.07em] text-[#3D3D3D] mb-2">Credit Reports</h1>
         <p className="font-medium text-[16px] leading-[100%] -tracking-[0.07em] text-[#606060]">Import and manage credit reports from various providers.</p>
       </div>
 
-      <div className="mb-4 flex justify-between">
+      <div className="mb-4 flex flex-col md:flex-row gap-4 md:gap-0 justify-between">
         <div className="flex items-center space-x-4">
           <div className="relative w-full md:w-[200px] xl:w-[300px]">
             <LuSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#848484]" />
@@ -71,10 +76,10 @@ const Page = () => {
             className="text-[#292524] cursor-pointer bg-white hover:bg-transparent hover:text-[#2563EB] transition"
           >
             <LuListFilter className="h-5 w-5 mr-2" />
-            Filter
+           <span className='hidden md:block'>Filter</span>
           </Button>
         </div>
-        <div className='flex space-x-4'>
+        <div className='flex flex-col md:flex-row gap-4 md:gap-0 space-x-4'>
           <Button
           variant="outline"
            className="bg-[#EFEFEF] text-[#3E3E3E] !hover:[#EFEFEF]/90 px-4 py-2 rounded transition">
@@ -106,8 +111,8 @@ const Page = () => {
         ))}
       </div>
 
-      <div className="mhidden sm:flex justify-between mt-4 w-full">
-      <div className="font-manrope font-medium text-xs leading-[21.62px] -tracking-[0.02em] text-[#595858]">
+      <div className="flex justify-center sm:justify-between mt-4 w-full">
+      <div className="font-manrope hidden sm:block font-medium text-xs leading-[21.62px] -tracking-[0.02em] text-[#595858]">
         {currentPage} of {totalPages} Credit Reports shows
       </div>
         <CustomPagination
@@ -137,10 +142,10 @@ const Page = () => {
           importedOn={selectedReport.imported_on}
           bureaus={selectedReport.credit_bureaus}
           accounts={[
-            { id: '1', name: 'Chase Freedom', type: 'Credit Card', balance: '$2,650', status: 'Current' },
-            { id: '2', name: 'Wells Fargo Home Loan', type: 'Mortgage', balance: '$245,000', status: 'Current' },
-            { id: '3', name: 'Ford Credit', type: 'Auto Loan', balance: '$18,600', status: '30 Days Late' },
-            { id: '4', name: 'Federal Loan', type: 'Student', balance: '$12,300', status: 'Current' },
+            { id: '1', icon: GoCreditCard, name: 'Chase Freedom', type: 'Credit Card', balance: '$2,650', status: 'Current' },
+            { id: '2', icon: RiHome2Line, name: 'Wells Fargo Home Loan', type: 'Mortgage', balance: '$245,000', status: 'Current' },
+            { id: '3', icon: Car, name: 'Ford Credit', type: 'Auto Loan', balance: '$18,600', status: '30 Days Late' },
+            { id: '4', icon: SlGraduation, name: 'Federal Loan', type: 'Student', balance: '$12,300', status: 'Current' },
           ]}
           negativeItems={[
             { id: 'n1', label: 'Late Payment', bureau: 'Chase Freedom', date: '2024-05-15', impact: 'High Impact' },

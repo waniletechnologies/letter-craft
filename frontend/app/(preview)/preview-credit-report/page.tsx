@@ -91,7 +91,7 @@ const Page = () => {
             </div>
         </div>
 
-        <div className='flex justify-start gap-4'>
+        <div className='flex flex-col sm:flex-row justify-start gap-4'>
             <Button className='bg-primary text-white px-4 py-2 rounded-lg' onClick={() => router.push('/dispute-wizard')}>
             Save my work and continue to Wizard
             </Button> 

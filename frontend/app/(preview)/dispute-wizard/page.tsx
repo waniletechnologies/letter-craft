@@ -7,7 +7,7 @@ import StepTwo from "./components/StepTwo";
 
 const DisputeWizardPage = () => {
   return (
-    <div className="p-6">
+    <div className="sm:p-6 p-0">
       {/* Title + Stepper row */}
       <div className="flex items-start justify-between mb-6">
         <h1 className="font-semibold text-[24px] leading-none text-[#111827]">

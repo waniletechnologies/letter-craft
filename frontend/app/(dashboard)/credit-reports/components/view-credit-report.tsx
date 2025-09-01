@@ -12,6 +12,7 @@ type Account = {
   name: string;
   type: string;
   balance: string;
+  icon: React.ElementType;
   status: "Current" | "30 Days Late" | string;
 };
 
@@ -76,13 +77,15 @@ export const ViewCreditReport: React.FC<ViewCreditReportProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[760px] max-h-[90vh] overflow-y-auto bg-[#FFFFFF]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3 text-[#3D3D3D]">
-            <span>Credit Report - {fullName}</span>
-            <StatusBadge status={status} />
-            <span className="text-xs font-medium text-[#9CA3AF]">Imported on {importedOn}</span>
+          <DialogTitle className="flex flex-col sm:flex-row sm:items-center gap-3">
+            <span className="font-semibold sm:text-[20px] text-[17px] text-left leading-[100%] tracking-normal text-[#292524] ">Credit Report - {fullName}</span>
+            <div className="flex items-center gap-2">
+              <StatusBadge status={status} />
+              <span className="text-xs font-medium text-[#9CA3AF]">Imported on {importedOn}</span>
+            </div>
           </DialogTitle>
         </DialogHeader>
-
+        <hr className="border-[#00000014]" />
         {/* Score overview */}
         <div className="rounded-xl bg-[#2196F30F] border-none p-4">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -95,7 +98,10 @@ export const ViewCreditReport: React.FC<ViewCreditReportProps> = ({
             <div className="md:col-span-2 space-y-3">
               <ProgressBar label="Credit Utilization" value={36} />
               <ProgressBar label="Payment History" value={72} />
-              <ProgressBar label="Credit Age" value={27} />
+              <div className="flex items-center justify-between">
+              <span className="text-xs font-medium text-[#292524B2]">Credit Age</span>
+                <span className="text-xs font-medium text-[#292524B2]">7.2 Years</span>
+              </div>
             </div>
           </div>
         </div>
@@ -118,13 +124,21 @@ export const ViewCreditReport: React.FC<ViewCreditReportProps> = ({
           <div className="mb-3 font-semibold text-[17px] leading-none tracking-normal text-[#292524]">Credit Accounts ({accounts.length})</div>
           <div className="space-y-2">
             {accounts.map((a) => (
-              <div key={a.id} className="flex items-center justify-between rounded-lg border border-[#00000014] bg-white p-3">
+              <div key={a.id} className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 rounded-lg border border-[#00000014] bg-white p-3">
+                <div className="flex items-center gap-2">
+                  <a.icon className="h-[26px] w-[30px] text-[#000000]" />
                 <div>
                   <div className="font-semibold text-sm leading-none tracking-normal text-[#292524]">{a.name}</div>
                   <div className="font-medium text-[11px] leading-[100%] -tracking-[0.03em] text-[#292524B2]">{a.type}</div>
                 </div>
-                <div className="font-semibold text-sm leading-[100%] -tracking-[0.03em] text-[#292524]">{a.balance}</div>
-                <Badge className={cn("rounded-full px-2 font-normal text-[11px] leading-[100%] tracking-normal", a.status === 'Current' ? 'bg-[#5881F0] text-white' : 'bg-[#DD5858] text-[#FFFFFF]')}>{a.status}</Badge>
+                </div>
+                <div className="flex items-center justify-between">
+                  <div className="font-semibold text-sm leading-[100%] -tracking-[0.03em] text-[#292524]">{a.balance}</div>
+                  <Badge className={cn("rounded-full sm:hidden px-2 font-normal text-[11px] leading-[100%] tracking-normal", a.status === 'Current' ? 'bg-[#5881F0] text-white' : 'bg-[#DD5858] text-[#FFFFFF]')}>{a.status}</Badge>
+                </div>
+
+
+                <Badge className={cn("rounded-full hidden sm:block px-2 font-normal text-[11px] leading-[100%] tracking-normal", a.status === 'Current' ? 'bg-[#5881F0] text-white' : 'bg-[#DD5858] text-[#FFFFFF]')}>{a.status}</Badge>
               </div>
             ))}
             {accounts.length === 0 && (
@@ -139,7 +153,7 @@ export const ViewCreditReport: React.FC<ViewCreditReportProps> = ({
           <div className="space-y-3">
             {negativeItems.map((n) => (
               <div key={n.id} className="rounded-lg border border-[#FECACA] bg-[#DD58580F] p-3">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
                   <div className="flex items-center gap-2">
                     <AlertTriangle className="h-[22px] w-[22px] text-[#DD5858]" />
                     <div>
@@ -147,7 +161,7 @@ export const ViewCreditReport: React.FC<ViewCreditReportProps> = ({
                       <div className="text-xs text-[#DD5858] mt-0.5">{n.bureau}</div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center justify-between sm:gap-3">
                     <div className="text-xs text-[#DD5858]">{n.date}</div>
                     <ImpactBadge impact={n.impact} />
                   </div>

@@ -11,9 +11,9 @@ const StepOne: React.FC = () => {
 
   return (
     <div className="rounded-lg border border-[#E5E7EB] bg-white">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#E5E7EB] bg-[#F9FAFB] rounded-t-lg">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between px-4 py-3 border-b border-[#E5E7EB] bg-[#F9FAFB] rounded-t-lg">
         <div className="text-sm"><span className="font-semibold">Step 1:</span> Add Dispute Items</div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <button className="text-xs text-[#2563EB]" onClick={() => setDialogOpen(true)}>+ Add Dispute Item</button>
           <Button className="bg-primary hover:bg-primary/90">Saved Dispute Item</Button>
         </div>
@@ -21,13 +21,13 @@ const StepOne: React.FC = () => {
 
       <div className="p-4">
         <div className="rounded-md border border-[#E5E7EB] overflow-hidden">
-          <div className="grid grid-cols-5 items-center bg-[#F9FAFB] text-xs text-[#6B7280] p-3">
-            <div className="col-span-2">Account #</div>
-            <div className="col-span-2">Dispute Items</div>
-            <div className="flex items-center justify-end gap-4 pr-2">
-              <Image src={Experian} alt="Experian" width={74} height={20} />
-              <Image src={Equifax} alt="Equifax" width={74} height={20} />
-              <Image src={TransUnion} alt="TransUnion" width={74} height={20} />
+          <div className="grid grid-cols-3 sm:grid-cols-5 items-center bg-[#F9FAFB] text-xs text-[#6B7280] p-3">
+            <div className="col-span-1 sm:col-span-2">Account #</div>
+            <div className="sm:col-span-2">Dispute Items</div>
+            <div className="flex items-center justify-end sm:gap-4 gap-2 sm:pr-2">
+              <Image src={Experian} alt="Experian"  className="h-[20px] w-[44px] sm:w-[88px] sm:h-[30px] object-contain" />
+              <Image src={Equifax} alt="Equifax"  className="h-[20px] w-[44px] sm:w-[88px] sm:h-[30px] object-contain" />
+              <Image src={TransUnion} alt="TransUnion" className="h-[20px] w-[44px] sm:w-[88px] sm:h-[30px] object-contain" />
             </div>
           </div>
           <div className="p-6 text-center text-xs text-[#9CA3AF]">No Dispute Items Added</div>

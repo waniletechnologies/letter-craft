@@ -53,12 +53,12 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({ open, onO
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[90vw] max-h-[92vh] overflow-y-auto bg-white">
-        <DialogHeader>
-          <DialogTitle className="text-[#111827]">Add saved/Pending items</DialogTitle>
+      <DialogContent className="w-full sm:max-w-[80vw] max-h-[92vh] overflow-y-auto bg-white">
+        <DialogHeader className="text-left">
+          <DialogTitle className="font-semibold sm:text-[20px] text-base leading-[100%] tracking-normal text-[#292524]">Add saved/Pending items</DialogTitle>
         </DialogHeader>
 
-        <div className="font-semibold text-sm leading-[20px] tracking-normal text-[#595858]">
+        <div className="font-semibold sm:text-sm text-xs leading-[20px] tracking-normal text-[#595858]">
             These are the negative items from your client’s credit report. To see a list of all credit items and status, view the <span className="text-primary font-inter font-semibold text-sm leading-[20px] tracking-normal">dispute items tab </span> on the My Clients page.
             <br />
             Select the item(s) to include in your letter. On the next page you can choose which bureaus to include.
@@ -68,7 +68,7 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({ open, onO
           <Table>
             <TableHeader className="bg-[#F9FAFB] sticky top-0 z-10">
               <TableRow>
-                <TableHead className="w-[280px]">
+                <TableHead className="sm:w-[280px]">
                   <div className="flex items-center gap-2">
                     <Checkbox checked={allChecked} onCheckedChange={(v) => toggleAll(Boolean(v))} />
                     Creditor/Furnisher
@@ -123,7 +123,7 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({ open, onO
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between mt-3">
+        <div className="flex flex-col sm:flex-row items-center justify-between mt-3 gap-4">
           <div className="text-xs text-[#2563EB] bg-[#EEF2FF] rounded px-2 py-1">{countLabel} – Create Group</div>
           <div className="flex items-center gap-3">
             <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>

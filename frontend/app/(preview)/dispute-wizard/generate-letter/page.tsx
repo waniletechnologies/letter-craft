@@ -22,7 +22,7 @@ const GenerateLetterPage = () => {
   };
 
   return (
-    <div className="p-6">
+    <div className="sm:p-6">
       {/* Title row with stepper on the right */}
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
@@ -36,17 +36,17 @@ const GenerateLetterPage = () => {
       {/* Logos and selects */}
       <div className="border-b border-[#E5E7EB] rounded-t-lg bg-[#F6F6F6] p-3 mb-4">
         <div className="grid grid-cols-2 md:grid-cols-6 gap-3 items-center">
-          <div className="col-span-2 flex items-center gap-6 px-2">
-            <Image src={Experian} alt="Experian" width={92} height={24} />
-            <Image src={Equifax} alt="Equifax" width={92} height={24} />
-            <Image src={TransUnion} alt="TransUnion" width={92} height={24} />
+          <div className="col-span-2 flex items-center sm:gap-6 gap-2 sm:px-2 px-0">
+            <Image src={Experian} alt="Experian" width={92} height={24} className="w-[92px] h-[24px]" />
+            <Image src={Equifax} alt="Equifax" width={92} height={24} className="w-[92px] h-[24px]" />
+            <Image src={TransUnion} alt="TransUnion" width={92} height={24} className="w-[92px] h-[24px]" />
           </div>
           <div className="col-span-1">
             <div className="text-[11px] text-[#6B7280] mb-1">Client Docs</div>
           </div>
           <div className="col-span-2">
             <Select>
-              <SelectTrigger className="shadow-none h-9 bg-white">
+              <SelectTrigger className="shadow-none w-full h-9 bg-white">
                 <SelectValue placeholder="Select FTC Report" />
               </SelectTrigger>
               <SelectContent>
@@ -55,9 +55,9 @@ const GenerateLetterPage = () => {
               </SelectContent>
             </Select>
           </div>
-          <div className="col-span-1">
+          <div className="sm:col-span-1 col-span-2">
             <Select>
-              <SelectTrigger className="shadow-none h-9 bg-white">
+              <SelectTrigger className="shadow-none w-full h-9 bg-white">
                 <SelectValue placeholder="Group 1" />
               </SelectTrigger>
               <SelectContent>
@@ -70,10 +70,10 @@ const GenerateLetterPage = () => {
       </div>
 
       {/* Letter Envelope Information */}
-      <div className="rounded-xl bg-white py-6 px-12 mb-4">
+      <div className="rounded-xl bg-white py-6 sm:px-12 px-4 mb-4">
         <div className="font-medium text-xs leading-[150%] -tracking-[0.03em] capitalize text-[#292524] mb-2">Letter Envelope Information (Only For CloudMail)</div>
       <div className="border border-[#00000014] rounded-lg">
-        <div className="flex flex-row justify-between px-8 py-4">
+        <div className="flex flex-col sm:flex-row justify-between sm:px-8 px-4 py-4">
           <div className="rounded-md p-3">
             <div className="font-medium text-xs leading-[150%] -tracking-[0.03em] capitalize text-[#292524] mb-2">Send From Address:</div>
             <div className="font-semibold text-xs leading-[150%] -tracking-[0.03em] capitalize text-[#292524]">
@@ -94,7 +94,7 @@ const GenerateLetterPage = () => {
       </div>
       </div>
       {/* Editor */}
-      <div className="px-12">
+      <div className="sm:px-12 px-4">
       <div className="rounded-xl border border-[#E5E7EB] bg-white">
         <div className="flex items-center gap-2 p-2 border-b border-[#E5E7EB] text-[#6B7280]">
           <Bold className="h-4 w-4" />
@@ -122,8 +122,8 @@ const GenerateLetterPage = () => {
       </div>
       </div>
       {/* Footer actions */}
-      <div className="flex justify-end my-4 mr-12">
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row sm:justify-end my-4 sm:mr-12">
+        <div className="flex flex-col sm:flex-row px-4 sm:px-0 gap-2">
           <Button variant="outline">Save For Later</Button>
           <Button 
             className="bg-primary hover:bg-primary/90"

@@ -80,10 +80,10 @@ export const ReportCard: React.FC<ReportCardProps> = ({
 
         {/* Stats */}
         <div className="grid grid-cols-2 gap-2">
-          <div className="rounded-xl bg-[#F9FAFB] px-3 py-3 font-medium text-xs leading-[11px] -tracking-[0.03em] text-[#3D3D3D]">
+          <div className="rounded-xl bg-[#F9FAFB] px-3 py-3 font-medium text-[10px] sm:text-xs leading-[11px] -tracking-[0.03em] text-[#3D3D3D]">
             <span className="font-normal">Accounts :</span> <span className="ml-1">{accountsCount}</span>
           </div>
-          <div className="rounded-xl bg-[#F9FAFB] px-3 py-3 font-medium text-xs leading-[11px] -tracking-[0.03em] text-[#3D3D3D]">
+          <div className="rounded-xl bg-[#F9FAFB] px-3 py-3 font-medium text-[10px] sm:text-xs leading-[11px] -tracking-[0.03em] text-[#3D3D3D]">
             <span className="font-normal">Negative Items :</span>{" "}
             <span className="ml-1 text-[#EF4444]">{negativeItemsCount}</span>
           </div>

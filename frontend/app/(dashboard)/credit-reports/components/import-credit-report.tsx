@@ -62,7 +62,7 @@ export const ImportCreditReport: React.FC<ImportCreditReportProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <div className="flex items-center justify-between">
             <DialogTitle className="text-xl font-semibold text-[#3D3D3D]">
@@ -73,7 +73,7 @@ export const ImportCreditReport: React.FC<ImportCreditReportProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Provider Selection */}
             <div className="space-y-2">
               <Label htmlFor="provider" className="text-sm font-medium text-[#3D3D3D]">
@@ -109,7 +109,7 @@ export const ImportCreditReport: React.FC<ImportCreditReportProps> = ({
               />
             </div>
            </div>
-           <div className="grid grid-cols-2 gap-4">
+           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             {/* Password Field */}
             <div className="space-y-2">
               <Label htmlFor="password" className="text-sm font-medium text-[#3D3D3D]">
@@ -163,11 +163,11 @@ export const ImportCreditReport: React.FC<ImportCreditReportProps> = ({
               type="button"
               variant="outline"
               onClick={handleCancel}
-              className="w-[71px]"
+              className="w-full sm:w-[71px]"
             >
               Cancel
             </Button>
-            <Button  type="submit" className="w-[212px] bg-primary hover:bg-primary/90">
+            <Button  type="submit" className="w-full sm:w-[212px] bg-primary hover:bg-primary/90">
               Import & Run Simple Audit
             </Button>
           </DialogFooter>

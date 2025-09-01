@@ -27,7 +27,7 @@ export const Stepper: React.FC<StepperProps> = ({ current, steps = defaultSteps 
   const colsStyle = { gridTemplateColumns: `repeat(${steps.length}, minmax(0, 1fr))` } as React.CSSProperties;
 
   return (
-    <div className="flex flex-col items-stretch">
+    <div className="hidden sm:flex flex-col items-stretch w-full sm:w-auto">
       {/* Top row: circles + centered connectors */}
       <div className="flex items-center justify-center gap-10">
         {steps.map((_, i) => (

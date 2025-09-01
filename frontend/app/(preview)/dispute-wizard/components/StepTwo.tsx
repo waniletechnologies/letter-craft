@@ -11,9 +11,9 @@ const StepTwo: React.FC = () => {
 
   return (
     <div className="rounded-lg border border-[#E5E7EB] bg-white">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-[#E5E7EB] bg-[#F9FAFB] rounded-t-lg">
+      <div className="flex flex-col sm:flex-row sm:items-center gap-4 justify-between px-4 py-3 border-b border-[#E5E7EB] bg-[#F9FAFB] rounded-t-lg">
         <div className="text-sm"><span className="font-semibold">Step 2:</span> Choose A Letter</div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <button className="text-xs text-[#2563EB]" onClick={() => router.push("/dispute-wizard/generate-letter")}>Generate Unique AI Letter</button>
           <Button className="bg-primary hover:bg-primary/90">Generate Library Letter</Button>
         </div>

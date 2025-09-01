@@ -18,14 +18,14 @@ interface ExportCreditReportProps {
 }
 
 const Pill = ({ children, className = "" }: { children: React.ReactNode; className?: string }) => (
-  <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[11px]", className)}>{children}</span>
+  <span className={cn("inline-flex items-center rounded-full border px-2 py-0.5 text-[9px] sm:text-[11px] leading-[100%] tracking-normal", className)}>{children}</span>
 );
 
 const SectionHeader: React.FC<{ icon: React.ReactNode; title: string; right?: React.ReactNode }> = ({ icon, title, right }) => (
   <div className="mb-3 flex items-center justify-between">
     <div className="flex items-center gap-2">
       <span className="grid h-6 w-6 items-center text-[#374151]">{icon}</span>
-      <span className="font-semibold text-[17px] leading-[100%] tracking-normal text-[#292524]">{title}</span>
+      <span className="font-semibold sm:text-[17px] text-[16px] leading-[100%] tracking-normal text-[#292524]">{title}</span>
     </div>
     {right}
   </div>
@@ -56,7 +56,7 @@ const SectionRow: React.FC<{
       />
       <div>
         <div className="flex items-center gap-2">
-          <div className="text-sm font-medium text-[#292524]">{label}</div>
+          <div className="sm:text-sm text-[12px] font-medium text-[#292524]">{label}</div>
           {required && <Pill className="border-[#E5E7EB] text-[#6B7280]">Required</Pill>}
         </div>
         {hint ? <div className="text-[11px] text-[#9CA3AF]">{hint}</div> : null}
@@ -90,15 +90,15 @@ export const ExportCreditReport: React.FC<ExportCreditReportProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className=" sm:max-w-[760px] max-h-[90vh] overflow-y-auto bg-[#FFFFFF]">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-3 text-[#3D3D3D]">
-            <span>Export Credit Report - {fullName}</span>
+          <DialogTitle className="text-left">
+            <span className="font-semibold sm:text-[20px] text-[17px] leading-[100%] tracking-normal text-#292524]">Export Credit Report - {fullName}</span>
           </DialogTitle>
         </DialogHeader>
 
         {/* Report information */}
         <div className="rounded-xl border border-[#00000014] bg-white p-4">
           <SectionHeader icon={<FileText className="h-6 w-6" />} title="Report Information" />
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
             <InfoItem label="Client" value={fullName} withDivider />
             <InfoItem label="Import Date" value={importedOn} withDivider />
             <InfoItem label="Provider" value={provider} withDivider />
@@ -121,11 +121,11 @@ export const ExportCreditReport: React.FC<ExportCreditReportProps> = ({
             <div className="flex items-center gap-3">
               <FileText className="h-5 w-5 text-[#374151]" />
               <div>
-                <div className="text-sm font-medium text-[#292524]">PDF Report</div>
-                <div className="text-[11px] text-[#9CA3AF]">Professional formatted report</div>
+                <div className="text-[12px] sm:text-sm font-medium text-[#292524]">PDF Report</div>
+                <div className=" sm:text-[11px] text-[8px] text-[#9CA3AF]">Professional formatted report</div>
               </div>
             </div>
-            <Badge className="rounded-full px-2 text-[11px] bg-[#E5F0FF] text-[#2563EB]">Recommended</Badge>
+            <Badge className="rounded-full px-2 sm:text-[11px] text-[10px] bg-[#E5F0FF] text-[#2563EB]">Recommended</Badge>
           </div>
         </div>
 

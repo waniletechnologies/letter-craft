@@ -1,0 +1,72 @@
+import express from "express";
+import cors from "cors";
+import dotenv from "dotenv";
+import connectDB from "./src/config/database.js";
+import globalErrorHandler from "./src/middlewares/errorHandler.js";
+import routes from "./src/routes/index.js";
+
+dotenv.config();
+
+const app = express();
+const PORT = process.env.PORT || 5000;
+
+// Middleware
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Health check route
+app.get('/health', (req, res) => {
+  res.json({ 
+    status: 'OK', 
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+    service: 'Letter Craft API'
+  });
+});
+app.use((req, res, next) => {
+  const mockId = req.header('x-user-id');
+  if (mockId) req.user = { id: String(mockId) };
+  next();
+});
+// API routes
+app.use('/api', routes);
+
+// 404 handler for undefined routes - Fixed the wildcard issue
+app.use((req, res) => {
+  res.status(404).json({ 
+    status: false, 
+    message: 'Route not found' 
+  });
+});
+
+// Global error handler - MUST be last
+app.use(globalErrorHandler);
+
+// Database connection and server startup
+(async () => {
+  try {
+    await connectDB();
+    
+    app.listen(PORT, () => {
+      console.log(`🚀 Letter Craft Backend server is running on http://localhost:${PORT}`);
+      console.log(`📊 Health check available at http://localhost:${PORT}/health`);
+      console.log(`🔧 Environment: ${process.env.NODE_ENV || 'development'}`);
+    });
+  } catch (error) {
+    console.error("Failed to connect to database:", error);
+    process.exit(1);
+  }
+})();
+
+// Graceful shutdown
+process.on('SIGTERM', () => {
+  console.log('SIGTERM received, shutting down gracefully');
+  process.exit(0);
+});
+
+process.on('SIGINT', () => {
+  console.log('SIGINT received, shutting down gracefully');
+  process.exit(0);
+});
+

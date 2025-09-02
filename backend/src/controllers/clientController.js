@@ -1,0 +1,191 @@
+import clientService from '../services/clientService.js';
+import asyncHandler from '../middlewares/asyncHandler.js';
+
+class ClientController {
+  /**
+   * Create a new client
+   * POST /api/clients
+   */
+  createClient = asyncHandler(async (req, res) => {
+    const clientData = req.body;
+    const client = await clientService.createClient(clientData);
+
+    res.status(201).json({
+      status: true,
+      message: 'Client created successfully',
+      data: client
+    });
+  });
+
+  /**
+   * Get all clients with pagination and filtering
+   * GET /api/clients
+   */
+  getAllClients = asyncHandler(async (req, res) => {
+    const queryParams = req.query;
+    const result = await clientService.getAllClients(queryParams);
+
+    res.status(200).json({
+      status: true,
+      message: 'Clients retrieved successfully',
+      data: result.clients,
+      pagination: result.pagination
+    });
+  });
+
+  /**
+   * Get client by ID
+   * GET /api/clients/:id
+   */
+  getClientById = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const includeSSN = req.query.includeSSN === 'true';
+    
+    const client = await clientService.getClientById(id, includeSSN);
+
+    res.status(200).json({
+      status: true,
+      message: 'Client retrieved successfully',
+      data: client
+    });
+  });
+
+  /**
+   * Update client by ID
+   * PUT /api/clients/:id
+   */
+  updateClient = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const updateData = req.body;
+    const client = await clientService.updateClient(id, updateData);
+
+    res.status(200).json({
+      status: true,
+      message: 'Client updated successfully',
+      data: client
+    });
+  });
+
+  /**
+   * Delete client by ID
+   * DELETE /api/clients/:id
+   */
+  deleteClient = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    
+    await clientService.deleteClient(id);
+
+    res.status(200).json({
+      status: true,
+      message: 'Client deleted successfully'
+    });
+  });
+
+  /**
+   * Update client status
+   * PATCH /api/clients/:id/status
+   */
+  updateClientStatus = asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const { status } = req.body;
+    const client = await clientService.updateClientStatus(id, status);
+
+    res.status(200).json({
+      status: true,
+      message: 'Client status updated successfully',
+      data: client
+    });
+  });
+
+
+  /**
+   * Get client statistics
+   * GET /api/clients/statistics
+   */
+  getClientStatistics = asyncHandler(async (req, res) => {
+    const statistics = await clientService.getClientStatistics();
+
+    res.status(200).json({
+      status: true,
+      message: 'Client statistics retrieved successfully',
+      data: statistics
+    });
+  });
+
+  /**
+   * Search clients
+   * GET /api/clients/search
+   */
+  searchClients = asyncHandler(async (req, res) => {
+    const { q: searchTerm, limit = 10 } = req.query;
+
+    if (!searchTerm || searchTerm.trim().length < 2) {
+      return res.status(400).json({
+        status: false,
+        message: 'Search term must be at least 2 characters long'
+      });
+    }
+
+    const clients = await clientService.searchClients(searchTerm.trim(), parseInt(limit));
+
+    res.status(200).json({
+      status: true,
+      message: 'Search completed successfully',
+      data: clients
+    });
+  });
+
+  // Note: Document-related methods removed for now
+  // Will be implemented later when needed
+
+  /**
+   * Bulk update client status
+   * PATCH /api/clients/bulk-status
+   */
+  bulkUpdateStatus = asyncHandler(async (req, res) => {
+    const { clientIds, status } = req.body;
+
+    if (!Array.isArray(clientIds) || clientIds.length === 0) {
+      return res.status(400).json({
+        status: false,
+        message: 'Client IDs array is required'
+      });
+    }
+
+    const validStatuses = ['active', 'inactive', 'pending', 'archived'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({
+        status: false,
+        message: 'Invalid status. Must be one of: active, inactive, pending, archived'
+      });
+    }
+
+    const results = [];
+    const errors = [];
+
+    for (const clientId of clientIds) {
+      try {
+        const client = await clientService.updateClientStatus(clientId, status);
+        results.push({ id: clientId, status: 'success', data: client });
+      } catch (error) {
+        errors.push({ id: clientId, status: 'error', message: error.message });
+      }
+    }
+
+    res.status(200).json({
+      status: true,
+      message: 'Bulk status update completed',
+      data: {
+        successful: results,
+        failed: errors,
+        summary: {
+          total: clientIds.length,
+          successful: results.length,
+          failed: errors.length
+        }
+      }
+    });
+  });
+}
+
+export default new ClientController();

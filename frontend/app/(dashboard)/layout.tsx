@@ -30,7 +30,6 @@ import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-  useSidebar,
 } from "../../components/ui/sidebar";
 
 // --------------------------------------

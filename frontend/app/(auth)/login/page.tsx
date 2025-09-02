@@ -33,9 +33,9 @@ export default function LoginPage() {
 
       // redirect after successful login
       router.replace("/dashboard");
-    } catch (error: any) {
-      console.error("❌ Login failed:", error.message);
-      alert(error.message); // You can replace with toast popup
+    } catch (err) {
+      console.error("❌ Login failed:", err);
+      alert(err); // You can replace with toast popup
     }
   };
 

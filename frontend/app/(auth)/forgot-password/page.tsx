@@ -28,6 +28,7 @@ export default function ForgotPasswordPage() {
       }
     } catch (err) {
       setError("Server error");
+      console.log(err)
     } finally {
       setLoading(false);
     }

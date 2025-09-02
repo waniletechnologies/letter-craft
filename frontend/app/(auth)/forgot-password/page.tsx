@@ -1,34 +1,45 @@
 "use client";
 import { useState } from "react";
-import {  ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import AuthLeftSection from "../components/AuthLeftSection";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { requestPasswordReset } from "@/lib/auth";
 
 export default function ForgotPasswordPage() {
-    
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Handle forgot password logic here
-    router.push("/verification");
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await requestPasswordReset(email);
+      if (res.ok) {
+        // success → go to verification screen
+        router.push(`/verification?email=${encodeURIComponent(email)}`);
+      } else {
+        setError(res.message || "Something went wrong");
+      }
+    } catch (err) {
+      setError("Server error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleBackToLogin = () => {
-    // Handle navigation back to login
     router.replace("/login");
   };
 
   return (
     <div className="flex min-h-screen bg-gray-50 p-6">
-      {/* <div className="flex w-full rounded-3xl overflow-hidden shadow-lg"> */}
-      {/* Left Section - Reusable Component */}
       <AuthLeftSection />
-
-      {/* Right Section */}
       <div className="flex flex-col justify-center items-center w-full lg:w-1/2 px-8 py-12">
         <div className="w-[340px] max-w-sm">
           <h2 className="text-[34px] font-bold font-Inter mb-2 text-gray-900 text-center">
@@ -39,36 +50,36 @@ export default function ForgotPasswordPage() {
           </p>
 
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email */}
             <div className="px-[25px]">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Email <span className="text-[#1379F2]"> *</span>
               </label>
-              <div className="relative">
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className=" border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-[#71717A] placeholder-[#71717A]"
-                  required
-                />
-              </div>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-[#71717A] placeholder-[#71717A]"
+                required
+              />
             </div>
 
-            {/* Submit Button */}
+            {error && (
+              <p className="text-red-500 text-xs text-center">{error}</p>
+            )}
+
             <div className="px-[25px]">
               <Button
                 type="submit"
+                disabled={loading}
                 className="w-[300px] --primary hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 focus:ring-4 focus:ring-blue-200 mt-6"
               >
-                Submit
+                {loading ? "Sending..." : "Submit"}
               </Button>
             </div>
           </form>
 
-          {/* Back to Sign In */}
           <button
             onClick={handleBackToLogin}
             className="flex items-center justify-center gap-2 w-full mt-6 text-gray-600 hover:text-gray-800 transition duration-200"
@@ -79,6 +90,5 @@ export default function ForgotPasswordPage() {
         </div>
       </div>
     </div>
-    // </div>
   );
 }

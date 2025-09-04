@@ -5,145 +5,62 @@ import { ClientsFilter } from "./components/clients-filter";
 import { ClientsTable } from "./components/clients-table";
 import { PaginationComponent } from "./components/pagination-component";
 import { useRouter } from "next/navigation";
+import { useListClients } from "@/hooks/clients";
 
 export type Client = {
-  id: number;
-  name: string;
+  _id: string;
+  firstName: string;
+  middleName?: string;
+  lastName: string;
+  suffix?: string;
+  email: string;
+  
+  dateOfBirth: string;
+  mailingAddress: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+  phoneMobile: string;
+  phoneAlternate?: string;
+  phoneWork?: string;
+  fax?: string;
+  ssn: string;
+  experianReport?: string;
+  transunionFileNumber?: string;
+  status: "active" | "inactive" | "pending" | "archived";
+  createdBy?: string;
+  lastModifiedBy?: string;
   createdAt: string;
-  startDate: string;
-  phone: string;
-  status: "Active" | "In Active";
+  updatedAt: string;
+  fullName?: string;
 };
 
 export default function ClientsPage() {
   const router = useRouter();
-  const [clients, setClients] = useState<Client[]>([
-    {
-      id: 1,
-      name: "Jasmine Bell",
-      createdAt: "September 9, 2013",
-      startDate: "September 9, 2013",
-      phone: "(508) 555-0102",
-      status: "Active",
-    },
-    {
-      id: 2,
-      name: "Jasmine Bell",
-      createdAt: "September 9, 2013",
-      startDate: "September 9, 2013",
-      phone: "(508) 555-0102",
-      status: "Active",
-    },
-    {
-      id: 3,
-      name: "Jasmine Bell",
-      createdAt: "September 9, 2013",
-      startDate: "September 9, 2013",
-      phone: "(508) 555-0102",
-      status: "Active",
-    },
-    {
-      id: 4,
-      name: "Jasmine Bell",
-      createdAt: "September 9, 2013",
-      startDate: "September 9, 2013",
-      phone: "(508) 555-0102",
-      status: "Active",
-    },
-    {
-      id: 5,
-      name: "Jasmine Bell",
-      createdAt: "September 9, 2013",
-      startDate: "September 9, 2013",
-      phone: "(508) 555-0102",
-      status: "In Active",
-    },
-    {
-      id: 6,
-      name: "Jasmine Bell",
-      createdAt: "September 9, 2013",
-      startDate: "September 9, 2013",
-      phone: "(508) 555-0102",
-      status: "Active",
-    },
-    {
-      id: 7,
-      name: "Jasmine Bell",
-      createdAt: "September 9, 2013",
-      startDate: "September 9, 2013",
-      phone: "(508) 555-0102",
-      status: "Active",
-    },
-    {
-      id: 8,
-      name: "Jasmine Bell",
-      createdAt: "September 9, 2013",
-      startDate: "September 9, 2013",
-      phone: "(508) 555-0102",
-      status: "Active",
-    },
-    {
-      id: 9,
-      name: "Jasmine Bell",
-      createdAt: "September 9, 2013",
-      startDate: "September 9, 2013",
-      phone: "(508) 555-0102",
-      status: "Active",
-    },
-    {
-      id: 10,
-      name: "Jasmine Bell",
-      createdAt: "September 9, 2013",
-      startDate: "September 9, 2013",
-      phone: "(508) 555-0102",
-      status: "Active",
-    },
-    {
-      id: 11,
-      name: "Jasmine Bell",
-      createdAt: "September 9, 2013",
-      startDate: "September 9, 2013",
-      phone: "(508) 555-0102",
-      status: "Active",
-    },
-  ]);
-
   const [searchTerm, setSearchTerm] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
 
   const itemsPerPage = 10;
 
-  
+  // Fetch clients data using React Query
+  const { 
+    data: clientsData, 
+    isLoading 
+  } = useListClients({
+    page: currentPage,
+    limit: itemsPerPage,
+    search: searchTerm,
+    sortBy: 'createdAt',
+    sortOrder: 'desc'
+  });
 
-  const handleToggleStatus = (clientId: number) => {
-    setClients(
-      clients.map((client) =>
-        client.id === clientId
-          ? {
-              ...client,
-              status: client.status === "Active" ? "In Active" : "Active",
-            }
-          : client
-      )
-    );
-  };
 
-  const handleDelete = (clientId: number) => {
-    setClients(clients.filter((client) => client.id !== clientId));
-  };
 
-  const filteredClients = clients.filter(
-    (client) =>
-      client.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      client.phone.includes(searchTerm)
-  );
-
-  const totalPages = Math.ceil(filteredClients.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const paginatedClients = filteredClients.slice(
-    startIndex,
-    startIndex + itemsPerPage
-  );
+  // Extract data from API response
+  const clients = clientsData?.data || [];
+  const totalClients = clientsData?.pagination?.totalCount || 0;
+  const totalPages = Math.ceil(totalClients / itemsPerPage);
 
   return (
     <div className="sm:p-8 p-4">
@@ -171,16 +88,15 @@ export default function ClientsPage() {
 
       {/* Table */}
       <ClientsTable
-        clients={paginatedClients}
-        onEdit={() => router.push("/clients/edit-client")}
-        onToggleStatus={handleToggleStatus}
-        onDelete={handleDelete}
+        clients={clients}
+        onEdit={(client) => router.push(`/clients/edit-client?id=${client._id}`)}
+        isLoading={isLoading}
       />
 
       {/* Pagination */}
       <div className="flex flex-col sm:flex-row justify-between gap-3 items-center mt-6">
         <div className="text-sm text-gray-500">
-          {filteredClients.length} of {clients.length} clients shown
+          {clients.length} of {totalClients} clients shown
         </div>
         <PaginationComponent
           currentPage={currentPage}

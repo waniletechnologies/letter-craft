@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -12,12 +12,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Calendar, Upload, X } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { UploadFile } from "../../../../public/images";
+import { useGetClient, useUpdateClient } from "@/hooks/clients";
+import { toast } from "sonner";
 
-export default function EditClientPage() {
+function EditClientForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const clientId = useMemo(() => searchParams.get("id") || "", [searchParams]);
+  const { data, isLoading, error } = useGetClient(clientId);
+  const updateMutation = useUpdateClient(clientId);
 
   interface ClientData {
     firstName: string;
@@ -41,25 +47,50 @@ export default function EditClientPage() {
   }
 
   const [formData, setFormData] = useState<ClientData>({
-    firstName: "John",
-    middleName: "Alex",
-    lastName: "Doe",
-    suffix: "Jr, sr, etc",
-    email: "johndoe@example.com",
-    dateOfBirth: "2002-05-25",
-    mailingAddress: "Mailing Address",
-    city: "United Kingdom",
+    firstName: "",
+    middleName: "",
+    lastName: "",
+    suffix: "",
+    email: "",
+    dateOfBirth: "",
+    mailingAddress: "",
+    city: "",
     state: "",
     zipCode: "",
     country: "United States",
-    phoneMobile: "(208) 555-0112",
-    phoneAlternate: "(208) 555-0112",
-    phoneWork: "(208) 555-0112",
+    phoneMobile: "",
+    phoneAlternate: "",
+    phoneWork: "",
     fax: "",
-    ssn: "232135465456",
-    experianReportNumber: "354854564879",
-    transUnionFileNumber: "65456",
+    ssn: "",
+    experianReportNumber: "",
+    transUnionFileNumber: "",
   });
+
+  useEffect(() => {
+    const client = (data)?.data;
+    if (!client) return;
+    setFormData({
+      firstName: client.firstName || "",
+      middleName: client.middleName || "",
+      lastName: client.lastName || "",
+      suffix: client.suffix || "",
+      email: client.email || "",
+      dateOfBirth: client.dateOfBirth ? String(client.dateOfBirth).substring(0, 10) : "",
+      mailingAddress: client.mailingAddress || "",
+      city: client.city || "",
+      state: client.state || "",
+      zipCode: client.zipCode || "",
+      country: client.country || "United States",
+      phoneMobile: client.phoneMobile || "",
+      phoneAlternate: client.phoneAlternate || "",
+      phoneWork: client.phoneWork || "",
+      fax: client.fax || "",
+      ssn: "", // keep hidden; not returned by API by default
+      experianReportNumber: client.experianReport || "",
+      transUnionFileNumber: client.transunionFileNumber || "",
+    });
+  }, [data]);
 
   const [uploadedFiles, setUploadedFiles] = useState<{
     [key: string]: { name: string; size: string } | null;
@@ -99,11 +130,57 @@ export default function EditClientPage() {
   };
 
   const handleSubmit = () => {
-    console.log("Client Data:", formData);
-    console.log("Uploaded Files:", uploadedFiles);
-    alert("Client updated successfully!");
-    router.push("/clients");
+    updateMutation.mutate(
+      {
+        firstName: formData.firstName,
+        middleName: formData.middleName || undefined,
+        lastName: formData.lastName,
+        suffix: formData.suffix || undefined,
+        email: formData.email,
+        dateOfBirth: formData.dateOfBirth,
+        mailingAddress: formData.mailingAddress,
+        city: formData.city,
+        state: formData.state,
+        zipCode: formData.zipCode,
+        country: formData.country,
+        phoneMobile: formData.phoneMobile,
+        phoneAlternate: formData.phoneAlternate || undefined,
+        phoneWork: formData.phoneWork || undefined,
+        fax: formData.fax || undefined,
+        // ssn is not updatable here by default for safety
+        experianReport: formData.experianReportNumber || undefined,
+        transunionFileNumber: formData.transUnionFileNumber || undefined,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Client updated successfully");
+          router.push("/clients");
+        },
+        onError: (error) => {
+          console.error(error);
+          toast.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || "Failed to update client");
+        },
+      }
+    );
   };
+
+  if (!clientId) {
+    return (
+      <div className="p-6">Missing client id</div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="p-6">Loading client...</div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="p-6">Failed to load client</div>
+    );
+  }
 
   const states = [
     "Alabama",
@@ -175,9 +252,10 @@ export default function EditClientPage() {
               </Button>
               <Button
                 onClick={handleSubmit}
+                disabled={updateMutation.isPending}
                 className="bg-[#2196F3] hover:bg-blue-700 text-white h-9 px-4"
               >
-                Edit Client
+                {updateMutation.isPending ? "Updating..." : "Edit Client"}
               </Button>
             </div>
           </div>
@@ -370,7 +448,90 @@ export default function EditClientPage() {
 
           {/* Contact Information */}
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4"></div>
+            <div className="flex flex-wrap gap-4">
+              {/* Country */}
+              <div className="w-[311px]">
+                <Label
+                  htmlFor="country"
+                  className="text-sm font-medium mb-2 block"
+                >
+                  Country
+                </Label>
+                <Input
+                  id="country"
+                  value={formData.country}
+                  onChange={(e) => handleInputChange("country", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+
+              {/* Phone Mobile */}
+              <div className="w-[148px]">
+                <Label
+                  htmlFor="phoneMobile"
+                  className="text-sm font-medium mb-2 block"
+                >
+                  Phone Mobile
+                </Label>
+                <Input
+                  id="phoneMobile"
+                  value={formData.phoneMobile}
+                  onChange={(e) =>
+                    handleInputChange("phoneMobile", e.target.value)
+                  }
+                  className="h-10"
+                />
+              </div>
+
+              {/* Phone Alternate */}
+              <div className="w-[148px]">
+                <Label
+                  htmlFor="phoneAlternate"
+                  className="text-sm font-medium mb-2 block"
+                >
+                  Phone Alternate
+                </Label>
+                <Input
+                  id="phoneAlternate"
+                  value={formData.phoneAlternate}
+                  onChange={(e) =>
+                    handleInputChange("phoneAlternate", e.target.value)
+                  }
+                  className="h-10"
+                />
+              </div>
+
+              {/* Phone Work */}
+              <div className="w-[148px]">
+                <Label
+                  htmlFor="phoneWork"
+                  className="text-sm font-medium mb-2 block"
+                >
+                  Phone Work
+                </Label>
+                <Input
+                  id="phoneWork"
+                  value={formData.phoneWork}
+                  onChange={(e) =>
+                    handleInputChange("phoneWork", e.target.value)
+                  }
+                  className="h-10"
+                />
+              </div>
+
+              {/* Fax */}
+              <div className="w-[148px]">
+                <Label htmlFor="fax" className="text-sm font-medium mb-2 block">
+                  Fax
+                </Label>
+                <Input
+                  id="fax"
+                  value={formData.fax}
+                  onChange={(e) => handleInputChange("fax", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Additional Information */}
@@ -528,5 +689,49 @@ export default function EditClientPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function EditClientPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-gray-50 p-6">
+        <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+          <div className="bg-[#F6F6F6] px-6 py-4 border-b border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <h1 className="text-xl font-semibold text-gray-900">Edit Client</h1>
+              </div>
+              <div className="flex gap-2">
+                <div className="h-9 w-32 bg-gray-200 rounded animate-pulse"></div>
+                <div className="h-9 w-24 bg-gray-200 rounded animate-pulse"></div>
+              </div>
+            </div>
+          </div>
+          <div className="p-6">
+            <div className="animate-pulse space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="h-10 bg-gray-200 rounded"></div>
+                <div className="h-10 bg-gray-200 rounded"></div>
+                <div className="h-10 bg-gray-200 rounded"></div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="h-10 bg-gray-200 rounded"></div>
+                <div className="h-10 bg-gray-200 rounded"></div>
+                <div className="h-10 bg-gray-200 rounded"></div>
+              </div>
+              <div className="flex flex-wrap gap-4">
+                <div className="h-10 bg-gray-200 rounded w-[311px]"></div>
+                <div className="h-10 bg-gray-200 rounded w-[315px]"></div>
+                <div className="h-10 bg-gray-200 rounded w-[148px]"></div>
+                <div className="h-10 bg-gray-200 rounded w-[148px]"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <EditClientForm />
+    </Suspense>
   );
 }

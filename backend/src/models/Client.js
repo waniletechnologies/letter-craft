@@ -67,26 +67,26 @@ const clientSchema = new mongoose.Schema({
   country: {
     type: String,
     default: 'United States',
+    required: [true, 'Country is required'],
     trim: true,
     maxlength: [50, 'Country cannot exceed 50 characters']
   },
-  
   // Phone Numbers
   phoneMobile: {
     type: String,
     required: [true, 'Mobile phone is required'],
     trim: true,
-    match: [/^\+?1?[-.\s]?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})$/, 'Please enter a valid mobile phone number']
+    match: [/^\+?1?[-\.\s]?\(?([0-9]{3})\)?[-\.\s]?([0-9]{3})[-\.\s]?([0-9]{4})$/, 'Please enter a valid mobile phone number']
   },
   phoneAlternate: {
     type: String,
     trim: true,
-    match: [/^\+?1?[-.\s]?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})$/, 'Please enter a valid alternate phone number']
+    match: [/^\+?1?[-\.\s]?\(?([0-9]{3})\)?[-\.\s]?([0-9]{3})[-\.\s]?([0-9]{4})$/, 'Please enter a valid alternate phone number']
   },
   phoneWork: {
     type: String,
     trim: true,
-    match: [/^\+?1?[-.\s]?\(?([0-9]{3})\)?[-.\s]?([0-9]{3})[-.\s]?([0-9]{4})$/, 'Please enter a valid work phone number']
+    match: [/^\+?1?[-\.\s]?\(?([0-9]{3})\)?[-\.\s]?([0-9]{3})[-\.\s]?([0-9]{4})$/, 'Please enter a valid work phone number']
   },
   fax: {
     type: String,
@@ -100,7 +100,7 @@ const clientSchema = new mongoose.Schema({
     required: [true, 'SSN is required'],
     trim: true,
     match: [/^\d{9}$/, 'SSN must be exactly 9 digits'],
-    select: false // Don't include SSN in queries by default for security
+    select: false
   },
   experianReport: {
     type: String,
@@ -112,9 +112,6 @@ const clientSchema = new mongoose.Schema({
     trim: true,
     maxlength: [50, 'TransUnion file number cannot exceed 50 characters']
   },
-  
-  // Note: Document fields removed for now
-  // Will be implemented later when file upload functionality is added
   
   // Status and Metadata
   status: {
@@ -135,45 +132,23 @@ const clientSchema = new mongoose.Schema({
   timestamps: true,
   toJSON: { 
     transform: function(doc, ret) {
-      // Remove sensitive fields from JSON output
       delete ret.__v;
       return ret;
     }
   }
 });
 
-// Indexes for better query performance
 clientSchema.index({ firstName: 1, lastName: 1 });
 clientSchema.index({ status: 1 });
 clientSchema.index({ createdAt: -1 });
 
-// Virtual for full name
 clientSchema.virtual('fullName').get(function() {
   let fullName = this.firstName;
-  if (this.middleName) fullName += ` ${this.middleName}`;
   fullName += ` ${this.lastName}`;
-  if (this.suffix) fullName += ` ${this.suffix}`;
   return fullName;
 });
 
-// Ensure virtual fields are serialized
 clientSchema.set('toJSON', { virtuals: true });
-
-// Pre-save middleware to format phone numbers
-clientSchema.pre('save', function(next) {
-  // Format phone numbers to remove all non-digit characters except +
-  const formatPhone = (phone) => {
-    if (!phone) return phone;
-    return phone.replace(/[^\d+]/g, '');
-  };
-  
-  this.phoneMobile = formatPhone(this.phoneMobile);
-  this.phoneAlternate = formatPhone(this.phoneAlternate);
-  this.phoneWork = formatPhone(this.phoneWork);
-  this.fax = formatPhone(this.fax);
-  
-  next();
-});
 
 const Client = mongoose.model('Client', clientSchema);
 

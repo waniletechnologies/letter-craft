@@ -38,7 +38,7 @@ export function ClientsFilter({
 
       <Button
         onClick={onAddClient}
-        className="w-[212px] primary hover:bg-blue-700 flex items-center gap-2 ml-auto"
+        className="w-[212px] primary flex items-center gap-2 ml-auto"
       >
         <Plus className="w-4 h-4" />
         Add New Client

@@ -21,7 +21,9 @@ export function EditClientDialog({ isOpen, onClose, initialData }: Props) {
         <DialogHeader>
           <DialogTitle>Edit Client</DialogTitle>
         </DialogHeader>
-        <p className="text-sm text-gray-600">Editing: {initialData?.name}</p>
+        <p className="text-sm text-gray-600">
+          Editing: {initialData?.fullName || `${initialData?.firstName || ''} ${initialData?.lastName || ''}`.trim() || 'Client'}
+        </p>
       </DialogContent>
     </Dialog>
   );

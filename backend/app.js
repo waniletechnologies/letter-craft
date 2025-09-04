@@ -1,9 +1,12 @@
 import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
 import connectDB from "./src/config/database.js";
 import globalErrorHandler from "./src/middlewares/errorHandler.js";
 import routes from "./src/routes/index.js";
+import { seedUser } from "./src/seed/seedUser.js";
+import authRoutes from "./src/routes/auth.route.js";
 
 dotenv.config();
 
@@ -11,9 +14,17 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
-app.use(cors());
+app.set("trust proxy", true);
+app.use(
+  cors({
+    origin: "http://localhost:3000",
+    credentials: true,
+    optionsSuccessStatus: 204,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Health check route
 app.get('/health', (req, res) => {
@@ -30,6 +41,7 @@ app.use((req, res, next) => {
   next();
 });
 // API routes
+app.use('/api/auth', authRoutes);
 app.use('/api', routes);
 
 // 404 handler for undefined routes - Fixed the wildcard issue
@@ -47,6 +59,10 @@ app.use(globalErrorHandler);
 (async () => {
   try {
     await connectDB();
+    // Optional: run seed user once on boot if SEED_ON_START=true
+    if (process.env.SEED_ON_START === 'true') {
+      await seedUser();
+    }
     
     app.listen(PORT, () => {
       console.log(`🚀 Letter Craft Backend server is running on http://localhost:${PORT}`);

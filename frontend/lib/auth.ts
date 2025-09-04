@@ -1,4 +1,3 @@
-// lib/auth.ts
 import { apiFetch } from "./api";
 
 export async function loginUser(email: string, password: string) {

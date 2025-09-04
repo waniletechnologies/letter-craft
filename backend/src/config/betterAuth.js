@@ -2,23 +2,28 @@
 import { betterAuth } from "better-auth";
 import { mongodbAdapter } from "better-auth/adapters/mongodb";
 import { compare, hash } from "bcryptjs";
+import mongoose from "mongoose";
 import connectDB from "./database.js";
 import dotenv from "dotenv";
 dotenv.config();
 
+// Ensure database connection is established
 await connectDB();
-const { db } = await connectDB();
+
+// Derive native MongoDB db handle from mongoose connection
+const client = mongoose.connection.getClient();
+const db = client.db();
 
 if (!process.env.BACKEND_BASE_URL)
   throw new Error("BACKEND_BASE_URL is not set");
-if (!process.env.FRONTEND_ORIGIN) throw new Error("FRONTEND_ORIGIN is not set");
+if (!process.env.FRONTEND_BASE_URL) throw new Error("FRONTEND_ORIGIN is not set");
 if (!process.env.BETTER_AUTH_SECRET)
   throw new Error("BETTER_AUTH_SECRET is not set");
 
 export const auth = betterAuth({
   secret: process.env.BETTER_AUTH_SECRET,
   baseURL: `${process.env.BACKEND_BASE_URL.replace(/\/$/, "")}/api/auth`,
-  trustedOrigins: [process.env.FRONTEND_ORIGIN.replace(/\/$/, "")],
+  trustedOrigins: [process.env.FRONTEND_BASE_URL.replace(/\/$/, "")],
   cookies: {
     sameSite: "lax",
   },

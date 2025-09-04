@@ -15,15 +15,6 @@ const isValidSSN = (value, helpers) => {
   return cleanSSN;
 };
 
-const isValidPhoneNumber = (value, helpers) => {
-  if (!value) return value; // Optional fields
-  const cleanPhone = value.replace(/\D/g, '');
-  if (cleanPhone.length < 10 || cleanPhone.length > 11) {
-    return helpers.error('any.invalid');
-  }
-  return value;
-};
-
 const isValidDateOfBirth = (value, helpers) => {
   const dob = new Date(value);
   const today = new Date();
@@ -143,45 +134,45 @@ export const createClientSchema = Joi.object({
     .max(50)
     .trim()
     .default('United States')
-    .optional()
+    .required()
     .messages({
       'string.max': 'Country cannot exceed 50 characters'
     }),
   
-  // Phone Numbers
+  // Phone numbers
   phoneMobile: Joi.string()
-    .custom(isValidPhoneNumber)
+    .pattern(/^\+?1?[-\.\s]?\(?([0-9]{3})\)?[-\.\s]?([0-9]{3})[-\.\s]?([0-9]{4})$/)
     .trim()
     .required()
     .messages({
-      'any.invalid': 'Please enter a valid mobile phone number'
+      'string.pattern.base': 'Please enter a valid mobile phone number'
     }),
   
   phoneAlternate: Joi.string()
-    .custom(isValidPhoneNumber)
+    .pattern(/^\+?1?[-\.\s]?\(?([0-9]{3})\)?[-\.\s]?([0-9]{3})[-\.\s]?([0-9]{4})$/)
     .trim()
     .allow('')
     .optional()
     .messages({
-      'any.invalid': 'Please enter a valid alternate phone number'
+      'string.pattern.base': 'Please enter a valid alternate phone number'
     }),
   
   phoneWork: Joi.string()
-    .custom(isValidPhoneNumber)
+    .pattern(/^\+?1?[-\.\s]?\(?([0-9]{3})\)?[-\.\s]?([0-9]{3})[-\.\s]?([0-9]{4})$/)
     .trim()
     .allow('')
     .optional()
     .messages({
-      'any.invalid': 'Please enter a valid work phone number'
+      'string.pattern.base': 'Please enter a valid work phone number'
     }),
   
   fax: Joi.string()
-    .custom(isValidPhoneNumber)
+    .pattern(/^\+?1?[-\.\s]?\(?([0-9]{3})\)?[-\.\s]?([0-9]{3})[-\.\s]?([0-9]{4})$/)
     .trim()
     .allow('')
     .optional()
     .messages({
-      'any.invalid': 'Please enter a valid fax number'
+      'string.pattern.base': 'Please enter a valid fax number'
     }),
   
   // Identity Information
@@ -316,41 +307,41 @@ export const updateClientSchema = Joi.object({
       'string.max': 'Country cannot exceed 50 characters'
     }),
   
+  // Phone numbers
   phoneMobile: Joi.string()
-    .custom(isValidPhoneNumber)
+    .pattern(/^\+?1?[-\.\s]?\(?([0-9]{3})\)?[-\.\s]?([0-9]{3})[-\.\s]?([0-9]{4})$/)
     .trim()
     .optional()
     .messages({
-      'any.invalid': 'Please enter a valid mobile phone number'
+      'string.pattern.base': 'Please enter a valid mobile phone number'
     }),
   
   phoneAlternate: Joi.string()
-    .custom(isValidPhoneNumber)
+    .pattern(/^\+?1?[-\.\s]?\(?([0-9]{3})\)?[-\.\s]?([0-9]{3})[-\.\s]?([0-9]{4})$/)
     .trim()
     .allow('')
     .optional()
     .messages({
-      'any.invalid': 'Please enter a valid alternate phone number'
+      'string.pattern.base': 'Please enter a valid alternate phone number'
     }),
   
   phoneWork: Joi.string()
-    .custom(isValidPhoneNumber)
+    .pattern(/^\+?1?[-\.\s]?\(?([0-9]{3})\)?[-\.\s]?([0-9]{3})[-\.\s]?([0-9]{4})$/)
     .trim()
     .allow('')
     .optional()
     .messages({
-      'any.invalid': 'Please enter a valid work phone number'
+      'string.pattern.base': 'Please enter a valid work phone number'
     }),
   
   fax: Joi.string()
-    .custom(isValidPhoneNumber)
+    .pattern(/^\+?1?[-\.\s]?\(?([0-9]{3})\)?[-\.\s]?([0-9]{3})[-\.\s]?([0-9]{4})$/)
     .trim()
     .allow('')
     .optional()
     .messages({
-      'any.invalid': 'Please enter a valid fax number'
+      'string.pattern.base': 'Please enter a valid fax number'
     }),
-  
   ssn: Joi.string()
     .custom(isValidSSN)
     .trim()
@@ -467,7 +458,8 @@ export const validateQuery = (schema) => {
       });
     }
     
-    req.query = value;
+    // Store validated query params in a custom property instead of modifying req.query
+    req.validatedQuery = value;
     next();
   };
 };

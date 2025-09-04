@@ -2,13 +2,11 @@ import clientService from '../services/clientService.js';
 import asyncHandler from '../middlewares/asyncHandler.js';
 
 class ClientController {
-  /**
-   * Create a new client
-   * POST /api/clients
-   */
+
   createClient = asyncHandler(async (req, res) => {
     const clientData = req.body;
-    const client = await clientService.createClient(clientData);
+    const createdBy = req.user?.id;
+    const client = await clientService.createClient(clientData, createdBy);
 
     res.status(201).json({
       status: true,
@@ -17,12 +15,8 @@ class ClientController {
     });
   });
 
-  /**
-   * Get all clients with pagination and filtering
-   * GET /api/clients
-   */
   getAllClients = asyncHandler(async (req, res) => {
-    const queryParams = req.query;
+    const queryParams = req.validatedQuery || req.query;
     const result = await clientService.getAllClients(queryParams);
 
     res.status(200).json({
@@ -33,10 +27,7 @@ class ClientController {
     });
   });
 
-  /**
-   * Get client by ID
-   * GET /api/clients/:id
-   */
+ 
   getClientById = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const includeSSN = req.query.includeSSN === 'true';
@@ -50,14 +41,12 @@ class ClientController {
     });
   });
 
-  /**
-   * Update client by ID
-   * PUT /api/clients/:id
-   */
+
   updateClient = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const updateData = req.body;
-    const client = await clientService.updateClient(id, updateData);
+    const modifiedBy = req.user?.id;
+    const client = await clientService.updateClient(id, updateData, modifiedBy);
 
     res.status(200).json({
       status: true,
@@ -66,13 +55,10 @@ class ClientController {
     });
   });
 
-  /**
-   * Delete client by ID
-   * DELETE /api/clients/:id
-   */
+
   deleteClient = asyncHandler(async (req, res) => {
     const { id } = req.params;
-    
+    const modifiedBy = req.user?.id;
     await clientService.deleteClient(id);
 
     res.status(200).json({
@@ -81,14 +67,11 @@ class ClientController {
     });
   });
 
-  /**
-   * Update client status
-   * PATCH /api/clients/:id/status
-   */
   updateClientStatus = asyncHandler(async (req, res) => {
     const { id } = req.params;
     const { status } = req.body;
-    const client = await clientService.updateClientStatus(id, status);
+    const modifiedBy = req.user?.id;
+    const client = await clientService.updateClientStatus(id, status, modifiedBy);
 
     res.status(200).json({
       status: true,
@@ -98,10 +81,7 @@ class ClientController {
   });
 
 
-  /**
-   * Get client statistics
-   * GET /api/clients/statistics
-   */
+ 
   getClientStatistics = asyncHandler(async (req, res) => {
     const statistics = await clientService.getClientStatistics();
 
@@ -112,10 +92,7 @@ class ClientController {
     });
   });
 
-  /**
-   * Search clients
-   * GET /api/clients/search
-   */
+
   searchClients = asyncHandler(async (req, res) => {
     const { q: searchTerm, limit = 10 } = req.query;
 
@@ -135,13 +112,7 @@ class ClientController {
     });
   });
 
-  // Note: Document-related methods removed for now
-  // Will be implemented later when needed
 
-  /**
-   * Bulk update client status
-   * PATCH /api/clients/bulk-status
-   */
   bulkUpdateStatus = asyncHandler(async (req, res) => {
     const { clientIds, status } = req.body;
 

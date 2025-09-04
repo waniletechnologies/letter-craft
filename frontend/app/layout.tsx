@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import Providers from "../hooks/query-provider";
+import { Toaster } from "sonner";
 
 const interSans = Inter({
   variable: "--font-inter",
@@ -28,7 +30,10 @@ export default function RootLayout({
       <body
         className={`${interSans.variable} ${geistMono.variable} antialiased font-inter`}
       >
-        {children}
+        <Providers>
+        <Toaster position="top-right" richColors />
+          {children}
+        </Providers>
       </body>
     </html>
   );

@@ -19,10 +19,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useCreateClient } from "@/hooks/clients";
+import { toast } from "sonner";
 
 export default function AddClientPage() {
   const router = useRouter();
   const [showFtcDialog, setShowFtcDialog] = useState(false);
+  const { mutate, isPending } = useCreateClient();
 
   interface ClientData {
     firstName: string;
@@ -46,24 +49,24 @@ export default function AddClientPage() {
   }
 
   const [formData, setFormData] = useState<ClientData>({
-    firstName: "John",
-    middleName: "Alex",
-    lastName: "Doe",
-    suffix: "Jr, sr, etc",
+    firstName: "",
+    middleName: "",
+    lastName: "",
+    suffix: "",
     email: "",
     dateOfBirth: "",
-    mailingAddress: "Mailing Address",
+    mailingAddress: "",
     city: "",
     state: "",
     zipCode: "",
-    country: "United States",
+    country: "",
     phoneMobile: "",
     phoneAlternate: "",
     phoneWork: "",
     fax: "",
-    ssn: "232135465456",
-    experianReportNumber: "354854564879",
-    transUnionFileNumber: "65456",
+    ssn: "",
+    experianReportNumber: "",
+    transUnionFileNumber: "",
   });
 
   const [uploadedFiles, setUploadedFiles] = useState<{
@@ -95,10 +98,38 @@ export default function AddClientPage() {
   };
 
   const handleSubmit = () => {
-    console.log("Client Data:", formData);
-    console.log("Uploaded Files:", uploadedFiles);
-    alert("Client added successfully!");
-    router.push("/clients");
+    mutate(
+      {
+        firstName: formData.firstName,
+        middleName: formData.middleName || undefined,
+        lastName: formData.lastName,
+        suffix: formData.suffix || undefined,
+        email: formData.email,
+        dateOfBirth: formData.dateOfBirth,
+        mailingAddress: formData.mailingAddress,
+        city: formData.city,
+        state: formData.state,
+        zipCode: formData.zipCode,
+        country: formData.country || "United States",
+        phoneMobile: formData.phoneMobile,
+        phoneAlternate: formData.phoneAlternate || undefined,
+        phoneWork: formData.phoneWork || undefined,
+        fax: formData.fax || undefined,
+        ssn: (formData.ssn || "").replace(/\D/g, ""),
+        experianReport: formData.experianReportNumber || undefined,
+        transunionFileNumber: formData.transUnionFileNumber || undefined,
+      },
+      {
+        onSuccess: () => {
+          toast.success("Client created successfully");
+          router.push("/clients");
+        },
+        onError: (error) => {
+          console.error("Create client failed:", error);
+          toast.error((error as Error)?.message || "Failed to create client");
+        },
+      }
+    );
   };
 
   const states = [
@@ -172,9 +203,10 @@ export default function AddClientPage() {
               </Button>
               <Button
                 onClick={handleSubmit}
+                disabled={isPending}
                 className="primary hover:bg-blue-700 text-white h-9 px-4"
               >
-                Add Client
+                {isPending ? "Adding..." : "Add Client"}
               </Button>
             </div>
           </div>
@@ -366,8 +398,92 @@ export default function AddClientPage() {
           </div>
 
           {/* Contact Information */}
+          {/* Contact Information */}
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4"></div>
+            <div className="flex flex-wrap gap-4">
+              {/* Country */}
+              <div className="w-[311px]">
+                <Label
+                  htmlFor="country"
+                  className="text-sm font-medium mb-2 block"
+                >
+                  Country
+                </Label>
+                <Input
+                  id="country"
+                  value={formData.country}
+                  onChange={(e) => handleInputChange("country", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+
+              {/* Phone Mobile */}
+              <div className="w-[148px]">
+                <Label
+                  htmlFor="phoneMobile"
+                  className="text-sm font-medium mb-2 block"
+                >
+                  Phone Mobile
+                </Label>
+                <Input
+                  id="phoneMobile"
+                  value={formData.phoneMobile}
+                  onChange={(e) =>
+                    handleInputChange("phoneMobile", e.target.value)
+                  }
+                  className="h-10"
+                />
+              </div>
+
+              {/* Phone Alternate */}
+              <div className="w-[148px]">
+                <Label
+                  htmlFor="phoneAlternate"
+                  className="text-sm font-medium mb-2 block"
+                >
+                  Phone Alternate
+                </Label>
+                <Input
+                  id="phoneAlternate"
+                  value={formData.phoneAlternate}
+                  onChange={(e) =>
+                    handleInputChange("phoneAlternate", e.target.value)
+                  }
+                  className="h-10"
+                />
+              </div>
+
+              {/* Phone Work */}
+              <div className="w-[148px]">
+                <Label
+                  htmlFor="phoneWork"
+                  className="text-sm font-medium mb-2 block"
+                >
+                  Phone Work
+                </Label>
+                <Input
+                  id="phoneWork"
+                  value={formData.phoneWork}
+                  onChange={(e) =>
+                    handleInputChange("phoneWork", e.target.value)
+                  }
+                  className="h-10"
+                />
+              </div>
+
+              {/* Fax */}
+              <div className="w-[148px]">
+                <Label htmlFor="fax" className="text-sm font-medium mb-2 block">
+                  Fax
+                </Label>
+                <Input
+                  id="fax"
+                  value={formData.fax}
+                  onChange={(e) => handleInputChange("fax", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Additional Information */}

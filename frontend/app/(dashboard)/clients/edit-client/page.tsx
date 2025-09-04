@@ -105,6 +105,10 @@ export default function EditClientPage() {
     router.push("/clients");
   };
 
+  const backToClient = () => {
+    router.push("/clients");
+  };
+
   const states = [
     "Alabama",
     "Alaska",
@@ -170,12 +174,16 @@ export default function EditClientPage() {
               </h1>
             </div>
             <div className="flex gap-2">
-              <Button variant="ghost" className="text-sm h-9 text-gray-600">
+              <Button
+                onClick={backToClient}
+                variant="ghost"
+                className="text-sm h-9 text-gray-600"
+              >
                 Back to clients list
               </Button>
               <Button
                 onClick={handleSubmit}
-                className="bg-[#2196F3] hover:bg-blue-700 text-white h-9 px-4"
+                className="bg-[#2196F3]  text-white h-9 px-4"
               >
                 Edit Client
               </Button>
@@ -369,9 +377,93 @@ export default function EditClientPage() {
           </div>
 
           {/* Contact Information */}
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4"></div>
-          </div>
+                    {/* Contact Information */}
+                    <div className="space-y-4">
+                      <div className="flex flex-wrap gap-4">
+                        {/* Country */}
+                        <div className="w-[311px]">
+                          <Label
+                            htmlFor="country"
+                            className="text-sm font-medium mb-2 block"
+                          >
+                            Country
+                          </Label>
+                          <Input
+                            id="country"
+                            value={formData.country}
+                            onChange={(e) => handleInputChange("country", e.target.value)}
+                            className="h-10"
+                          />
+                        </div>
+          
+                        {/* Phone Mobile */}
+                        <div className="w-[148px]">
+                          <Label
+                            htmlFor="phoneMobile"
+                            className="text-sm font-medium mb-2 block"
+                          >
+                            Phone Mobile
+                          </Label>
+                          <Input
+                            id="phoneMobile"
+                            value={formData.phoneMobile}
+                            onChange={(e) =>
+                              handleInputChange("phoneMobile", e.target.value)
+                            }
+                            className="h-10"
+                          />
+                        </div>
+          
+                        {/* Phone Alternate */}
+                        <div className="w-[148px]">
+                          <Label
+                            htmlFor="phoneAlternate"
+                            className="text-sm font-medium mb-2 block"
+                          >
+                            Phone Alternate
+                          </Label>
+                          <Input
+                            id="phoneAlternate"
+                            value={formData.phoneAlternate}
+                            onChange={(e) =>
+                              handleInputChange("phoneAlternate", e.target.value)
+                            }
+                            className="h-10"
+                          />
+                        </div>
+          
+                        {/* Phone Work */}
+                        <div className="w-[148px]">
+                          <Label
+                            htmlFor="phoneWork"
+                            className="text-sm font-medium mb-2 block"
+                          >
+                            Phone Work
+                          </Label>
+                          <Input
+                            id="phoneWork"
+                            value={formData.phoneWork}
+                            onChange={(e) =>
+                              handleInputChange("phoneWork", e.target.value)
+                            }
+                            className="h-10"
+                          />
+                        </div>
+          
+                        {/* Fax */}
+                        <div className="w-[148px]">
+                          <Label htmlFor="fax" className="text-sm font-medium mb-2 block">
+                            Fax
+                          </Label>
+                          <Input
+                            id="fax"
+                            value={formData.fax}
+                            onChange={(e) => handleInputChange("fax", e.target.value)}
+                            className="h-10"
+                          />
+                        </div>
+                      </div>
+                    </div>
 
           {/* Additional Information */}
           <div className="space-y-4">
@@ -480,7 +572,7 @@ export default function EditClientPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="cursor-pointer bg-[#2196F3] text-white hover:bg-blue-700 h-8 px-3"
+                          className="cursor-pointer bg-[#2196F3] text-white  h-8 px-3"
                         >
                           <Upload className="h-3 w-3 mr-1" />
                           Upload

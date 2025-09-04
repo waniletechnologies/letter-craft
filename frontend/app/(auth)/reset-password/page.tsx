@@ -29,7 +29,6 @@ export default function ResetPasswordPage() {
   });
   const [loading, setLoading] = useState(false);
 
-  // Password requirements list
   const passwordRequirements = [
     { id: 1, text: "At least 6 Characters" },
     { id: 2, text: "At least one capital letter" },
@@ -37,7 +36,6 @@ export default function ResetPasswordPage() {
     { id: 4, text: "At least one special character" },
   ];
 
-  // Check password requirements
   const checkPasswordRequirements = (password: string) => [
     password.length >= 6,
     /[A-Z]/.test(password),
@@ -49,15 +47,12 @@ export default function ResetPasswordPage() {
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    setErrors((prev) => ({ ...prev, api: "" })); // clear API error on input
+    setErrors((prev) => ({ ...prev, api: "" }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
-    console.log("Email: ", email)
-    console.log("Code: ", code)
     e.preventDefault();
 
-    // make sure we have reset params
     if (!email || !code) {
       setErrors((prev) => ({
         ...prev,
@@ -94,7 +89,7 @@ export default function ResetPasswordPage() {
 
       if (res.ok) {
         alert("Password reset successful!");
-        router.push("/login");
+        router.push("/successful");
       } else {
         setErrors((prev) => ({ ...prev, api: res.message || "Reset failed" }));
       }
@@ -106,16 +101,19 @@ export default function ResetPasswordPage() {
     }
   };
 
-
   const handleBack = () => router.back();
 
   return (
-    <div className="flex min-h-screen bg-gray-50 p-6">
-      <AuthLeftSection />
+    <div className="flex min-h-screen bg-gray-50 p-4 sm:p-6">
+      {/* Left Section - Hidden on small, visible on lg */}
+      <div className="hidden lg:flex">
+        <AuthLeftSection />
+      </div>
 
-      <div className="flex flex-col justify-center items-center w-full lg:w-1/2 px-8 py-12">
-        <div className="w-full max-w-sm">
-          <h2 className="text-[32px] font-bold mb-2 text-gray-900">
+      {/* Right Section */}
+      <div className="flex flex-col justify-center items-center w-full lg:w-1/2 px-4 sm:px-8 py-8 sm:py-12">
+        <div className="w-full max-w-md">
+          <h2 className="text-[28px] sm:text-[32px] font-bold mb-2 text-gray-900">
             Reset Password
           </h2>
           <p className="text-gray-500 mb-8 text-[14px] font-normal">
@@ -124,7 +122,7 @@ export default function ResetPasswordPage() {
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* New Password */}
-            <div className="space-y-2 w-[320px]">
+            <div className="space-y-2 w-full">
               <Label htmlFor="newPassword">New Password *</Label>
               <div className="relative">
                 <Input
@@ -154,7 +152,7 @@ export default function ResetPasswordPage() {
             </div>
 
             {/* Confirm Password */}
-            <div className="space-y-2 w-[320px]">
+            <div className="space-y-2 w-full">
               <Label htmlFor="confirmPassword">Confirm Password *</Label>
               <div className="relative">
                 <Input
@@ -184,7 +182,7 @@ export default function ResetPasswordPage() {
             </div>
 
             {/* Password Requirements */}
-            <div className="w-[220px] border p-4 rounded-lg">
+            <div className="w-full border p-4 rounded-lg">
               <p className="text-sm font-medium text-gray-700 mb-2">
                 Password must include:
               </p>
@@ -213,7 +211,7 @@ export default function ResetPasswordPage() {
             )}
 
             {/* Buttons */}
-            <div className="w-[320px] flex gap-4 mt-6">
+            <div className="flex flex-col sm:flex-row gap-4 mt-6">
               <Button
                 type="button"
                 onClick={handleBack}

@@ -122,15 +122,21 @@ export async function resetPassword({ email, code, newPassword }) {
   if (!accountDoc) throw new Error("Account not found (initial lookup)");
 
   // 6. Update by account _id
-  const accountRes = await db
-    .collection("account")
-    .findOneAndUpdate(
-      { _id: accountDoc._id },
-      { $set: { password: hashed, updatedAt: new Date() } },
-      { returnDocument: "after" }
-    );
+  const accountRes = await db.collection("account").findOneAndUpdate(
+    { _id: accountDoc._id },
+    { $set: { password: hashed, updatedAt: new Date() } },
+    { returnDocument: "after" } // or returnOriginal: false for v3
+  );
 
-  if (!accountRes.value) throw new Error("Account not found after update");
+  if (!accountRes.value) {
+    // Double check if updated
+    const updated = await db
+      .collection("account")
+      .findOne({ _id: accountDoc._id });
+    if (!updated) throw new Error("Account not found after update");
+    console.log("Updated account:", updated);
+  }
+
 
   // 7. Consume reset code
   await db.collection(RESET_COLLECTION).deleteOne({

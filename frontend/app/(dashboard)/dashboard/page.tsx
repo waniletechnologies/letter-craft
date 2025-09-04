@@ -83,6 +83,13 @@ const clientGrowthData = [
   { month: "Apr", clients: 31 },
   { month: "May", clients: 58 },
   { month: "Jun", clients: 12 },
+  { month: "July", clients: 21 },
+  { month: "Aug", clients: 18 },
+  { month: "Sep", clients: 32 },
+  { month: "Oct", clients: 78 },
+  { month: "Nov", clients: 2 },
+  { month: "Dec", clients: 120 },
+  { month: "Jan", clients: 5 },
 ];
 
 const DashboardPage = () => {

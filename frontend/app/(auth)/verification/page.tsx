@@ -18,12 +18,10 @@ export default function VerificationCodePage() {
 
   const handleInputChange = (index: number, value: string) => {
     if (!/^\d*$/.test(value)) return;
-
     const newCode = [...code];
     newCode[index] = value;
     setCode(newCode);
     setError(false);
-
     if (value && index < 3) {
       inputRefs.current[index + 1]?.focus();
     }
@@ -65,7 +63,6 @@ export default function VerificationCodePage() {
       triggerShake();
       return;
     }
-
     try {
       const res = await verifyResetCode(email, verificationCode);
       if (res.ok) {
@@ -86,36 +83,37 @@ export default function VerificationCodePage() {
   };
 
   const handleResend = async () => {
-    if (!email) return console.log("Email: ",email);
+    if (!email) return;
     await requestPasswordReset(email);
     setCode(["", "", "", ""]);
     inputRefs.current[0]?.focus();
   };
 
   const handleBack = () => {
-    router.replace("./forgot-password")
+    router.replace("./forgot-password");
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50 p-6">
-      {/* <div className="flex w-full rounded-3xl overflow-hidden shadow-lg bg-white"> */}
-      {/* Left Section */}
-      <AuthLeftSection />
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Left Section (hidden on mobile/tablet) */}
+      <div className="hidden lg:flex w-1/2">
+        <AuthLeftSection />
+      </div>
 
-      {/* Right Section - Verification Code */}
-      <div className="flex flex-col justify-center items-center w-full lg:w-1/2 px-8 py-12">
-        <div className="w-[full] max-w-sm">
-          <h2 className="text-[32px] font-bold mb-2 text-gray-900">
+      {/* Right Section */}
+      <div className="flex flex-col justify-center items-center w-full lg:w-1/2 px-6 sm:px-8 py-10">
+        <div className="w-full max-w-md sm:max-w-sm md:max-w-md">
+          <h2 className="text-[26px] sm:text-[30px] md:text-[32px] font-bold mb-2 text-gray-900 text-center">
             Enter Verification Code
           </h2>
-          <p className="text-gray-500 mb-8 text-[14px] font-normal">
-            Enter 4-Digit Code to Retrieve password
+          <p className="text-gray-500 mb-8 text-[13px] sm:text-[14px] text-center">
+            Enter 4-Digit Code to Retrieve Password
           </p>
 
           <div className="space-y-6">
             {/* Code Inputs */}
             <div
-              className={`flex justify-between gap-2 ${
+              className={`flex justify-between gap-2 sm:gap-4 ${
                 isShaking ? "animate-shake" : ""
               }`}
             >
@@ -133,7 +131,7 @@ export default function VerificationCodePage() {
                   ref={(el) => {
                     inputRefs.current[index] = el;
                   }}
-                  className={`w-[50px] h-[68px] text-center text-xl text-[#000000] font-semibold border rounded-lg focus:ring-2 focus:ring-[#1379F2] focus:border-transparent outline-none transition-colors ${
+                  className={`w-[48px] h-[60px] sm:w-[50px] sm:h-[68px] text-center text-lg sm:text-xl text-black font-semibold border rounded-lg focus:ring-2 focus:ring-[#1379F2] outline-none transition-colors ${
                     error ? "border-[#1379F2]" : "border-gray-300"
                   }`}
                   autoComplete="off"
@@ -142,42 +140,34 @@ export default function VerificationCodePage() {
             </div>
 
             {error && (
-              <p className="text-red-500 text-sm text-center flex  gap-1">
-                <p className="text-red-500">⚠</p>
-                Incorrect verification code
+              <p className="text-red-500 text-xs sm:text-sm text-center flex justify-center gap-1">
+                ⚠ Incorrect verification code
               </p>
             )}
 
             {/* Buttons */}
-            <div className="flex gap-[32px] mt-8">
+            <div className="flex flex-col sm:flex-row gap-4 sm:gap-[32px] mt-8">
               <Button
                 type="button"
                 onClick={handleBack}
-                className="flex-1 w-[127px] h-[40px] bg-[#FFFFFF] py-3 px-4 border border-[#E4E4E7] text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition duration-200 focus:ring-2 focus:ring-gray-200 outline-none"
+                className="flex-1 h-[40px] bg-white border border-gray-300 text-gray-700 font-semibold rounded-lg hover:bg-gray-50 transition duration-200 focus:ring-2 focus:ring-gray-200"
               >
                 Cancel
               </Button>
               <Button
                 type="submit"
                 onClick={handleVerify}
-                className="flex-1 w-[183px] h-[40px] --primary hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 focus:ring-4 focus:ring-blue-200 outline-none"
+                className="flex-1 h-[40px] --primary text-white font-semibold rounded-lg transition duration-200 focus:ring-4 focus:ring-blue-200"
               >
                 Verify
               </Button>
-              {/* <button
-                type="button"
-                onClick={handleVerify}
-                className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 focus:ring-4 focus:ring-blue-200 outline-none"
-              >
-                Verify
-              </button> */}
             </div>
           </div>
 
           {/* Resend Code */}
-          <div className="mt-6">
-            <p className="text-[#000000] text-sm">
-              If you don&apos;t receive any code.{" "}
+          <div className="mt-6 text-center">
+            <p className="text-black text-sm">
+              Didn&apos;t receive a code?{" "}
               <button
                 type="button"
                 onClick={handleResend}
@@ -189,27 +179,12 @@ export default function VerificationCodePage() {
           </div>
         </div>
       </div>
-      {/* </div> */}
 
       <style>{`
         @keyframes shake {
-          0%,
-          100% {
-            transform: translateX(0);
-          }
-          10%,
-          30%,
-          50%,
-          70%,
-          90% {
-            transform: translateX(-5px);
-          }
-          20%,
-          40%,
-          60%,
-          80% {
-            transform: translateX(5px);
-          }
+          0%, 100% { transform: translateX(0); }
+          10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+          20%, 40%, 60%, 80% { transform: translateX(5px); }
         }
         .animate-shake {
           animation: shake 0.5s ease-in-out;

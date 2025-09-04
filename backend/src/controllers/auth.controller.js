@@ -87,37 +87,33 @@ export async function verifyCodeHandler(req, res) {
 export async function resetPasswordHandler(req, res) {
   try {
     const { email, code, newPassword } = req.body;
-    if (!email || !code || !newPassword)
+    if (!email || !code || !newPassword) {
       return res.status(400).json({ message: "Missing fields" });
+    }
 
     const updated = await resetPassword({ email, code, newPassword });
-    console.log("Update: ", email, code, newPassword)
-    console.log("Looking for account:", {
-      userId: user._id,
-      type: typeof user._id,
-    });
 
-    if (!updated)
-      return res
-        .status(400)
-        .json({
-          ok: false,
-          message: "Unable to update password (user not found)",
-        });
+    console.log("Update request for:", { email, code });
 
-    // Optionally auto-sign-in after password reset: call auth.api.signInEmail
+    if (!updated) {
+      return res.status(400).json({
+        ok: false,
+        message: "Unable to update password (user not found)",
+      });
+    }
+
+    // Auto sign-in after password reset
     const response = await auth.api.signInEmail({
       body: { email, password: newPassword },
       asResponse: true,
     });
-    console.log("Password: ", newPassword)
+
     if (response.ok) {
       const setCookie = response.headers.get("set-cookie");
       if (setCookie) res.setHeader("set-cookie", setCookie);
     }
 
     return res.json({ ok: true, message: "Password updated" });
-
   } catch (err) {
     console.error(err);
     return res
@@ -125,6 +121,7 @@ export async function resetPasswordHandler(req, res) {
       .json({ ok: false, message: err.message || "Server error" });
   }
 }
+
 
 export async function meHandler(req, res) {
   try {

@@ -1,9 +1,6 @@
 "use client";
 import { useState } from "react";
-import {
-  FaEye,
-  FaEyeSlash
-} from "react-icons/fa";
+import { FaEye, FaEyeSlash } from "react-icons/fa";
 import { Mail, LockIcon } from "lucide-react";
 import AuthLeftSection from "../components/AuthLeftSection";
 import { useRouter } from "next/navigation";
@@ -12,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
-import { loginUser } from "@/lib/auth"; // 
+import { loginUser } from "@/lib/auth";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -30,39 +27,38 @@ export default function LoginPage() {
     try {
       const data = await loginUser(email, password);
       console.log("✅ Login success:", data);
-
-      // redirect after successful login
       router.replace("/dashboard");
     } catch (err) {
       console.error("❌ Login failed:", err);
-      alert(err); // You can replace with toast popup
+      alert(err);
     }
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50 p-6">
-      {/* <div className="flex w-full rounded-3xl overflow-hidden shadow-lg bg-white"> */}
-      {/* Left Section - Reusable Component */}
-      <AuthLeftSection />
+    <div className="flex flex-col lg:flex-row min-h-screen bg-gray-50 p-4 sm:p-6 lg:p-8">
+      {/* Left Section */}
+      <div className="hidden lg:flex lg:w-1/2">
+        <AuthLeftSection />
+      </div>
 
       {/* Right Section */}
-      <div className="flex flex-col justify-center items-center w-full lg:w-1/2 px-8 py-12">
-        <div className="w-full max-w-sm">
+      <div className="flex flex-col justify-center items-center w-full lg:w-1/2 px-4 sm:px-8 py-8 sm:py-12">
+        <div className="w-full max-w-sm sm:max-w-md md:max-w-lg">
           <Card className="border-0 shadow-none bg-gray">
-            <CardHeader className="text-center ">
-              <CardTitle className="font-inter text-[34px] font-bold text-[#171717]">
+            <CardHeader className="text-center">
+              <CardTitle className="font-inter text-[28px] sm:text-[32px] lg:text-[34px] font-bold text-[#171717]">
                 Login
               </CardTitle>
-              <p className="font-inter text-gray-500 text-[14px] font-normal">
+              <p className="font-inter text-gray-500 text-[13px] sm:text-[14px] font-normal">
                 Welcome back! Please enter your details below.
               </p>
             </CardHeader>
 
-            <CardContent className="">
+            <CardContent>
               {/* Divider with text */}
-              <div className="flex items-center my-3">
+              <div className="flex items-center my-4 sm:my-5">
                 <div className="flex-grow border-t border-[#E4E4E7]"></div>
-                <span className="px-4 text-sm text-[#9C9C9C]">
+                <span className="px-3 sm:px-4 text-xs sm:text-sm text-[#9C9C9C]">
                   Login with email
                 </span>
                 <div className="flex-grow border-t border-[#E4E4E7]"></div>
@@ -70,7 +66,7 @@ export default function LoginPage() {
 
               <form onSubmit={handleSubmit} className="space-y-5">
                 {/* Email */}
-                <div className="space-y-2 py-4">
+                <div className="space-y-2">
                   <Label
                     htmlFor="email"
                     className="text-sm font-medium text-gray-700"
@@ -87,7 +83,7 @@ export default function LoginPage() {
                       placeholder="johnmiles@example.com"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
-                      className="pl-10 pr-3 py-3 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-[#71717A] placeholder-[#71717A]"
+                      className="pl-10 pr-3 py-3 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-[#71717A] placeholder-[#71717A] text-sm sm:text-base"
                       required
                     />
                   </div>
@@ -111,7 +107,7 @@ export default function LoginPage() {
                       placeholder="••••••••"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
-                      className="pl-10 pr-10 py-3 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-[#71717A] placeholder-[#71717A]"
+                      className="pl-10 pr-10 py-3 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-[#71717A] placeholder-[#71717A] text-sm sm:text-base"
                       required
                     />
                     <Button
@@ -131,7 +127,7 @@ export default function LoginPage() {
                 </div>
 
                 {/* Remember me + Forgot password */}
-                <div className="flex items-center justify-between pt-2">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-0 pt-3">
                   <div className="flex items-center space-x-2">
                     <Checkbox
                       id="remember-me"
@@ -161,7 +157,7 @@ export default function LoginPage() {
                 {/* Login Button */}
                 <Button
                   type="submit"
-                  className="w-full --primary hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 focus:ring-4 focus:ring-blue-200 mt-6"
+                  className="w-full --primary text-white font-semibold py-3 px-4 rounded-lg transition duration-200 focus:ring-4 focus:ring-blue-200 mt-6 text-sm sm:text-base"
                 >
                   Login
                 </Button>
@@ -171,6 +167,5 @@ export default function LoginPage() {
         </div>
       </div>
     </div>
-    // </div>
   );
 }

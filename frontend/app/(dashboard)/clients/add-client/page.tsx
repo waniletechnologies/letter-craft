@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Image from "next/image";
+import { Upload } from "@/public/images";
 import {
   Select,
   SelectContent,
@@ -11,7 +13,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Upload } from "lucide-react";
+import { Calendar } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   Dialog,
@@ -101,6 +103,10 @@ export default function AddClientPage() {
     router.push("/clients");
   };
 
+  const backToClient = () => {
+    router.push("/clients");
+  };
+
   const states = [
     "Alabama",
     "Alaska",
@@ -166,13 +172,17 @@ export default function AddClientPage() {
               </h1>
             </div>
             <div className="flex gap-2">
-              <Button variant="ghost" className="text-sm h-9">
+              <Button
+                onClick={backToClient}
+                variant="ghost"
+                className="text-sm h-9 text-[#5B5858]"
+              >
                 {" "}
                 Back to clients list{" "}
               </Button>
               <Button
                 onClick={handleSubmit}
-                className="primary hover:bg-blue-700 text-white h-9 px-4"
+                className="primary  text-white h-9 px-4"
               >
                 Add Client
               </Button>
@@ -367,7 +377,90 @@ export default function AddClientPage() {
 
           {/* Contact Information */}
           <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-4"></div>
+            <div className="flex flex-wrap gap-4">
+              {/* Country */}
+              <div className="w-[311px]">
+                <Label
+                  htmlFor="country"
+                  className="text-sm font-medium mb-2 block"
+                >
+                  Country
+                </Label>
+                <Input
+                  id="country"
+                  value={formData.country}
+                  onChange={(e) => handleInputChange("country", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+
+              {/* Phone Mobile */}
+              <div className="w-[148px]">
+                <Label
+                  htmlFor="phoneMobile"
+                  className="text-sm font-medium mb-2 block"
+                >
+                  Phone Mobile
+                </Label>
+                <Input
+                  id="phoneMobile"
+                  value={formData.phoneMobile}
+                  onChange={(e) =>
+                    handleInputChange("phoneMobile", e.target.value)
+                  }
+                  className="h-10"
+                />
+              </div>
+
+              {/* Phone Alternate */}
+              <div className="w-[148px]">
+                <Label
+                  htmlFor="phoneAlternate"
+                  className="text-sm font-medium mb-2 block"
+                >
+                  Phone Alternate
+                </Label>
+                <Input
+                  id="phoneAlternate"
+                  value={formData.phoneAlternate}
+                  onChange={(e) =>
+                    handleInputChange("phoneAlternate", e.target.value)
+                  }
+                  className="h-10"
+                />
+              </div>
+
+              {/* Phone Work */}
+              <div className="w-[148px]">
+                <Label
+                  htmlFor="phoneWork"
+                  className="text-sm font-medium mb-2 block"
+                >
+                  Phone Work
+                </Label>
+                <Input
+                  id="phoneWork"
+                  value={formData.phoneWork}
+                  onChange={(e) =>
+                    handleInputChange("phoneWork", e.target.value)
+                  }
+                  className="h-10"
+                />
+              </div>
+
+              {/* Fax */}
+              <div className="w-[148px]">
+                <Label htmlFor="fax" className="text-sm font-medium mb-2 block">
+                  Fax
+                </Label>
+                <Input
+                  id="fax"
+                  value={formData.fax}
+                  onChange={(e) => handleInputChange("fax", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+            </div>
           </div>
 
           {/* Additional Information */}
@@ -454,10 +547,11 @@ export default function AddClientPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="bg-[#2196F3] text-white hover:bg-blue-700 h-8 px-3"
+                    className="bg-[#2196F3] text-white  h-8 px-3"
                     onClick={() => document.getElementById(key)?.click()}
                   >
-                    <Upload className="h-3 w-3 mr-1" />
+                    {/* <Upload className="h-3 w-3 mr-1" /> */}
+                    {/* <Image src={Upload} alt="Upload" width={51} height={44} /> */}
                     Upload
                   </Button>
                 </div>
@@ -474,8 +568,15 @@ export default function AddClientPage() {
                 className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer"
                 onClick={() => setShowFtcDialog(true)}
               >
-                <div className="mb-3">
-                  <Upload className="h-8 w-8 mx-auto text-gray-400" />
+                <div className="mb-3 ">
+                  {/* <Upload className="h-8 w-8 mx-auto text-gray-400" /> */}
+                  <Image
+                    src={Upload}
+                    alt="Upload"
+                    width={51}
+                    height={44}
+                    className="h-[58px] w-[67px] mx-auto"
+                  />
                 </div>
                 <div className="text-sm text-gray-600 mb-1">
                   Drop your file here, or{" "}
@@ -513,7 +614,12 @@ export default function AddClientPage() {
                     >
                       {/* Cloud upload icon */}
                       <div className="mb-4">
-                        <div className="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center">
+                        <Image
+                          src={Upload}
+                          alt="Upload"
+                          className="h-[58px] w-[67px] mx-auto"
+                        />
+                        {/* <div className="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center">
                           <svg
                             className="w-8 h-8 text-blue-500"
                             fill="none"
@@ -527,20 +633,19 @@ export default function AddClientPage() {
                               d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
                             />
                           </svg>
-                        </div>
+                        </div> */}
                       </div>
 
                       <div className="w-[296px]">
-
-                      <div className="text-[16px] text-[#040415] mb-1">
-                        Drop your file here, or{" "}
-                        <span className="text-[16px] text-[#2196F3] underline hover:text-blue-800">
-                          Browse
-                        </span>
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        Supports: pdf Max file size 80MB
-                      </div>
+                        <div className="text-[16px] text-[#040415] mb-1">
+                          Drop your file here, or{" "}
+                          <span className="text-[16px] text-[#2196F3] underline hover:text-blue-800">
+                            Browse
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          Supports: pdf Max file size 80MB
+                        </div>
                       </div>
 
                       {uploadedFiles.ftcReport && (

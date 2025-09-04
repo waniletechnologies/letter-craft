@@ -177,7 +177,7 @@ export default function EditClientPage() {
                 onClick={handleSubmit}
                 className="bg-[#2196F3] hover:bg-blue-700 text-white h-9 px-4"
               >
-                Add Client
+                Edit Client
               </Button>
             </div>
           </div>
@@ -480,7 +480,7 @@ export default function EditClientPage() {
                         <Button
                           variant="outline"
                           size="sm"
-                          className="cursor-pointer bg-blue-600 text-white hover:bg-blue-700 h-8 px-3"
+                          className="cursor-pointer bg-[#2196F3] text-white hover:bg-blue-700 h-8 px-3"
                         >
                           <Upload className="h-3 w-3 mr-1" />
                           Upload

@@ -2,26 +2,29 @@
 
 import { useState, useRef, KeyboardEvent, ClipboardEvent } from "react";
 import AuthLeftSection from "../components/AuthLeftSection";
-import { useRouter } from "next/navigation";
-
+import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { verifyResetCode, requestPasswordReset } from "@/lib/auth";
+
 export default function VerificationCodePage() {
-    const router = useRouter()
-  const [code, setCode] = useState<string[]>(["", "", "", "", "", ""]);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  const email = searchParams.get("email") || "";
+
+  const [code, setCode] = useState<string[]>(["", "", "", ""]);
   const [error, setError] = useState(false);
   const [isShaking, setIsShaking] = useState(false);
   const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   const handleInputChange = (index: number, value: string) => {
-    if (!/^\d*$/.test(value)) return; // Only allow digits
+    if (!/^\d*$/.test(value)) return;
 
     const newCode = [...code];
     newCode[index] = value;
     setCode(newCode);
     setError(false);
 
-    // Auto-focus next input
-    if (value && index < 5) {
+    if (value && index < 3) {
       inputRefs.current[index + 1]?.focus();
     }
   };
@@ -29,10 +32,8 @@ export default function VerificationCodePage() {
   const handleKeyDown = (index: number, e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Backspace") {
       if (code[index] === "" && index > 0) {
-        // Focus previous input if current is empty
         inputRefs.current[index - 1]?.focus();
       } else {
-        // Clear current input
         const newCode = [...code];
         newCode[index] = "";
         setCode(newCode);
@@ -42,50 +43,57 @@ export default function VerificationCodePage() {
 
   const handlePaste = (e: ClipboardEvent<HTMLInputElement>) => {
     e.preventDefault();
-    const pastedData = e.clipboardData.getData("text").replace(/\D/g, ""); // Remove non-digits
-    if (pastedData.length <= 6) {
-      const newCode = pastedData.split("").slice(0, 6);
-      // Fill remaining slots with empty strings
-      while (newCode.length < 6) {
-        newCode.push("");
-      }
+    const pasted = e.clipboardData.getData("text").replace(/\D/g, "");
+    if (pasted.length <= 4) {
+      const newCode = pasted.split("").slice(0, 4);
+      while (newCode.length < 4) newCode.push("");
       setCode(newCode);
       setError(false);
-
-      // Focus the next empty input or the last filled one
-      const nextEmptyIndex = newCode.findIndex((digit) => digit === "");
-      const focusIndex = nextEmptyIndex === -1 ? 5 : nextEmptyIndex;
-      inputRefs.current[focusIndex]?.focus();
+      inputRefs.current[Math.min(pasted.length, 3)]?.focus();
     }
   };
 
-  const triggerShakeAnimation = () => {
+  const triggerShake = () => {
     setIsShaking(true);
     setTimeout(() => setIsShaking(false), 500);
   };
 
-  const handleVerify = () => {
+  const handleVerify = async () => {
     const verificationCode = code.join("");
-
-    if (verificationCode.length !== 6) {
+    if (verificationCode.length !== 4 || !email) {
       setError(true);
-      triggerShakeAnimation();
+      triggerShake();
       return;
     }
 
-    setError(false);
-    router.replace('/reset-password')
+    try {
+      const res = await verifyResetCode(email, verificationCode);
+      if (res.ok) {
+        router.replace(
+          `/reset-password?email=${encodeURIComponent(
+            email
+          )}&code=${verificationCode}`
+        );
+      } else {
+        setError(true);
+        triggerShake();
+      }
+    } catch (err) {
+      console.error(err);
+      setError(true);
+      triggerShake();
+    }
   };
 
-  const handleResend = () => {
-    alert("Verification code resent!");
-    setCode(["", "", "", "", "", ""]);
-    setError(false);
+  const handleResend = async () => {
+    if (!email) return console.log("Email: ",email);
+    await requestPasswordReset(email);
+    setCode(["", "", "", ""]);
     inputRefs.current[0]?.focus();
   };
 
   const handleBack = () => {
-    alert("Navigating back to sign in...");
+    router.replace("./forgot-password")
   };
 
   return (
@@ -101,7 +109,7 @@ export default function VerificationCodePage() {
             Enter Verification Code
           </h2>
           <p className="text-gray-500 mb-8 text-[14px] font-normal">
-            Enter 6-Digit Code to Retrieve password
+            Enter 4-Digit Code to Retrieve password
           </p>
 
           <div className="space-y-6">

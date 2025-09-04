@@ -12,6 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
+import { loginUser } from "@/lib/auth"; // 
 
 export default function LoginPage() {
   const router = useRouter();
@@ -24,11 +25,18 @@ export default function LoginPage() {
     router.replace("/forgot-password");
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log("Login attempt:", { email, password, rememberMe });
-    router.replace("/dashboard");
+    try {
+      const data = await loginUser(email, password);
+      console.log("✅ Login success:", data);
+
+      // redirect after successful login
+      router.replace("/dashboard");
+    } catch (err) {
+      console.error("❌ Login failed:", err);
+      alert(err); // You can replace with toast popup
+    }
   };
 
   return (

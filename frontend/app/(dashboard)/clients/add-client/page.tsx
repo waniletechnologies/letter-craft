@@ -13,9 +13,16 @@ import {
 } from "@/components/ui/select";
 import { Calendar, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export default function AddClientPage() {
   const router = useRouter();
+  const [showFtcDialog, setShowFtcDialog] = useState(false);
 
   interface ClientData {
     firstName: string;
@@ -79,6 +86,7 @@ export default function AddClientPage() {
     type: string,
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
+    console.log("Upload File")
     const file = event.target.files?.[0] || null;
     setUploadedFiles((prev) => ({
       ...prev,
@@ -425,9 +433,14 @@ export default function AddClientPage() {
               ].map(({ key, label }) => (
                 <div
                   key={key}
-                  className="border border-gray-200 rounded-lg p-4 text-center"
+                  className="flex items-center justify-between border border-gray-200 rounded-lg px-4 h-[62px] w-[311px]"
                 >
-                  <div className="text-sm text-gray-600 mb-3">{label}</div>
+                  {/* Label or Uploaded File Name */}
+                  <div className="text-[12px] text-[#9D9D9D]">
+                    {uploadedFiles[key]?.name || label}
+                  </div>
+
+                  {/* Hidden File Input */}
                   <input
                     type="file"
                     id={key}
@@ -435,21 +448,18 @@ export default function AddClientPage() {
                     onChange={(e) => handleFileUpload(key, e)}
                     accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                   />
-                  <label htmlFor={key} className="cursor-pointer">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      className="cursor-pointer bg-blue-600 text-white hover:bg-blue-700 h-8 px-3"
-                    >
-                      <Upload className="h-3 w-3 mr-1" />
-                      Upload
-                    </Button>
-                  </label>
-                  {uploadedFiles[key] && (
-                    <div className="text-xs text-green-600 mt-2">
-                      {uploadedFiles[key]?.name}
-                    </div>
-                  )}
+
+                  {/* Upload Button */}
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="bg-[#2196F3] text-white hover:bg-blue-700 h-8 px-3"
+                    onClick={() => document.getElementById(key)?.click()}
+                  >
+                    <Upload className="h-3 w-3 mr-1" />
+                    Upload
+                  </Button>
                 </div>
               ))}
             </div>
@@ -459,32 +469,115 @@ export default function AddClientPage() {
               <h3 className="font-medium mb-3 text-sm text-gray-900">
                 Upload Your FTC Report
               </h3>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
+
+              <div
+                className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer"
+                onClick={() => setShowFtcDialog(true)}
+              >
                 <div className="mb-3">
                   <Upload className="h-8 w-8 mx-auto text-gray-400" />
                 </div>
-                <input
-                  type="file"
-                  id="ftcReport"
-                  className="hidden"
-                  onChange={(e) => handleFileUpload("ftcReport", e)}
-                  accept=".pdf"
-                />
-                <label htmlFor="ftcReport" className="cursor-pointer">
-                  <div className="text-sm text-gray-600 mb-1">
-                    Drop your file here, or{" "}
-                    <span className="text-blue-600 underline">Browse</span>
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    Supports: pdf Max file size 80MB
-                  </div>
-                </label>
+                <div className="text-sm text-gray-600 mb-1">
+                  Drop your file here, or{" "}
+                  <span className="text-blue-600 underline">Browse</span>
+                </div>
+                <div className="text-xs text-gray-400">
+                  Supports: pdf Max file size 80MB
+                </div>
                 {uploadedFiles.ftcReport && (
                   <div className="text-sm text-green-600 mt-2">
                     Uploaded: {uploadedFiles.ftcReport.name}
                   </div>
                 )}
               </div>
+
+              {/* Dialog */}
+              {/* Dialog */}
+              <Dialog open={showFtcDialog} onOpenChange={setShowFtcDialog}>
+                <DialogContent className="sm:max-w-[974px]">
+                  <DialogHeader>
+                    <DialogTitle className="text-lg font-semibold text-[#292524]">
+                      Upload Your FTC Report
+                    </DialogTitle>
+                  </DialogHeader>
+
+                  <div className="space-y-4 flex gap-8">
+                    {/* Title input */}
+
+                    {/* Upload area */}
+                    <div
+                      className="border-2 border-dashed border-blue-300 rounded-lg p-8 text-center cursor-pointer bg-[#E4E4E7]  transition-colors"
+                      onClick={() =>
+                        document.getElementById("ftcReportInput")?.click()
+                      }
+                    >
+                      {/* Cloud upload icon */}
+                      <div className="mb-4">
+                        <div className="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center">
+                          <svg
+                            className="w-8 h-8 text-blue-500"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth="2"
+                              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
+                            />
+                          </svg>
+                        </div>
+                      </div>
+
+                      <div className="w-[296px]">
+
+                      <div className="text-[16px] text-[#040415] mb-1">
+                        Drop your file here, or{" "}
+                        <span className="text-[16px] text-[#2196F3] underline hover:text-blue-800">
+                          Browse
+                        </span>
+                      </div>
+                      <div className="text-sm text-gray-500">
+                        Supports: pdf Max file size 80MB
+                      </div>
+                      </div>
+
+                      {uploadedFiles.ftcReport && (
+                        <div className="mt-3 text-sm text-green-600 font-medium">
+                          Uploaded: {uploadedFiles.ftcReport.name}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="w-[311px]">
+                      <Label
+                        htmlFor="ftcTitle"
+                        className="text-sm font-medium text-gray-700"
+                      >
+                        Need a title of the FTC report
+                      </Label>
+                      <Input
+                        id="ftcTitle"
+                        placeholder="---"
+                        className="mt-1 h-10"
+                      />
+                    </div>
+
+                    {/* Hidden File Input */}
+                    <input
+                      type="file"
+                      id="ftcReportInput"
+                      className="hidden"
+                      accept=".pdf"
+                      onChange={(e) => {
+                        handleFileUpload("ftcReport", e);
+                        setShowFtcDialog(false);
+                      }}
+                    />
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </div>
         </div>
@@ -492,3 +585,4 @@ export default function AddClientPage() {
     </div>
   );
 }
+

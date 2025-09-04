@@ -1,7 +1,8 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
+import { getCurrentUser } from "@/lib/auth";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
@@ -29,7 +30,6 @@ import {
   SidebarInset,
   SidebarProvider,
   SidebarTrigger,
-  useSidebar,
 } from "../../components/ui/sidebar";
 
 // --------------------------------------
@@ -126,45 +126,47 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const pathname = usePathname();
-  const router = useRouter()
+  const router = useRouter();
   const heading = getHeadingForPath(pathname);
   const currentLink = [...MAIN_LINKS, ...SUPPORT_LINKS].find(
-    (l) => l.href === pathname,
+    (l) => l.href === pathname
   );
   const HeadingIcon = currentLink?.icon ?? LayoutDashboard;
-  
-  // Placeholder user data (replace with your actual user data)
-  const user = {
-    name: "John Doe",
-    email: "john.doe@example.com",
-    image: null
-  };
+
+  const [user, setUser] = useState<{
+    name: string;
+    email: string;
+    image?: string;
+  } | null>(null);
+
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const res = await getCurrentUser();
+        setUser(res.user);
+      } catch (err) {
+        console.error("Failed to fetch user:", err);
+        router.replace("/login");
+      }
+    }
+    fetchUser();
+  }, [router]);
 
   const handleLogout = () => {
-    // Placeholder logout logic
-    router.replace('/login')
+    router.replace("/login");
   };
 
-  const { state, isMobile } = useSidebar();
+  if (!user) {
+    return <div className="p-6">Loading...</div>;
+  }
 
   return (
     <>
       <AppSidebar />
       <SidebarInset>
-        <motion.div
-          className={`flex flex-1 flex-col`}
-          animate={{
-            marginLeft: isMobile
-              ? "0px"
-              : state === "collapsed"
-                ? "0px"
-                : "0px",
-          }}
-          transition={{ type: "spring", stiffness: 260, damping: 30 }}
-        >
+        <motion.div className="flex flex-1 flex-col">
           {/* Header */}
           <header className="flex h-16 w-full items-center bg-white gap-2">
-            {/* page heading + icon */}
             <div className="flex items-center gap-2 ml-6">
               <SidebarTrigger />
               <span className="h-6 w-px bg-[#D7D7D7] -ml-2" />
@@ -175,7 +177,6 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
             </div>
 
             <div className="ml-auto flex items-center gap-2">
-              {/* user menu */}
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="ghost" className="flex items-center gap-1">
@@ -188,7 +189,6 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
                             width={40}
                             height={40}
                             className="object-cover"
-                            style={{ width: "100%", height: "100%" }}
                           />
                         ) : (
                           <span className="text-sm font-semibold text-gray-600">
@@ -213,7 +213,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
                   <DropdownMenuSeparator />
                   <DropdownMenuItem
                     onClick={handleLogout}
-                    className="gap-2 text-[11px] cursor-pointer outline-none"
+                    className="gap-2 text-[11px] cursor-pointer"
                   >
                     <LogOut className="h-3 w-3" /> Log out
                   </DropdownMenuItem>
@@ -227,5 +227,6 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
     </>
   );
 };
+
 
 export default SBProvider;

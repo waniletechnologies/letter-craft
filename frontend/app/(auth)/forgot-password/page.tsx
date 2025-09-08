@@ -1,84 +1,106 @@
 "use client";
 import { useState } from "react";
-import {  ArrowLeft } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import AuthLeftSection from "../components/AuthLeftSection";
 import { useRouter } from "next/navigation";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
+import { requestPasswordReset } from "@/lib/auth";
 
 export default function ForgotPasswordPage() {
-    
   const router = useRouter();
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // Handle forgot password logic here
-    router.push("/verification");
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await requestPasswordReset(email);
+      if (res.ok) {
+        router.push(`/verification?email=${encodeURIComponent(email)}`);
+      } else {
+        setError(res.message || "Something went wrong");
+      }
+    } catch (err) {
+      setError("Server error");
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleBackToLogin = () => {
-    // Handle navigation back to login
     router.replace("/login");
   };
 
   return (
-    <div className="flex min-h-screen bg-gray-50 p-6">
-      {/* <div className="flex w-full rounded-3xl overflow-hidden shadow-lg"> */}
-      {/* Left Section - Reusable Component */}
-      <AuthLeftSection />
+    <div className="flex min-h-screen bg-gray-50">
+      {/* Left Section (hidden on small devices, visible on md+) */}
+      <div className="hidden lg:flex w-1/2">
+        <AuthLeftSection />
+      </div>
 
       {/* Right Section */}
-      <div className="flex flex-col justify-center items-center w-full lg:w-1/2 px-8 py-12">
-        <div className="w-[340px] max-w-sm">
-          <h2 className="text-[34px] font-bold font-Inter mb-2 text-gray-900 text-center">
+      <div className="flex flex-col justify-center items-center w-full lg:w-1/2 px-6 sm:px-8 py-10">
+        <div className="w-full max-w-md sm:max-w-sm md:max-w-md">
+          {/* Title */}
+          <h2 className="text-[28px] sm:text-[32px] md:text-[34px] font-bold font-Inter mb-2 text-gray-900 text-center">
             Forget Password?
           </h2>
-          <p className="text-gray-500 mb-8 text-[14px] text-center font-normal">
+          <p className="text-gray-500 mb-8 text-[14px] sm:text-[15px] md:text-[14px] text-center font-normal px-2 sm:px-0">
             No worries, we&apos;ll send you reset instructions.
           </p>
 
+          {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-5">
-            {/* Email */}
-            <div className="px-[25px]">
+            <div className="px-2 sm:px-6">
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Email <span className="text-[#1379F2]"> *</span>
+                Email <span className="text-[#1379F2]">*</span>
               </label>
-              <div className="relative">
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="Enter your email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  className=" border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-[#71717A] placeholder-[#71717A]"
-                  required
-                />
-              </div>
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-[#71717A] placeholder-[#71717A]"
+                required
+              />
             </div>
 
-            {/* Submit Button */}
-            <div className="px-[25px]">
+            {error && (
+              <p className="text-red-500 text-xs sm:text-sm text-center px-2">
+                {error}
+              </p>
+            )}
+
+            <div className="px-2 sm:px-6">
               <Button
                 type="submit"
-                className="w-[300px] --primary hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg transition duration-200 focus:ring-4 focus:ring-blue-200 mt-6"
+                disabled={loading}
+                className="w-full text-white font-semibold py-3 px-4 rounded-lg transition duration-200 focus:ring-4 focus:ring-blue-200 mt-6"
               >
-                Submit
+                {loading ? "Sending..." : "Submit"}
               </Button>
             </div>
           </form>
 
-          {/* Back to Sign In */}
+          {/* Back to login */}
           <button
             onClick={handleBackToLogin}
             className="flex items-center justify-center gap-2 w-full mt-6 text-gray-600 hover:text-gray-800 transition duration-200"
           >
             <ArrowLeft className="h-4 w-4 text-[#71717A]" />
-            <span className="text-sm text-[#71717A]">Back to Sign in</span>
+            <span className="text-sm sm:text-base text-[#71717A]">
+              Back to Sign in
+            </span>
           </button>
         </div>
       </div>
     </div>
-    // </div>
   );
 }

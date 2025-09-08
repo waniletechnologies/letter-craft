@@ -21,6 +21,8 @@ export type ClientPayload = {
   ssn: string;
   experianReport?: string;
   transunionFileNumber?: string;
+  disputeScheduleDate?: string;
+  disputeScheduleTime?: string;
 };
 
 export function useListClients(params?: {

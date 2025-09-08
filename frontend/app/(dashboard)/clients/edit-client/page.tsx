@@ -44,6 +44,8 @@ function EditClientForm() {
     ssn: string;
     experianReportNumber: string;
     transUnionFileNumber: string;
+    disputeScheduleDate: string;
+    disputeScheduleTime: string;
   }
 
   const [formData, setFormData] = useState<ClientData>({
@@ -65,6 +67,8 @@ function EditClientForm() {
     ssn: "",
     experianReportNumber: "",
     transUnionFileNumber: "",
+    disputeScheduleDate: "",
+    disputeScheduleTime: "",
   });
 
   useEffect(() => {
@@ -89,6 +93,8 @@ function EditClientForm() {
       ssn: "", // keep hidden; not returned by API by default
       experianReportNumber: client.experianReport || "",
       transUnionFileNumber: client.transunionFileNumber || "",
+      disputeScheduleDate: client.disputeScheduleDate || "",
+      disputeScheduleTime: client.disputeScheduleTime || "",
     });
   }, [data]);
 
@@ -150,6 +156,8 @@ function EditClientForm() {
         // ssn is not updatable here by default for safety
         experianReport: formData.experianReportNumber || undefined,
         transunionFileNumber: formData.transUnionFileNumber || undefined,
+        disputeScheduleDate: formData.disputeScheduleDate || undefined,
+        disputeScheduleTime: formData.disputeScheduleTime || undefined,
       },
       {
         onSuccess: () => {
@@ -582,6 +590,50 @@ function EditClientForm() {
               </div>
             </div>
           </div>
+
+          {/* Dispute Schedule Information */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Dispute Date */}
+              <div>
+                <Label
+                  htmlFor="disputeScheduleDate"
+                  className="text-sm font-medium mb-2 block"
+                >
+                  Dispute Schedule Date
+                </Label>
+                <Input
+                  id="disputeScheduleDate"
+                  type="date"
+                  value={formData.disputeScheduleDate}
+                  onChange={(e) =>
+                    handleInputChange("disputeScheduleDate", e.target.value)
+                  }
+                  className="h-10"
+                />
+              </div>
+          
+              {/* Dispute Time */}
+              <div>
+                <Label
+                  htmlFor="disputeScheduleTime"
+                  className="text-sm font-medium mb-2 block"
+                >
+                  Dispute Schedule Time
+                </Label>
+                <Input
+                  id="disputeScheduleTime"
+                  type="time"
+                  value={formData.disputeScheduleTime}
+                  onChange={(e) =>
+                    handleInputChange("disputeScheduleTime", e.target.value)
+                  }
+                  className="h-10"
+                />
+              </div>
+            </div>
+          </div>
+
 
           {/* Upload Documents */}
           <div className="space-y-6">

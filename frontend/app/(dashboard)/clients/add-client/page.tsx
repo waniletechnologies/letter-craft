@@ -46,6 +46,8 @@ export default function AddClientPage() {
     ssn: string;
     experianReportNumber: string;
     transUnionFileNumber: string;
+    disputeScheduleDate: string;
+    disputeScheduleTime: string;
   }
 
   const [formData, setFormData] = useState<ClientData>({
@@ -67,6 +69,8 @@ export default function AddClientPage() {
     ssn: "",
     experianReportNumber: "",
     transUnionFileNumber: "",
+    disputeScheduleDate: "",
+    disputeScheduleTime: "",
   });
 
   const [uploadedFiles, setUploadedFiles] = useState<{
@@ -118,6 +122,8 @@ export default function AddClientPage() {
         ssn: (formData.ssn || "").replace(/\D/g, ""),
         experianReport: formData.experianReportNumber || undefined,
         transunionFileNumber: formData.transUnionFileNumber || undefined,
+        disputeScheduleDate: formData.disputeScheduleDate || undefined,
+        disputeScheduleTime: formData.disputeScheduleTime || undefined,
       },
       {
         onSuccess: () => {
@@ -534,6 +540,37 @@ export default function AddClientPage() {
               </div>
             </div>
           </div>
+
+          {/* Dispute Schedule Information */}
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="disputeScheduleDate" className="text-sm font-medium mb-2 block">
+                  Dispute Schedule Date
+                </Label>
+                <Input
+                  id="disputeScheduleDate"
+                  type="date"
+                  value={formData.disputeScheduleDate}
+                  onChange={(e) => handleInputChange("disputeScheduleDate", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+              <div>
+                <Label htmlFor="disputeScheduleTime" className="text-sm font-medium mb-2 block">
+                  Dispute Schedule Time
+                </Label>
+                <Input
+                  id="disputeScheduleTime"
+                  type="time"
+                  value={formData.disputeScheduleTime}
+                  onChange={(e) => handleInputChange("disputeScheduleTime", e.target.value)}
+                  className="h-10"
+                />
+              </div>
+            </div>
+          </div>
+
 
           {/* Upload Documents */}
           <div className="space-y-6">

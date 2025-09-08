@@ -112,6 +112,16 @@ const clientSchema = new mongoose.Schema({
     trim: true,
     maxlength: [50, 'TransUnion file number cannot exceed 50 characters']
   },
+
+  disputeScheduleDate: {
+    type: Date,
+    required: false,
+  },
+  disputeScheduleTime: {
+    type: String, // keeping as string (HH:mm format) for flexibility
+    trim: true,
+    match: [/^([01]\d|2[0-3]):([0-5]\d)$/, 'Please enter a valid time in HH:mm format']
+  },
   
   // Status and Metadata
   status: {
@@ -128,6 +138,7 @@ const clientSchema = new mongoose.Schema({
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User'
   }
+  
 }, {
   timestamps: true,
   toJSON: { 

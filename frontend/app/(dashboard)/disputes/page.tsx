@@ -1,14 +1,17 @@
-"use client"
+"use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import DisputeCard from "./components/dispute-card";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { Upload } from "@/public/images";
-import DownloadLetter, { LetterFormat } from "./components/download-letter";
+import DownloadLetter from "./components/download-letter";
 import EditDispute, { EditDisputePayload } from "./components/edit-dispute";
-import ViewDisputeDetails, { DisputedItem } from "./components/view-dispute-details";
+import ViewDisputeDetails, {
+  DisputedItem,
+} from "./components/view-dispute-details";
 import { Plus } from "lucide-react";
+import { fetchDisputes, updateDispute } from "@/lib/disputeAPI";
 
 type Bureau = "Experian" | "Equifax" | "TransUnion";
 type DisputeStatus = "in-progress" | "completed" | "pending" | "failed";
@@ -23,63 +26,13 @@ interface DisputeRecord {
   accountsCount: number;
   createdDate: string;
   expectedResponseDate: string;
+  items: DisputedItem[];
 }
 
-// Sample dispute data
-const sampleDisputes: DisputeRecord[] = [
-  {
-    id: "1",
-    clientName: "John Smith",
-    round: 1,
-    status: "in-progress",
-    progress: 60,
-    bureau: "Equifax",
-    accountsCount: 3,
-    createdDate: "2024-06-01",
-    expectedResponseDate: "2024-07-01",
-  },
-  {
-    id: "2",
-    clientName: "Sarah Johnson",
-    round: 2,
-    status: "completed",
-    progress: 100,
-    bureau: "Equifax",
-    accountsCount: 3,
-    createdDate: "2024-05-15",
-    expectedResponseDate: "2024-06-15",
-  },
-  {
-    id: "3",
-    clientName: "Lisa Wilson",
-    round: 1,
-    status: "pending",
-    progress: 25,
-    bureau: "TransUnion",
-    accountsCount: 5,
-    createdDate: "2024-06-10",
-    expectedResponseDate: "2024-07-10",
-  },
-  {
-    id: "4",
-    clientName: "Michael Brown",
-    round: 3,
-    status: "failed",
-    progress: 0,
-    bureau: "Experian",
-    accountsCount: 2,
-    createdDate: "2024-05-20",
-    expectedResponseDate: "2024-06-20",
-  },
-];
-
-const mockItems: DisputedItem[] = [
-  { id: "i1", title: "ABC Credit Card", account: "****1234", status: "Pending" },
-  { id: "i2", title: "XYZ Auto Loan", account: "****5678", status: "In Review" },
-  { id: "i3", title: "Department Store Card", account: "****9012", status: "Resolved" },
-];
-
 const DisputesPage = () => {
+  const [disputes, setDisputes] = useState<DisputeRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+
   const [downloadOpen, setDownloadOpen] = useState(false);
   const [selectedDispute, setSelectedDispute] = useState<{
     clientName: string;
@@ -88,70 +41,133 @@ const DisputesPage = () => {
   } | null>(null);
 
   const [editOpen, setEditOpen] = useState(false);
-  const [editInitial, setEditInitial] = useState<EditDisputePayload | null>(null);
+  const [editInitial, setEditInitial] = useState<EditDisputePayload | null>(
+    null
+  );
 
   const [viewOpen, setViewOpen] = useState(false);
-  const [viewState, setViewState] = useState<{
-    clientName: string;
-    bureau: Bureau;
-    round: number;
-    status: DisputeStatus;
-    progress: number;
-    createdDate: string;
-    expectedResponseDate: string;
-    accountsCount: number;
-  } | null>(null);
+  const [viewState, setViewState] = useState<DisputeRecord | null>(null);
+
+  // 🔗 Fetch data on mount using the reusable API
+  useEffect(() => {
+    const loadDisputes = async () => {
+      try {
+        const rawData = await fetchDisputes();
+        const formatted = rawData.map((d) => ({
+          id: d._id,
+          clientName: d.clientName,
+          round: d.round,
+          status: d.status as DisputeStatus,
+          progress: d.progress,
+          bureau: d.bureau as Bureau,
+          accountsCount: d.accountsCount,
+          createdDate: new Date(d.createdDate).toLocaleDateString(),
+          expectedResponseDate: new Date(
+            d.expectedResponseDate
+          ).toLocaleDateString(),
+          items: d.items.map((item) => ({
+            id: item._id,
+            title: item.title,
+            account: item.account,
+            status: item.status as DisputedItem["status"],
+          })),
+        }));
+        setDisputes(formatted);
+      } catch (err) {
+        console.error("Failed to fetch disputes:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDisputes();
+  }, []);
 
   const handleViewDetails = (id: string) => {
-    const d = sampleDisputes.find((x) => x.id === id);
-    if (!d) return;
-    setViewState({
-      clientName: d.clientName,
-      bureau: d.bureau,
-      round: d.round,
-      status: d.status,
-      progress: d.progress,
-      createdDate: d.createdDate,
-      expectedResponseDate: d.expectedResponseDate,
-      accountsCount: d.accountsCount,
-    });
-    setViewOpen(true);
+    const d = disputes.find((x) => x.id === id);
+    if (d) {
+      setViewState(d);
+      setViewOpen(true);
+    }
   };
 
   const handleEditDispute = (id: string) => {
-    const d = sampleDisputes.find((x) => x.id === id);
-    if (!d) return;
-    setEditInitial({
-      clientName: d.clientName,
-      bureau: d.bureau,
-      round: d.round,
-      status: d.status,
-      notes: "",
-    });
-    setEditOpen(true);
+    const d = disputes.find((x) => x.id === id);
+    if (d) {
+      setEditInitial({
+        clientName: d.clientName,
+        bureau: d.bureau,
+        round: d.round,
+        status: d.status,
+        notes: "",
+      });
+      setEditOpen(true);
+    }
   };
 
-  const handleSaveEdit = (payload: EditDisputePayload) => {
-    console.log("Save dispute", payload);
+  const handleSaveEdit = async (payload: EditDisputePayload) => {
+    const id = disputes.find((d) => d.clientName === payload.clientName)?.id;
+    if (!id) return;
+
+    const res = await updateDispute(id, payload);
+    if (res.success) {
+      // Map status → progress
+      const getProgressForStatus = (status: DisputeStatus) => {
+        switch (status) {
+          case "in-progress":
+            return 50;
+          case "completed":
+            return 100;
+          case "failed":
+            return 0;
+          default:
+            return 0;
+        }
+      };
+
+      setDisputes((prev) =>
+        prev.map((d) =>
+          d.id === id
+            ? {
+                ...d,
+                ...payload,
+                progress: getProgressForStatus(payload.status), // 👈 update progress
+              }
+            : d
+        )
+      );
+    } else {
+      alert(`Failed to update dispute: ${res.message}`);
+    }
   };
+
+
 
   const handleDownloadLetters = (id: string) => {
-    const d = sampleDisputes.find((x) => x.id === id);
-    if (!d) return;
-    setSelectedDispute({ clientName: d.clientName, bureau: d.bureau, round: d.round });
-    setDownloadOpen(true);
+    const d = disputes.find((x) => x.id === id);
+    if (d) {
+      setSelectedDispute({
+        clientName: d.clientName,
+        bureau: d.bureau,
+        round: d.round,
+      });
+      setDownloadOpen(true);
+    }
   };
 
-  const handleConfirmDownload = (payload: { format: LetterFormat; letters: string[] }) => {
-    console.log("Downloading", payload);
-  };
+  if (loading) {
+    return <div className="p-6 text-gray-600">Loading disputes...</div>;
+  }
 
   return (
     <div className="p-6">
+      {/* Header */}
       <div className="mb-6">
-        <h1 className="font-semibold text-[32px] leading-[100%] -tracking-[0.07em] text-[#3D3D3D] mb-2">Disputes</h1>
-        <div className="flex items-center justify-between gap-2"> 
-          <p className="text-[#606060] font-medium text-base leading-[100%] -tracking-[0.07em]">
+        <h1 className="font-semibold text-[32px] text-[#3D3D3D] mb-2">
+          Disputes
+        </h1>
+        <div className="flex items-center justify-between gap-2">
+          <p className="text-[#606060] font-medium text-base">
             Manage and track credit dispute progress across all credit bureaus
           </p>
           <Button>
@@ -161,56 +177,48 @@ const DisputesPage = () => {
         </div>
       </div>
 
+      {/* Cards */}
       <div className="grid grid-cols-1 gap-6">
-        {sampleDisputes.map((dispute) => (
+        {disputes.map((d) => (
           <DisputeCard
-            key={dispute.id}
-            {...dispute}
-            onViewDetails={() => handleViewDetails(dispute.id)}
-            onEditDispute={() => handleEditDispute(dispute.id)}
-            onDownloadLetters={() => handleDownloadLetters(dispute.id)}
+            key={d.id}
+            {...d}
+            onViewDetails={() => handleViewDetails(d.id)}
+            onEditDispute={() => handleEditDispute(d.id)}
+            onDownloadLetters={() => handleDownloadLetters(d.id)}
           />
         ))}
       </div>
 
-      {/* Dispute Wizard Section */}
+      {/* Wizard Section */}
       <div className="mt-12 bg-white rounded-lg p-6">
-        <div className="mb-6">
-          <h2 className="font-medium text-[24px] leading-none -tracking-[0.07em] text-[#3D3D3D] mb-2">Dispute Wizard</h2>
-        <p className="text-[#606060] font-medium text-sm leading-[100%] -tracking-[0.07em]">
-            Start a new dispute round for your clients with our step-by-step wizard.
-          </p>
-        </div>
-
+        <h2 className="font-medium text-[24px] text-[#3D3D3D] mb-2">
+          Dispute Wizard
+        </h2>
+        <p className="text-[#606060] font-medium text-sm mb-6">
+          Start a new dispute round for your clients with our step-by-step
+          wizard.
+        </p>
         <div className="border-2 border-dashed border-[#E5E7EB] rounded-lg bg-[#F9FAFB] p-8 text-center">
-          <div className="max-w-md mx-auto">
-            {/* Icon */}
-            <div className="mb-6 flex items-center justify-center">
-                <Image src={Upload} alt="Upload" width={51} height={44} />
-            </div>
-
-            {/* Call to Action */}
-            <h3 className="font-semibold text-[20px] leading-[100%] tracking-normal text-center text-[#000000] mb-3">
-              Create New Dispute
-            </h3>
-            
-            {/* Description */}
-            <p className="text-[#606060] font-medium text-sm leading-[100%] -tracking-[0.07em] mb-8">
-              Select a client and disputed items to generate customized dispute letters.
-            </p>
-
-            {/* Action Button */}
-            <Button 
-              className=""
-              onClick={() => console.log("Launch Dispute Wizard clicked")}
-            >
-              Launch Dispute Wizard
-            </Button>
-          </div>
+          <Image
+            src={Upload}
+            alt="Upload"
+            width={51}
+            height={44}
+            className="mx-auto mb-6"
+          />
+          <h3 className="font-semibold text-[20px] mb-3">Create New Dispute</h3>
+          <p className="text-[#606060] font-medium text-sm mb-8">
+            Select a client and disputed items to generate customized dispute
+            letters.
+          </p>
+          <Button onClick={() => console.log("Launch Dispute Wizard clicked")}>
+            Launch Dispute Wizard
+          </Button>
         </div>
       </div>
 
-      {/* Download Letters Dialog */}
+      {/* Dialogs */}
       {selectedDispute && (
         <DownloadLetter
           open={downloadOpen}
@@ -218,22 +226,20 @@ const DisputesPage = () => {
           clientName={selectedDispute.clientName}
           bureau={selectedDispute.bureau}
           round={selectedDispute.round}
-          onDownload={handleConfirmDownload}
+          onDownload={(payload) => console.log("Downloading", payload)}
         />
       )}
 
-      {/* Edit Dispute Dialog */}
       {editInitial && (
         <EditDispute
           open={editOpen}
           onOpenChange={setEditOpen}
-          title={`Edit Dispute`}
+          title="Edit Dispute"
           initial={editInitial}
           onSave={handleSaveEdit}
         />
       )}
 
-      {/* View Dispute Details */}
       {viewState && (
         <ViewDisputeDetails
           open={viewOpen}
@@ -246,7 +252,7 @@ const DisputesPage = () => {
           createdDate={viewState.createdDate}
           expectedResponseDate={viewState.expectedResponseDate}
           accountsCount={viewState.accountsCount}
-          items={mockItems}
+          items={viewState.items}
         />
       )}
     </div>

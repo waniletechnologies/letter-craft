@@ -1,6 +1,7 @@
-"use client"
+"use client";
 
 import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,11 +21,18 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LuEye, LuEyeOff } from "react-icons/lu";
+import { importCreditReport } from "@/lib/creditReportApi";
+import { CreditReportRequest } from "@/types/creditReport";
 
 interface ImportCreditReportProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onStartImport?: (payload: { provider: string; email: string; notes: string }) => void;
+  onStartImport?: (payload: {
+    provider: string;
+    email: string;
+    notes: string;
+  }) => void;
+  onImportError?: (error: string) => void;
 }
 
 const supportedProviders = [
@@ -39,17 +47,48 @@ export const ImportCreditReport: React.FC<ImportCreditReportProps> = ({
   open,
   onOpenChange,
   onStartImport,
+  onImportError,
 }) => {
   const [provider, setProvider] = useState("MyFreeScore");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [notes, setNotes] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const router = useRouter();
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setIsLoading(true);
     onStartImport?.({ provider, email, notes });
-    onOpenChange(false);
+
+    const requestData: CreditReportRequest = {
+      email,
+      password,
+      provider,
+      notes,
+    };
+
+    try {
+      // Call the API function directly
+      const result = await importCreditReport(requestData);
+
+      if (result.success) {
+        onOpenChange(false);
+        // 👇 Navigate to a dynamic route with the email
+        router.push(`/preview-credit-report/${encodeURIComponent(email)}`);
+      } else {
+        throw new Error(result.message || "Failed to import credit report");
+      }
+    } catch (error) {
+      console.error("Import error:", error);
+      onImportError?.(
+        error instanceof Error ? error.message : "Unknown error occurred"
+      );
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleCancel = () => {
@@ -64,87 +103,101 @@ export const ImportCreditReport: React.FC<ImportCreditReportProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
-          <div className="flex items-center justify-between">
-            <DialogTitle className="text-xl font-semibold text-[#3D3D3D]">
-              Import Credit Report
-            </DialogTitle>
-          </div>
+          <DialogTitle className="text-xl font-semibold text-[#3D3D3D]">
+            Import Credit Report
+          </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Form content remains the same... */}
           <div className="space-y-4">
             <div className="grid grid-cols-2 gap-4">
-            {/* Provider Selection */}
-            <div className="space-y-2">
-              <Label htmlFor="provider" className="text-sm font-medium text-[#3D3D3D]">
-                Choose Supported Provider
-              </Label>
-              <Select value={provider} onValueChange={setProvider}>
-                <SelectTrigger className="w-full shadow-none">
-                  <SelectValue placeholder="Select a provider" />
-                </SelectTrigger>
-                <SelectContent>
-                  {supportedProviders.map((provider) => (
-                    <SelectItem key={provider} value={provider}>
-                      {provider}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-
-            {/* Email Field */}
-            <div className="space-y-2">
-              <Label htmlFor="email" className="text-sm font-medium text-[#3D3D3D]">
-                Email <span className="text-red-500">*</span>
-              </Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                placeholder="--"
-                required
-                className="w-full shadow-none border border-[#E4E4E7] rounded-md"
-              />
-            </div>
-           </div>
-           <div className="grid grid-cols-2 gap-4">
-            {/* Password Field */}
-            <div className="space-y-2">
-              <Label htmlFor="password" className="text-sm font-medium text-[#3D3D3D]">
-                Password <span className="text-red-500">*</span>
-              </Label>
-              <div className="relative">
-                <Input
-                  id="password"
-                  type={showPassword ? "text" : "password"}
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="********"
-                  required
-                  className="w-full pr-10 shadow-none border border-[#E4E4E7] rounded-md"
-                />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setShowPassword(!showPassword)}
-                  className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+              {/* Provider Selection */}
+              <div className="space-y-2">
+                <Label
+                  htmlFor="provider"
+                  className="text-sm font-medium text-[#3D3D3D]"
                 >
-                  {showPassword ? (
-                    <LuEyeOff className="h-4 w-4 text-gray-500" />
-                  ) : (
-                    <LuEye className="h-4 w-4 text-gray-500" />
-                  )}
-                </Button>
+                  Choose Supported Provider
+                </Label>
+                <Select value={provider} onValueChange={setProvider}>
+                  <SelectTrigger className="w-full shadow-none">
+                    <SelectValue placeholder="Select a provider" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {supportedProviders.map((p) => (
+                      <SelectItem key={p} value={p}>
+                        {p}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Email Field */}
+              <div className="space-y-2">
+                <Label
+                  htmlFor="email"
+                  className="text-sm font-medium text-[#3D3D3D]"
+                >
+                  Email <span className="text-red-500">*</span>
+                </Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="--"
+                  required
+                  className="w-full shadow-none border border-[#E4E4E7] rounded-md"
+                  disabled={isLoading}
+                />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              {/* Password Field */}
+              <div className="space-y-2">
+                <Label
+                  htmlFor="password"
+                  className="text-sm font-medium text-[#3D3D3D]"
+                >
+                  Password <span className="text-red-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="********"
+                    required
+                    className="w-full pr-10 shadow-none border border-[#E4E4E7] rounded-md"
+                    disabled={isLoading}
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                    disabled={isLoading}
+                  >
+                    {showPassword ? (
+                      <LuEyeOff className="h-4 w-4 text-gray-500" />
+                    ) : (
+                      <LuEye className="h-4 w-4 text-gray-500" />
+                    )}
+                  </Button>
+                </div>
+              </div>
             </div>
 
             {/* Notes Field */}
             <div className="space-y-2">
-              <Label htmlFor="notes" className="text-sm font-medium text-[#3D3D3D]">
+              <Label
+                htmlFor="notes"
+                className="text-sm font-medium text-[#3D3D3D]"
+              >
                 Notes
               </Label>
               <Textarea
@@ -154,6 +207,7 @@ export const ImportCreditReport: React.FC<ImportCreditReportProps> = ({
                 placeholder="--"
                 rows={3}
                 className="w-full shadow-none resize-none border border-[#E4E4E7] rounded-md"
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -164,11 +218,16 @@ export const ImportCreditReport: React.FC<ImportCreditReportProps> = ({
               variant="outline"
               onClick={handleCancel}
               className="w-[71px]"
+              disabled={isLoading}
             >
               Cancel
             </Button>
-            <Button  type="submit" className="w-[212px] bg-primary hover:bg-primary/90">
-              Import & Run Simple Audit
+            <Button
+              type="submit"
+              className="w-[212px] bg-primary hover:bg-primary/90"
+              disabled={isLoading}
+            >
+              {isLoading ? "Importing..." : "Import & Run Simple Audit"}
             </Button>
           </DialogFooter>
         </form>

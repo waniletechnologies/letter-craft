@@ -1,6 +1,8 @@
+// app/layout.tsx
 import type { Metadata } from "next";
 import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
+import { DisputeProvider } from "@/context/disputeContext";
 
 const interSans = Inter({
   variable: "--font-inter",
@@ -28,7 +30,7 @@ export default function RootLayout({
       <body
         className={`${interSans.variable} ${geistMono.variable} antialiased font-inter`}
       >
-        {children}
+        <DisputeProvider>{children}</DisputeProvider>
       </body>
     </html>
   );

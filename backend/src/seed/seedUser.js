@@ -1,16 +1,15 @@
-// seedUser.js
 import dotenv from "dotenv";
 import { auth } from "../config/betterAuth.js";
 
 dotenv.config({ path: "./.env" });
 
-async function seedUser() {
+export async function seedUser() {
   try {
     const response = await auth.api.signUpEmail({
       body: {
-        email: "javaidadil835@gmail.com",
-        password: "adil123!",
-        name: "Adil Javaid",
+        email: "yesacij599@futurejs.com",
+        password: "12345678",
+        name: "Super Admin",
       },
       asResponse: true,
     });
@@ -25,5 +24,3 @@ async function seedUser() {
     console.error("❌ Seed error:", err);
   }
 }
-
-seedUser();

@@ -1,6 +1,5 @@
 export async function apiFetch(endpoint: string, options: RequestInit = {}) {
-  const baseUrl =
-    process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  const baseUrl = process.env.NEXT_PUBLIC_BACKEND_URL + "/api";
 
   const res = await fetch(`${baseUrl}${endpoint}`, {
     ...options,
@@ -8,7 +7,7 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
       "Content-Type": "application/json",
       ...(options.headers || {}),
     },
-    credentials: "include", // 👈 ensures cookies (session) are stored
+    credentials: "include",
   });
 
   if (!res.ok) {

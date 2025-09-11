@@ -31,6 +31,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "../../components/ui/sidebar";
+import Loader from '@/components/Loader';
 
 // --------------------------------------
 // Navigation config
@@ -157,7 +158,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
   };
 
   if (!user) {
-    return <div className="p-6">Loading...</div>;
+    return <Loader />;
   }
 
   return (

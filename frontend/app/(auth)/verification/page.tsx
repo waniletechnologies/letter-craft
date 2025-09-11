@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useRef, KeyboardEvent, ClipboardEvent } from "react";
+import { useState, useRef, KeyboardEvent, ClipboardEvent, Suspense } from "react";
 import AuthLeftSection from "../components/AuthLeftSection";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { verifyResetCode, requestPasswordReset } from "@/lib/auth";
 
-export default function VerificationCodePage() {
+function VerificationCodeForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
@@ -191,5 +191,35 @@ export default function VerificationCodePage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function VerificationCodePage() {
+  return (
+    <Suspense fallback={
+      <div className="flex min-h-screen bg-gray-50 p-6">
+        <AuthLeftSection />
+        <div className="flex flex-col justify-center items-center w-full lg:w-1/2 px-8 py-12">
+          <div className="w-full max-w-sm">
+            <div className="animate-pulse">
+              <div className="h-8 bg-gray-200 rounded mb-2"></div>
+              <div className="h-4 bg-gray-200 rounded mb-8"></div>
+              <div className="flex justify-between gap-2 mb-6">
+                <div className="w-[50px] h-[68px] bg-gray-200 rounded"></div>
+                <div className="w-[50px] h-[68px] bg-gray-200 rounded"></div>
+                <div className="w-[50px] h-[68px] bg-gray-200 rounded"></div>
+                <div className="w-[50px] h-[68px] bg-gray-200 rounded"></div>
+              </div>
+              <div className="flex gap-8 mt-8">
+                <div className="w-[127px] h-[40px] bg-gray-200 rounded"></div>
+                <div className="w-[183px] h-[40px] bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    }>
+      <VerificationCodeForm />
+    </Suspense>
   );
 }

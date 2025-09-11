@@ -56,8 +56,8 @@ const SaveLetterDialog: React.FC<SaveLetterDialogProps> = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="sm:max-w-[600px]">
-        <DialogHeader className="flex justify-between">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
+        <DialogHeader className="text-left">
           <DialogTitle className="text-lg font-semibold">Save Letter</DialogTitle>
         </DialogHeader>
         <hr className="border-gray-200" />
@@ -83,7 +83,7 @@ const SaveLetterDialog: React.FC<SaveLetterDialogProps> = ({
           </div>
 
           {/* Letter Name */}
-          <div className="space-y-2 col-span-2">
+          <div className="space-y-2 sm:col-span-2 col-span-1">
             <Label htmlFor="letterName" className="font-medium text-sm leading-[20px] tracking-normal text-[#0A090B] ">Name of this letter</Label>
             <Input
               id="letterName"
@@ -116,7 +116,7 @@ const SaveLetterDialog: React.FC<SaveLetterDialogProps> = ({
               </Select>
             </div>
           </div>
-          <div className="flex justify-between">
+          <div className="flex flex-col sm:flex-row justify-between gap-2">
               <Button
                 type="button"
                 size="sm"
@@ -136,7 +136,7 @@ const SaveLetterDialog: React.FC<SaveLetterDialogProps> = ({
             </div>
 
           {/* Follow-up Task */}
-          <div className="space-y-2 flex justify-between items-center">
+          <div className="space-y-2 flex flex-col sm:flex-row justify-between items-center">
             <div className="flex items-center gap-2">
               <Checkbox
                 id="followUpTask"
@@ -149,7 +149,7 @@ const SaveLetterDialog: React.FC<SaveLetterDialogProps> = ({
                 Create task to follow-up on these disputed items in
               </Label>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center ml-auto sm:ml-0 gap-2">
               <Input
                 type="number"
                 value={formData.followUpDays}
@@ -167,7 +167,7 @@ const SaveLetterDialog: React.FC<SaveLetterDialogProps> = ({
              <span className="font-bold text-[#0A090B]">Note:</span> Only save once. This button saves all letters for all bureau tabs with 1 click.
             </p>
           {/* Save Button */}
-          <div className="flex justify-end pt-2">
+          <div className="flex sm:justify-end justify-center w-full sm:w-auto pt-2">
             <Button
               onClick={handleSave}
             >

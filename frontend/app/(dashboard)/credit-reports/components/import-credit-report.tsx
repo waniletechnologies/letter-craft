@@ -101,7 +101,7 @@ export const ImportCreditReport: React.FC<ImportCreditReportProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold text-[#3D3D3D]">
             Import Credit Report

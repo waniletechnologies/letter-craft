@@ -1,0 +1,40 @@
+{
+  "name": "letter-craft",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:backend\"",
+    "dev:frontend": "cd frontend && npm run dev",
+    "dev:backend": "cd backend && npm run dev",
+    "build": "npm run build:frontend && npm run build:backend",
+    "build:frontend": "cd frontend && npm run build",
+    "build:backend": "cd backend && npm run build",
+    "start": "concurrently \"npm run start:frontend\" \"npm run start:backend\"",
+    "start:frontend": "cd frontend && npm run start",
+    "start:backend": "cd backend && npm run start",
+    "install:all": "npm install && cd frontend && npm install && cd ../backend && npm install",
+    "update:all": "npm update && cd frontend && npm update && cd ../backend && npm update",
+    "clean": "rm -rf node_modules frontend/node_modules backend/node_modules package-lock.json frontend/package-lock.json backend/package-lock.json",
+    "clean:install": "npm run clean && npm run install:all",
+    "lint": "concurrently \"cd frontend && npm run lint\" \"echo 'Backend linting not configured'\"",
+    "format": "prettier --write \"*/.{ts,tsx,js,jsx,md,json}\"",
+    "check-types": "cd frontend && npm run check-types || echo 'No type check in backend'",
+    "test": "echo 'No tests configured yet'",
+    "prod:build": "npm run build",
+    "prod:start": "npm run start"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.21",
+    "concurrently": "^9.1.0",
+    "postcss": "^8.5.6",
+    "prettier": "^3.5.3",
+    "tailwindcss": "^3.4.17"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "packageManager": "npm@10.8.2",
+  "workspaces": [
+    "frontend",
+    "backend"
+  ]
+}

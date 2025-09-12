@@ -59,7 +59,7 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
       loadCreditReportData();
     }
   }, [open, email]);
-  const { disputeItems, addDisputeItems } = useDispute();
+  const { disputeItems, addMultipleDisputeItems } = useDispute();
 
   useEffect(() => {
     if (open && rows.length) {
@@ -168,26 +168,25 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
     return `${selected.length} Selected Accounts`;
   }, [selected.length]);
 
-  // Inside AddDisputeItemsDialog
-  const { addMultipleDisputeItems } = useDispute();
-
   const handleAdd = () => {
-    const selectedItems = rows.filter((r) => selected.includes(r.id));
-    addMultipleDisputeItems(
-      selectedItems.map((r) => ({
-        id: r.id,
-        creditor: r.creditor,
-        account: r.account,
-        dateOpened: r.dateOpened,
-        balance: r.balance,
-        type: r.type,
-        hasExperian: r.hasExperian,
-        hasEquifax: r.hasEquifax,
-        hasTransUnion: r.hasTransUnion,
-      }))
-    );
-    onOpenChange(false);
-  };
+  const selectedItems = rows.filter((r) => selected.includes(r.id));
+  addMultipleDisputeItems(
+    selectedItems.map((r) => ({
+      id: r.id,
+      creditor: r.creditor,
+      account: r.account,
+      dateOpened: r.dateOpened,
+      balance: r.balance,
+      type: r.type,
+      disputed: r.disputed, // ✅ Include disputed field
+      hasExperian: r.hasExperian,
+      hasEquifax: r.hasEquifax,
+      hasTransUnion: r.hasTransUnion,
+    }))
+  );
+  onOpenChange(false);
+};
+
 
   // const handleAdd = () => {
   //   onAdd?.(selected);

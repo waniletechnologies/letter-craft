@@ -10,7 +10,14 @@ import { useDispute } from "@/context/disputeContext";
 import { fetchStoredCreditReport } from "@/lib/creditReportApi"; // Assuming you have this client-side service
 import { saveDispute } from "@/lib/disputeAPI";
 import { DisputePayload, DisputedItemPayload } from "@/types/dispute";
+import {  PersonalInfo } from "@/types/creditReport";
 
+// The shape of personalInfo in CreditReportData
+type PersonalInfoByBureau = {
+  Experian: PersonalInfo;
+  Equifax: PersonalInfo;
+  TransUnion: PersonalInfo;
+};
 interface DisputeItem {
   id: string;
   creditor: string;
@@ -26,19 +33,17 @@ interface DisputeItem {
 
 // Helper function to get full name
 // ✅ Safely get the first name entry from personalInfo
-const getClientName = (personalInfo: any) => {
-  // Grab the first available bureau with names
-  const bureaus = ["Experian", "Equifax", "TransUnion"];
+const getClientName = (personalInfo: PersonalInfoByBureau): string => {
+  const bureaus = ["Experian", "Equifax", "TransUnion"] as const;
+
   for (const bureau of bureaus) {
     const names = personalInfo?.[bureau]?.names;
     if (Array.isArray(names) && names.length > 0) {
-      const firstEntry = names[0];
-      const first = firstEntry.first || "";
-      const last = firstEntry.last || "";
+      const { first = "", last = "" } = names[0];
       return `${first} ${last}`.trim() || "Client";
     }
   }
-  return "Client"; // fallback
+  return "Client";
 };
 
 
@@ -49,7 +54,7 @@ const StepOne: React.FC = () => {
   const email = searchParams.get("email") || "";
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const { disputeItems, setDisputeItems, removeDisputeItem } = useDispute();
+  const { disputeItems, addMultipleDisputeItems, removeDisputeItem } = useDispute();
 
   const handleAddDisputeItems = (ids: string[]) => {
     // This function remains for adding items to the list before saving
@@ -68,7 +73,7 @@ const StepOne: React.FC = () => {
 
     const currentIds = new Set(disputeItems.map((item) => item.id));
     const uniqueNewItems = newItems.filter((item) => !currentIds.has(item.id));
-    setDisputeItems([...disputeItems, ...uniqueNewItems]);
+    addMultipleDisputeItems([...disputeItems, ...uniqueNewItems]);
   };
 
   const handleSaveDisputes = async () => {
@@ -155,7 +160,7 @@ const StepOne: React.FC = () => {
       }
 
       alert("Disputes saved successfully!");
-      setDisputeItems([]); // Clear items after saving
+      addMultipleDisputeItems([]); // Clear items after saving
       router.push("/disputes");
     } catch (error) {
       console.error("Failed to save disputes:", error);

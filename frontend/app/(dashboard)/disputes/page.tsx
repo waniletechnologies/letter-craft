@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import DisputeCard from "./components/dispute-card";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
 import { Upload } from "@/public/images";
@@ -12,6 +13,8 @@ import ViewDisputeDetails, {
 } from "./components/view-dispute-details";
 import { Plus } from "lucide-react";
 import { fetchDisputes, updateDispute } from "@/lib/disputeAPI";
+import ImportCreditReport from "../credit-reports/components/import-credit-report";
+
 
 type Bureau = "Experian" | "Equifax" | "TransUnion";
 type DisputeStatus = "in-progress" | "completed" | "pending" | "failed";
@@ -32,6 +35,9 @@ interface DisputeRecord {
 const DisputesPage = () => {
   const [disputes, setDisputes] = useState<DisputeRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const router = useRouter();
+
 
   const [downloadOpen, setDownloadOpen] = useState(false);
   const [selectedDispute, setSelectedDispute] = useState<{
@@ -170,10 +176,11 @@ const DisputesPage = () => {
           <p className="text-[#606060] font-medium text-base">
             Manage and track credit dispute progress across all credit bureaus
           </p>
-          <Button>
-            <Plus className="h-4 w-4" />
-            Add New Dispute
-          </Button>
+          <Button onClick={() => setImportDialogOpen(true)}>
+  <Plus className="h-4 w-4" />
+  Add New Dispute
+</Button>
+
         </div>
       </div>
 
@@ -255,6 +262,17 @@ const DisputesPage = () => {
           items={viewState.items}
         />
       )}
+
+      <ImportCreditReport
+  open={importDialogOpen}
+  onOpenChange={setImportDialogOpen}
+  onStartImport={({ email }) => {
+    setImportDialogOpen(false);
+    // ✅ Optionally navigate to the preview page after import
+    router.push(`/preview-credit-report/${encodeURIComponent(email)}`);
+  }}
+/>
+
     </div>
   );
 };

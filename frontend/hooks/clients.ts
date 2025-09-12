@@ -112,3 +112,10 @@ export function useUpdateClientStatus(id: string) {
   });
 }
 
+export function useClientStats() {
+  return useQuery({
+    queryKey: ["clientStats"],
+    queryFn: () => apiFetch("/clients/statistics"),
+  });
+}
+

@@ -1,7 +1,7 @@
 // dashboard/page.tsx
 "use client";
 
-import React from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   FiUsers,
@@ -12,6 +12,13 @@ import {
   FiClock,
 } from "react-icons/fi";
 import dynamic from "next/dynamic";
+import { useClientStats } from "@/hooks/clients";
+import { getCurrentUser } from "@/lib/auth";
+
+interface GrowthStat {
+  month: string;
+  clients: number;
+}
 
 const LineChart = dynamic(
   () => import("recharts").then((recharts) => recharts.LineChart),
@@ -77,60 +84,89 @@ const recentActivity = [
   },
 ];
 
-const clientGrowthData = [
-  { month: "Feb", clients: 22 },
-  { month: "Mar", clients: 47 },
-  { month: "Apr", clients: 31 },
-  { month: "May", clients: 58 },
-  { month: "Jun", clients: 12 },
-  { month: "July", clients: 21 },
-  { month: "Aug", clients: 18 },
-  { month: "Sep", clients: 32 },
-  { month: "Oct", clients: 78 },
-  { month: "Nov", clients: 2 },
-  { month: "Dec", clients: 120 },
-  { month: "Jan", clients: 5 },
-];
+
 
 const DashboardPage = () => {
+  const { data, isLoading, isError } = useClientStats();
+  const allMonths = [
+    "Jan","Feb","Mar","Apr","May","Jun",
+    "Jul","Aug","Sep","Oct","Nov","Dec"
+  ];
+  const [userName, setUserName] = useState<string>("");
+
+  useEffect(() => {
+    (async () => {
+      try {
+        const res = await getCurrentUser();
+        setUserName(res?.user?.name || "");
+      } catch {
+        setUserName("");
+      }
+    })();
+  }, []);
+
+  const growthData = useMemo(() => {
+  // Raw data from API
+  const apiGrowth: GrowthStat[] = data?.data?.growth ?? [];
+
+  // Convert API growth to a map for faster lookup
+  const growthMap = new Map<string, number>(
+    apiGrowth.map((m: GrowthStat) => [m.month, m.clients])
+  );
+
+  // Fill all months, defaulting to 0 if missing
+  return allMonths.map((month) => ({
+    month,
+    clients: growthMap.get(month) ?? 0,
+  }));
+}, [data]);
+
+  const totalClients = data?.data?.total ?? 0;
   return (
-    <div className="space-y-6">
-      {/* Welcome Section - Exact match to image */}
+  <div className="space-y-6">
+      {/* Welcome Section */}
       <div className="sm:p-8 p-4">
         <h1 className="text-3xl font-semibold text-gray-900 mb-2 flex items-center">
-          <p className="mr-2">👋</p>
-          Welcome back, John
+          <span className="mr-2">👋</span>Welcome back, {userName || "Loading user…"}
         </h1>
         <p className="text-gray-600">
-          Welcome back! Here&apos;s what&apos;s happening with your credit
-          repair business.
+          Welcome back! Here&apos;s what&apos;s happening with your credit repair business.
         </p>
       </div>
 
-      {/* Stats Cards - Exact match to image */}
+      {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {/* Total Clients Card */}
+        {/* ✅ Real Total Clients */}
         <Card className="h-[139px] rounded-lg shadow-none">
           <CardContent>
             <div className="flex items-start justify-between">
-              {/* Left content */}
               <div>
-                <p className="text-[14px] font-medium text-[#171744] font-inter">
-                  Total Clients
+                <p className="text-[14px] font-medium text-[#171744]">Total Clients</p>
+                <p className="text-[24px] font-bold mt-3">
+                  {isLoading ? "Loading..." : isError ? "Error" : totalClients}
                 </p>
-                <p className="font-inter text-[24px] font-bold text-[#000000] mt-3">
-                  47
-                </p>
-                <p className="text-[12px] font-poppins text-[#22C55E] font-medium mt-3 flex items-center">
+                <p className="text-[12px] text-[#22C55E] mt-3 flex items-center">
                   <FiTrendingUp className="w-3 h-3 mr-1" />
                   +12% from last month
                 </p>
               </div>
+              <FiUsers className="w-5 h-5" />
+            </div>
+          </CardContent>
+        </Card>
 
-              {/* Right icon aligned with first p */}
-              <div className=" rounded-full self-start">
-                <FiUsers className="w-5 h-5" />
+        {/* ❌ Dummy Cards (unchanged) */}
+        <Card className="h-[139px] rounded-lg shadow-none">
+          <CardContent>
+            <div className="flex items-start justify-between">
+              <div>
+                <p className="text-[14px] font-medium text-[#171744]">Active Disputes</p>
+                <p className="text-[24px] font-bold mt-3">33</p>
+                <p className="text-[12px] text-[#22C55E] mt-3 flex items-center">
+                  <FiTrendingUp className="w-3 h-3 mr-1" />+8% from last month
+                </p>
               </div>
+              <FiAlertCircle className="w-5 h-5" />
             </div>
           </CardContent>
         </Card>
@@ -138,24 +174,14 @@ const DashboardPage = () => {
         <Card className="h-[139px] rounded-lg shadow-none">
           <CardContent>
             <div className="flex items-start justify-between">
-              {/* Left content */}
               <div>
-                <p className="text-[14px] font-medium text-[#171744] font-inter">
-                  Active Disputes
-                </p>
-                <p className="font-inter text-[24px] font-bold text-[#000000] mt-3">
-                  33
-                </p>
-                <p className="text-[12px] font-poppins text-[#22C55E] font-medium mt-3 flex items-center">
-                  <FiTrendingUp className="w-3 h-3 mr-1" />
-                  +8% from last month
+                <p className="text-[14px] font-medium text-[#171744]">Letters Sent</p>
+                <p className="text-[24px] font-bold mt-3">57</p>
+                <p className="text-[12px] text-[#22C55E] mt-3 flex items-center">
+                  <FiTrendingUp className="w-3 h-3 mr-1" />+16% from last month
                 </p>
               </div>
-
-              {/* Right icon aligned with first p */}
-              <div className=" rounded-full self-start">
-                <FiAlertCircle className="w-5 h-5" />
-              </div>
+              <FiSend className="w-5 h-5" />
             </div>
           </CardContent>
         </Card>
@@ -163,49 +189,14 @@ const DashboardPage = () => {
         <Card className="h-[139px] rounded-lg shadow-none">
           <CardContent>
             <div className="flex items-start justify-between">
-              {/* Left content */}
               <div>
-                <p className="text-[14px] font-medium text-[#171744] font-inter">
-                  Letters Sent
-                </p>
-                <p className="font-inter text-[24px] font-bold text-[#000000] mt-3">
-                  57
-                </p>
-                <p className="text-[12px] font-poppins text-[#22C55E] font-medium mt-3 flex items-center">
-                  <FiTrendingUp className="w-3 h-3 mr-1" />
-                  +16% from last month
+                <p className="text-[14px] font-medium text-[#171744]">Reports Imported</p>
+                <p className="text-[24px] font-bold mt-3">40</p>
+                <p className="text-[12px] text-[#22C55E] mt-3 flex items-center">
+                  <FiTrendingUp className="w-3 h-3 mr-1" />+18% from last month
                 </p>
               </div>
-
-              {/* Right icon aligned with first p */}
-              <div className=" rounded-full self-start">
-                <FiSend className="w-5 h-5" />
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="h-[139px] rounded-lg shadow-none">
-          <CardContent>
-            <div className="flex items-start justify-between">
-              {/* Left content */}
-              <div>
-                <p className="text-[14px] font-medium text-[#171744] font-inter">
-                  Reports Imported
-                </p>
-                <p className="font-inter text-[24px] font-bold text-[#000000] mt-3">
-                  40
-                </p>
-                <p className="text-[12px] font-poppins text-[#22C55E] font-medium mt-3 flex items-center">
-                  <FiTrendingUp className="w-3 h-3 mr-1" />
-                  +18% from last month
-                </p>
-              </div>
-
-              {/* Right icon aligned with first p */}
-              <div className=" rounded-full self-start">
-                <FiFileText className="w-5 h-5 border-[#000000]" />
-              </div>
+              <FiFileText className="w-5 h-5" />
             </div>
           </CardContent>
         </Card>
@@ -270,43 +261,18 @@ const DashboardPage = () => {
               Clients Overview
             </CardTitle>
             <p className="text-sm text-gray-600">
-              Your client growth over the past 6 months
+              Your client growth over the past months
             </p>
           </CardHeader>
-
           <CardContent>
             <div className="h-56 w-full mt-2">
-              {" "}
-              {/* increased height for clarity */}
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart
-                  data={clientGrowthData}
-                  margin={{ top: 10, right: 20, left: 20, bottom: 20 }} // extra chart margin
-                >
+                <LineChart data={growthData} margin={{ top: 10, right: 20, left: 20, bottom: 20 }}>
                   <CartesianGrid vertical={false} stroke="#01012E14" />
-                  <XAxis
-                    dataKey="month"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 13, fill: "#6b7280" }}
-                    tickMargin={25} // extra space below ticks
-                  />
-                  <YAxis
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fontSize: 13, fill: "#6b7280" }}
-                    width={40} // wider Y axis spacing
-                    tickMargin={25} // extra space from axis
-                  />
+                  <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: "#6b7280" }} />
+                  <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 13, fill: "#6b7280" }} />
                   <Tooltip />
-                  <Line
-                    type="monotone"
-                    dataKey="clients"
-                    stroke="#2196F3"
-                    strokeWidth={2}
-                    dot={false}
-                    activeDot={false}
-                  />
+                  <Line type="monotone" dataKey="clients" stroke="#2196F3" strokeWidth={2} dot={false} activeDot={false} />
                 </LineChart>
               </ResponsiveContainer>
             </div>
@@ -315,6 +281,6 @@ const DashboardPage = () => {
       </div>
     </div>
   );
-};
+}
 
 export default DashboardPage;

@@ -1,7 +1,7 @@
 'use client'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { FaRegFile } from 'react-icons/fa'
 import { LuListFilter, LuSearch } from 'react-icons/lu'
 import ReportCard from './components/report-card'
@@ -16,8 +16,9 @@ import { GoCreditCard } from 'react-icons/go'
 import { RiHome2Line } from "react-icons/ri";
 import { Car } from 'lucide-react'
 import { SlGraduation } from 'react-icons/sl'
+import { fetchAllReports, NormalizedCreditReport } from "@/lib/creditReportApi";
 
-
+// This interface is no longer needed for selectedReport state but kept for context.
 interface CreditReport {
   id: number;
   name: string;
@@ -36,23 +37,95 @@ const Page = () => {
   const [overlayOpen, setOverlayOpen] = useState(false);
   const [viewDialogOpen, setViewDialogOpen] = useState(false);
   const [exportDialogOpen, setExportDialogOpen] = useState(false);
-  const [selectedReport, setSelectedReport] = useState<CreditReport | null>(null);
+  
+  // FIX 1: Use the correct, detailed type for the selected report.
+  const [selectedReport, setSelectedReport] = useState<NormalizedCreditReport | null>(null);
+  
   const [steps, setSteps] = useState<{ id: string; label: string; status: ImportStepStatus }[]>([
     { id: 'connect', label: 'Connecting to MyFreeScoreNow', status: 'pending' },
     { id: 'access', label: 'Accessing Report Data', status: 'pending' },
     { id: 'run', label: 'Auto Import Running', status: 'pending' },
   ]);
-  const totalPages = Math.ceil(creditReports.length / 10);
+  const [reports, setReports] = useState<NormalizedCreditReport[]>([]);
+  const [loading, setLoading] = useState(true);
+  const totalPages = Math.ceil(reports.length / 10);
 
-  const startOverlay = () => {
+  useEffect(() => {
+    const loadReports = async () => {
+      try {
+        setLoading(true);
+        const data = await fetchAllReports();
+        setReports(data);
+      } catch (err) {
+        console.error("Failed to load credit reports:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadReports();
+  }, []);
+
+  // Helper to get full name safely
+  const getFullName = (report: NormalizedCreditReport | null): string => {
+    if (!report) return "N/A";
+    const firstName = report.personalInfo?.Experian?.names?.[0]?.first;
+    const lastName = report.personalInfo?.Experian?.names?.[0]?.last;
+    return firstName ? `${firstName} ${lastName || ""}`.trim() : "N/A";
+  };
+  
+  // Compute a single credit score (average or highest among bureaus)
+  const getCreditScore = (report: NormalizedCreditReport): number => {
+    const scores = [
+      report.personalInfo?.Experian?.creditScore,
+      report.personalInfo?.TransUnion?.creditScore,
+      report.personalInfo?.Equifax?.creditScore,
+    ]
+      .map((s) => (s ? Number(s) : null))
+      .filter((s): s is number => s !== null && !isNaN(s));
+  
+    if (!scores.length) return 0;
+    const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
+    return Math.round(avg);
+  };
+  
+  // Build negative items array from accountInfo payStatus or worstPayStatus
+  const getNegativeItems = (report: NormalizedCreditReport) => {
+    const bureaus = ["Experian", "TransUnion", "Equifax"] as const;
+    const negatives: { id: string; label: string; bureau: string; date: string; impact: string }[] = [];
+  
+    bureaus.forEach((bureau) => {
+      const accounts = (report.accountInfo)?.[bureau] || [];
+      accounts.forEach((acc, idx: number) => {
+        const status = acc.worstPayStatus || acc.payStatus || "";
+        if (status) {
+          negatives.push({
+            id: `${bureau}-${acc.accountNumber || idx}`,
+            label: acc.worstPayStatus || acc.status || "N/A",
+            bureau: acc.accountName,
+            date: acc.lastVerified || acc.dateOpened || "",
+            impact: /charge off|collection/i.test(status) ? "Very High Impact" : "High Impact",
+          });
+        }
+      });
+    });
+  
+    return negatives;
+  };
+  
+  const startOverlay = (email: string) => {
     setSteps((s) => s.map((x) => ({ ...x, status: 'pending' })));
     setOverlayOpen(true);
     setTimeout(() => setSteps((s) => s.map((x, i) => ({ ...x, status: i === 0 ? 'done' : i === 1 ? 'running' : 'pending' }))), 800);
     setTimeout(() => setSteps((s) => s.map((x, i) => ({ ...x, status: i === 0 ? 'done' : i === 1 ? 'done' : i === 2 ? 'running' : x.status }))), 1600);
     setTimeout(() => setSteps((s) => s.map((x) => ({ ...x, status: 'done' }))), 2400);
-    setTimeout(() => setOverlayOpen(false), 3300);
-
-    router.push('/preview-credit-report');
+    setTimeout(() => {
+        setOverlayOpen(false);
+        if (email) {
+         router.push(`/preview-credit-report/${encodeURIComponent(email)}`);
+       } else {
+         console.error("Email not provided to startOverlay");
+       }
+    }, 3300);
   };
 
   return (
@@ -67,7 +140,7 @@ const Page = () => {
           <div className="relative w-full md:w-[200px] xl:w-[300px]">
             <LuSearch className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-[#848484]" />
             <Input
-              placeholder="Search Bookings"
+              placeholder="Search Reports"
               className="pl-10 bg-[#FFFFFF] w-full md:w-[200px] xl:w-[300px] border-none shadow-none focus:outline-none focus-visible:ring-1 focus-visible:ring-primary transition-colors"
             />
           </div>
@@ -95,26 +168,45 @@ const Page = () => {
       </div>
 
       <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
-        {creditReports.map((report) => (
-        <ReportCard
-        key={report.id}
-          fullName={report.name}
-          statusLabel={report.status}
-          importedOn={report.imported_on}
-          importedVia={report.source}
-          creditBureaus={report.credit_bureaus}
-          accountsCount={report.accounts}
-          negativeItemsCount={report.negative_items}
-          onView={() => { setSelectedReport(report); setViewDialogOpen(true); }}
-          onExport={() => { setSelectedReport(report); setExportDialogOpen(true); }}
-        />
-        ))}
+        {loading ? (
+            <p className="text-gray-500">Loading reports...</p>
+        ) : reports.length === 0 ? (
+          <p className="text-gray-500">No credit reports found.</p>
+        ) : (
+          reports.map((report) => {
+            const importedOn = new Date(report.createdAt || report.updatedAt || "").toLocaleDateString();
+            const negativeItems = getNegativeItems(report);
+
+            return (
+              <ReportCard
+                key={report._id}
+                fullName={getFullName(report)}
+                statusLabel="Complete"
+                importedOn={importedOn}
+                importedVia={report.provider || "MyFreeScoreNow"}
+                creditBureaus={report.bureaus || []}
+                accountsCount={report.accounts.length}
+                negativeItemsCount={negativeItems.length}
+                onView={() => {
+                  // FIX 2: Store the entire rich report object.
+                  setSelectedReport(report);
+                  setViewDialogOpen(true);
+                }}
+                onExport={() => {
+                  // FIX 2.1: Also store the entire object for export.
+                  setSelectedReport(report);
+                  setExportDialogOpen(true);
+                }}
+              />
+            );
+          })
+        )}
       </div>
 
       <div className="flex justify-center sm:justify-between mt-4 w-full">
-      <div className="font-manrope hidden sm:block font-medium text-xs leading-[21.62px] -tracking-[0.02em] text-[#595858]">
-        {currentPage} of {totalPages} Credit Reports shows
-      </div>
+        <div className="font-manrope hidden sm:block font-medium text-xs leading-[21.62px] -tracking-[0.02em] text-[#595858]">
+          Showing page {currentPage} of {totalPages}
+        </div>
         <CustomPagination
           currentPage={currentPage}
           totalPages={totalPages}
@@ -125,47 +217,60 @@ const Page = () => {
       <ImportCreditReport 
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
-        onStartImport={() => {
+        onStartImport={({ email }) => {
           setImportDialogOpen(false);
-          startOverlay();
+          startOverlay(email);
         }}
       />
 
       <AutoImportOverlay open={overlayOpen} onOpenChange={setOverlayOpen} steps={steps} />
 
+      {/* FIX 3: Pass real, computed data to the ViewCreditReport component */}
       {selectedReport && (
         <ViewCreditReport
           open={viewDialogOpen}
           onOpenChange={setViewDialogOpen}
-          fullName={selectedReport.name}
-          status={selectedReport.status}
-          importedOn={selectedReport.imported_on}
-          bureaus={selectedReport.credit_bureaus}
-          accounts={[
-            { id: '1', icon: GoCreditCard, name: 'Chase Freedom', type: 'Credit Card', balance: '$2,650', status: 'Current' },
-            { id: '2', icon: RiHome2Line, name: 'Wells Fargo Home Loan', type: 'Mortgage', balance: '$245,000', status: 'Current' },
-            { id: '3', icon: Car, name: 'Ford Credit', type: 'Auto Loan', balance: '$18,600', status: '30 Days Late' },
-            { id: '4', icon: SlGraduation, name: 'Federal Loan', type: 'Student', balance: '$12,300', status: 'Current' },
-          ]}
-          negativeItems={[
-            { id: 'n1', label: 'Late Payment', bureau: 'Chase Freedom', date: '2024-05-15', impact: 'High Impact' },
-            { id: 'n2', label: 'Collection Account', bureau: 'Medical Collections', date: '2024-03-10', impact: 'Very High Impact' },
-            { id: 'n3', label: 'Charge Off', bureau: 'Capital One', date: '2023-12-01', impact: 'Very High Impact' },
-          ]}
+          fullName={getFullName(selectedReport)}
+          status="Complete"
+          importedOn={new Date(selectedReport.createdAt || selectedReport.updatedAt || "").toLocaleDateString()}
+          bureaus={selectedReport.bureaus || []}
+          score={getCreditScore(selectedReport)}
+          accounts={selectedReport.accounts.map((acc, i) => ({
+            id: `${acc.accountNumber || i}`,
+            icon: GoCreditCard, // This could be dynamic based on account type later
+            name: acc.accountName || "Unnamed Account",
+            type: acc.worstPayStatus || acc.status || "N/A",
+            balance: acc.currentBalance ? `${acc.currentBalance}` : "$0",
+            status: acc.payStatus || acc.worstPayStatus || acc.status || "N/A",
+          }))}
+          negativeItems={getNegativeItems(selectedReport)}
         />
       )}
 
+      {/* FIX 4: Pass correct props to ExportCreditReport */}
       {selectedReport && (
-        <ExportCreditReport
-          open={exportDialogOpen}
-          onOpenChange={setExportDialogOpen}
-          fullName={selectedReport.name}
-          status={selectedReport.status}
-          importedOn={selectedReport.imported_on}
-          provider={selectedReport.source}
-          bureaus={selectedReport.credit_bureaus}
-        />
-      )}
+  <ExportCreditReport
+    open={exportDialogOpen}
+    onOpenChange={setExportDialogOpen}
+    fullName={getFullName(selectedReport)}
+    status="Complete"
+    importedOn={new Date(
+      selectedReport.createdAt || selectedReport.updatedAt || ""
+    ).toLocaleDateString()}
+    provider={selectedReport.provider || "N/A"}
+    bureaus={selectedReport.bureaus || []}
+    score={getCreditScore(selectedReport)}
+    accounts={selectedReport.accounts.map((acc, i) => ({
+      id: `${acc.accountNumber || i}`,
+      name: acc.accountName || "Unnamed Account",
+      type: acc.worstPayStatus || acc.status || "N/A",
+      balance: acc.currentBalance ? `${acc.currentBalance}` : "$0",
+      status: acc.payStatus || acc.worstPayStatus || acc.status || "N/A",
+    }))}
+    negativeItems={getNegativeItems(selectedReport)}
+  />
+)}
+
     </div>
   )
 }

@@ -261,38 +261,58 @@ class ClientService {
    * Get client statistics
    * @returns {Promise<Object>} Client statistics
    */
-  async getClientStatistics() {
-    try {
-      const [
-        totalClients,
-        activeClients,
-        pendingClients,
-        inactiveClients,
-        archivedClients,
-        recentClients
-      ] = await Promise.all([
-        Client.countDocuments(),
-        Client.countDocuments({ status: 'active' }),
-        Client.countDocuments({ status: 'pending' }),
-        Client.countDocuments({ status: 'inactive' }),
-        Client.countDocuments({ status: 'archived' }),
-        Client.countDocuments({
-          createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) } // Last 30 days
-        })
-      ]);
+  // clientService.js
+async getClientStatistics() {
+  try {
+    const [
+      totalClients,
+      activeClients,
+      pendingClients,
+      inactiveClients,
+      archivedClients,
+      recentClients,
+      monthlyGrowth
+    ] = await Promise.all([
+      Client.countDocuments(),
+      Client.countDocuments({ status: 'active' }),
+      Client.countDocuments({ status: 'pending' }),
+      Client.countDocuments({ status: 'inactive' }),
+      Client.countDocuments({ status: 'archived' }),
+      Client.countDocuments({
+        createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
+      }),
+      // Group by month for the past 12 months
+      Client.aggregate([
+        {
+          $group: {
+            _id: { $month: "$createdAt" },
+            count: { $sum: 1 }
+          }
+        },
+        { $sort: { "_id": 1 } }
+      ])
+    ]);
 
-      return {
-        total: totalClients,
-        active: activeClients,
-        pending: pendingClients,
-        inactive: inactiveClients,
-        archived: archivedClients,
-        recent: recentClients
-      };
-    } catch (error) {
-      throw error;
-    }
+    // Map month numbers to short labels
+    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const growthData = monthlyGrowth.map(m => ({
+      month: months[m._id - 1],
+      clients: m.count
+    }));
+
+    return {
+      total: totalClients,
+      active: activeClients,
+      pending: pendingClients,
+      inactive: inactiveClients,
+      archived: archivedClients,
+      recent: recentClients,
+      growth: growthData
+    };
+  } catch (error) {
+    throw error;
   }
+}
 
   /**
    * Search clients by various criteria

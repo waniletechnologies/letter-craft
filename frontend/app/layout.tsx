@@ -4,6 +4,7 @@ import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import Providers from "../hooks/query-provider";
 import { Toaster } from "sonner";
+import { DisputeProvider } from "@/context/disputeContext";
 
 const interSans = Inter({
   variable: "--font-inter",
@@ -31,10 +32,12 @@ export default function RootLayout({
       <body
         className={`${interSans.variable} ${geistMono.variable} antialiased font-inter`}
       >
+        <DisputeProvider>
         <Providers>
         <Toaster position="top-right" richColors />
           {children}
         </Providers>
+        </DisputeProvider>
       </body>
     </html>
   );

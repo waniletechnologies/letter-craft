@@ -2,6 +2,9 @@ import { apiFetch } from "./api";
 import {
   CreditReportRequest,
   CreditReportResponse,
+  CreditReportData,
+  NegativeAccount,
+  AccountInfo,
 } from "@/types/creditReport";
 
 // Function to import and create a new report
@@ -48,15 +51,30 @@ export async function fetchStoredCreditReport(
   }
 }
 
-export async function fetchAllReports(): Promise<any[]> {
+export interface NormalizedCreditReport extends CreditReportData {
+  negativeItems: NegativeAccount[];
+  accounts: AccountInfo[];
+  bureaus: string[];
+  // 👇 Add these optional fields to match backend response
+  _id?: string;          // MongoDB document ID
+  createdAt?: string;    // Timestamp from Mongoose (if timestamps enabled)
+  updatedAt?: string;    // Timestamp from Mongoose
+  provider?: string;     // Data source name
+  email?: string;        // Email tied to the report
+}
+
+
+export async function fetchAllReports(): Promise<NormalizedCreditReport[]> {
   try {
     const response = await apiFetch("/credit-report", {
       method: "GET",
     });
-    const rawReports = response?.data || [];
+    const rawReports: CreditReportData[] = response?.data || [];
 
     // Helper to safely flatten possibly-object "negatives"
-    const normalizeNegatives = (negatives: any) => {
+    const normalizeNegatives = (
+      negatives: CreditReportData["negatives"] | NegativeAccount[] | null | undefined
+    ): NegativeAccount[] => {
       if (!negatives) return [];
       if (Array.isArray(negatives)) return negatives;
       if (typeof negatives === "object") {
@@ -66,10 +84,12 @@ export async function fetchAllReports(): Promise<any[]> {
       return [];
     };
 
-    const normalizeAccountInfo = (accountInfo: any) => {
+    const normalizeAccountInfo = (
+      accountInfo: CreditReportData["accountInfo"] | null | undefined
+    ): { accounts: AccountInfo[]; bureaus: string[] } => {
       if (!accountInfo) return { accounts: [], bureaus: [] };
       const bureaus = Object.keys(accountInfo || {}).filter((k) => {
-        const val = accountInfo[k];
+        const val = accountInfo[k as keyof typeof accountInfo];
         return Array.isArray(val) && val.length >= 0;
       });
       const accounts = Object.values(accountInfo || {}).flatMap((v) => (Array.isArray(v) ? v : []));
@@ -77,7 +97,7 @@ export async function fetchAllReports(): Promise<any[]> {
     };
 
     // Return normalized array
-    return rawReports.map((r: any) => {
+    return rawReports.map((r) => {
       const negativeItems = normalizeNegatives(r.negatives);
       const { accounts, bureaus } = normalizeAccountInfo(r.accountInfo);
 

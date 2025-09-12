@@ -1,17 +1,22 @@
-"use client"
+"use client";
 
 import React from "react";
+import { useSearchParams } from "next/navigation";
 import Stepper from "./components/Stepper";
 import StepOne from "./components/StepOne";
 import StepTwo from "./components/StepTwo";
 
 const DisputeWizardPage = () => {
+  const searchParams = useSearchParams();
+  const name = searchParams.get("name") || "Client"; // Fallback if no name
+
   return (
     <div className="sm:p-6 p-0">
       {/* Title + Stepper row */}
       <div className="flex items-start justify-between mb-6">
         <h1 className="font-semibold text-[24px] leading-none text-[#111827]">
-          Dispute Wizard <span className="text-[#9CA3AF] text-sm">(Michael Yaldo)</span>
+          Dispute Wizard{" "}
+          <span className="text-[#9CA3AF] text-sm">({name})</span>
         </h1>
         <Stepper current={1} />
       </div>

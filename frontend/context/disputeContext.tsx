@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState } from "react";
 
 export interface DisputeItem {
+  disputed: boolean;
   id: string;
   creditor: string;
   account: string;
@@ -55,7 +56,6 @@ export const DisputeProvider: React.FC<{ children: React.ReactNode }> = ({
     <DisputeContext.Provider
       value={{
         disputeItems,
-        setDisputeItems,
         addOrUpdateDisputeItem,
         addMultipleDisputeItems,
         removeDisputeItem,

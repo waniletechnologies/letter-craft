@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/select";
 import { LuEye, LuEyeOff } from "react-icons/lu";
 import { importCreditReport } from "@/lib/creditReportApi";
-import { CreditReportRequest } from "@/types/creditReport";
 
 interface ImportCreditReportProps {
   open: boolean;
@@ -58,38 +57,43 @@ export const ImportCreditReport: React.FC<ImportCreditReportProps> = ({
 
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    setIsLoading(true);
-    onStartImport?.({ provider, email, notes });
+ async function waitForReport(email: string, tries = 5) {
+  for (let i = 0; i < tries; i++) {
+    const res = await fetch(`/preview-credit-report/${encodeURIComponent(email)}`, { cache: "no-store" });
+    if (res.ok) return true;
+    await new Promise((r) => setTimeout(r, 400)); // wait 400 ms
+  }
+  throw new Error("Report not available yet");
+}
 
-    const requestData: CreditReportRequest = {
-      email,
-      password,
-      provider,
-      notes,
-    };
+const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+  setIsLoading(true);
+  onStartImport?.({ provider, email, notes });
 
-    try {
-      // Call the API function directly
-      const result = await importCreditReport(requestData);
+  try {
+    const result = await importCreditReport({ email, password, provider, notes });
 
-      if (result.success) {
-        onOpenChange(false);
-        // 👇 Navigate to a dynamic route with the email
-        router.push(`/preview-credit-report/${encodeURIComponent(email)}`);
-      } else {
-        throw new Error(result.message || "Failed to import credit report");
-      }
-    } catch (error) {
-      console.error("Import error:", error);
-      onImportError?.(
-        error instanceof Error ? error.message : "Unknown error occurred"
-      );
-    } finally {
-      setIsLoading(false);
+    if (result.success) {
+      // 🔎 Poll until the stored report is available
+      await waitForReport(email);
+
+      onOpenChange(false);
+      const url = `/preview-credit-report/${encodeURIComponent(email)}`;
+      console.log("Navigating to:", url);
+      router.push(`/preview-credit-report/${encodeURIComponent(email)}`);
+    } else {
+      throw new Error(result.message || "Failed to import credit report");
     }
-  };
+  } catch (error) {
+    console.error("Import error:", error);
+    onImportError?.(error instanceof Error ? error.message : "Unknown error");
+  } finally {
+    setIsLoading(false);
+  }
+};
+
+
 
   const handleCancel = () => {
     setProvider("MyFreeScore");

@@ -49,18 +49,22 @@ export const getCreditReport = async (req, res) => {
     }
 
     // 💾 Save new report
-    const report = await CreditReport.create({
-      email: username,
-      provider: provider || "myfreescorenow",
-      notes,
-      negatives,
-      inquiries,
-      accountInfo,
-      creditSummary,
-      personalInfo,
-      publicRecords,
-    });
-    await report.save();
+    // 💾 Save new report
+const report = await CreditReport.create({
+  email: username,
+  provider: provider || "myfreescorenow",
+  notes,
+  negatives,
+  inquiries,
+  accountInfo,
+  creditSummary,
+  personalInfo,
+  publicRecords,
+});
+
+// ✅ Force MongoDB to confirm write
+await CreditReport.collection.findOne({ _id: report._id });
+
 
     res.json({
       success: true,

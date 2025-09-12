@@ -10,13 +10,13 @@ import AccountInfoTable from "./components/account-info";
 import { Button } from "@/components/ui/button";
 import { fetchStoredCreditReport } from "@/lib/creditReportApi"; // 👈 Use the new fetch function
 import { transformCreditReportData } from "@/lib/dataTransform";
-import { CreditReportData } from "@/types/creditReport";
 
 const Page = () => {
   const router = useRouter();
   const params = useParams();
   const email = params.email as string; // Get email from URL
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const [transformedData, setTransformedData] = useState<any>(null);
   const [userName, setUserName] = useState("Client");
   const [loading, setLoading] = useState(true);
@@ -35,7 +35,7 @@ const Page = () => {
 
         if (response.success && response.data) {
           const transformed = transformCreditReportData(
-            response.data as CreditReportData
+            response.data
           );
           setTransformedData(transformed);
 
@@ -88,10 +88,7 @@ const Page = () => {
       {/* Page content remains the same... */}
       <div className="flex gap-2 mb-6">
         <h1 className="font-semibold text-[28px] leading-[32px] -tracking-[0.04em] text-[#383737] gap-2 ">
-          Preview Credit Report
-          <span className="font-normal ml-1 text-[20px] leading-[32px] -tracking-[0.04em] text-[#383737] ">
-            ({userName})
-          </span>
+          Preview Credit Report<span className="font-normal ml-1 text-[20px] leading-[32px] -tracking-[0.04em] text-[#383737] ">({userName})</span>
         </h1>
       </div>
 
@@ -159,11 +156,7 @@ const Page = () => {
 
       <div className="my-6 flex flex-col gap-2">
         <div className="border border-[#FFB74D] p-6 rounded-lg">
-          <p className="font-medium text-sm leading-[20px] tracking-normal text-[#71717A] ">
-            <span className="font-bold text-sm leading-[20px] tracking-normal align-middle text-[#000000] mr-2">
-              Finished?
-            </span>
-            All &quot;Negative&quot; items that you&apos;ve tagged with
+          <p className="font-medium text-sm leading-[20px] tracking-normal text-[#71717A] "><span className="font-bold text-sm leading-[20px] tracking-normal align-middle text-[#000000] mr-2">Finished?</span>All &quot;Negative&quot; items that you&apos;ve tagged with
             &quot;Reason and Instruction&quot; will be saved as &quot;Dispute
             Items&quot; to be merged into letters in the Wizard. Click either
             button below to save and continue.
@@ -175,8 +168,12 @@ const Page = () => {
         <Button
           className="bg-primary text-white px-4 py-2 rounded-lg"
           onClick={() =>
-            router.push(`/dispute-wizard?email=${encodeURIComponent(email)}`)
-          }
+    router.push(
+      `/dispute-wizard?email=${encodeURIComponent(email)}&name=${encodeURIComponent(
+        userName
+      )}`
+    )
+  }
         >
           Save my work and continue to Wizard
         </Button>

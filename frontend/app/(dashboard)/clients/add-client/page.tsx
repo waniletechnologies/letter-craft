@@ -44,8 +44,8 @@ export default function AddClientPage() {
     phoneWork: string;
     fax: string;
     ssn: string;
-    experianReportNumber: string;
-    transUnionFileNumber: string;
+    experianReport: string;
+    transunionFileNumber: string;
     disputeScheduleDate: string;
     disputeScheduleTime: string;
   }
@@ -61,14 +61,14 @@ export default function AddClientPage() {
     city: "",
     state: "",
     zipCode: "",
-    country: "",
+    country: "United States",
     phoneMobile: "",
     phoneAlternate: "",
     phoneWork: "",
     fax: "",
     ssn: "",
-    experianReportNumber: "",
-    transUnionFileNumber: "",
+    experianReport: "",
+    transunionFileNumber: "",
     disputeScheduleDate: "",
     disputeScheduleTime: "",
   });
@@ -104,26 +104,15 @@ export default function AddClientPage() {
   const handleSubmit = () => {
     mutate(
       {
-        firstName: formData.firstName,
+        ...formData,
         middleName: formData.middleName || undefined,
-        lastName: formData.lastName,
         suffix: formData.suffix || undefined,
-        email: formData.email,
-        dateOfBirth: formData.dateOfBirth,
-        mailingAddress: formData.mailingAddress,
-        city: formData.city,
-        state: formData.state,
-        zipCode: formData.zipCode,
-        country: formData.country || "United States",
-        phoneMobile: formData.phoneMobile,
         phoneAlternate: formData.phoneAlternate || undefined,
         phoneWork: formData.phoneWork || undefined,
         fax: formData.fax || undefined,
         ssn: (formData.ssn || "").replace(/\D/g, ""),
-        experianReport: formData.experianReportNumber || undefined,
-        transunionFileNumber: formData.transUnionFileNumber || undefined,
-        disputeScheduleDate: formData.disputeScheduleDate || undefined,
-        disputeScheduleTime: formData.disputeScheduleTime || undefined,
+        experianReport: formData.experianReport || undefined,
+        transunionFileNumber: formData.transunionFileNumber || undefined,
       },
       {
         onSuccess: () => {
@@ -203,7 +192,7 @@ export default function AddClientPage() {
               </h1>
             </div>
             <div className="flex gap-2">
-              <Button variant="ghost" className="text-sm h-9">
+              <Button variant="ghost" className="text-sm h-9" onClick={() => router.push('/clients')}>
                 {" "}
                 Back to clients list{" "}
               </Button>
@@ -404,7 +393,6 @@ export default function AddClientPage() {
           </div>
 
           {/* Contact Information */}
-          {/* Contact Information */}
           <div className="space-y-4">
             <div className="flex flex-wrap gap-4">
               {/* Country */}
@@ -508,32 +496,32 @@ export default function AddClientPage() {
               </div>
               <div>
                 <Label
-                  htmlFor="experianReportNumber"
+                  htmlFor="experianReport"
                   className="text-sm font-medium mb-2 block"
                 >
                   Experian Report Number
                 </Label>
                 <Input
-                  id="experianReportNumber"
-                  value={formData.experianReportNumber}
+                  id="experianReport"
+                  value={formData.experianReport}
                   onChange={(e) =>
-                    handleInputChange("experianReportNumber", e.target.value)
+                    handleInputChange("experianReport", e.target.value)
                   }
                   className="h-10"
                 />
               </div>
               <div>
                 <Label
-                  htmlFor="transUnionFileNumber"
+                  htmlFor="transunionFileNumber"
                   className="text-sm font-medium mb-2 block"
                 >
                   TransUnion File Number
                 </Label>
                 <Input
-                  id="transUnionFileNumber"
-                  value={formData.transUnionFileNumber}
+                  id="transunionFileNumber"
+                  value={formData.transunionFileNumber}
                   onChange={(e) =>
-                    handleInputChange("transUnionFileNumber", e.target.value)
+                    handleInputChange("transunionFileNumber", e.target.value)
                   }
                   className="h-10"
                 />
@@ -571,7 +559,6 @@ export default function AddClientPage() {
             </div>
           </div>
 
-
           {/* Upload Documents */}
           <div className="space-y-6">
             <h2 className="text-lg font-medium text-gray-900">
@@ -588,12 +575,9 @@ export default function AddClientPage() {
                   key={key}
                   className="flex items-center justify-between border border-gray-200 rounded-lg px-4 h-[62px] w-[311px]"
                 >
-                  {/* Label or Uploaded File Name */}
                   <div className="text-[12px] text-[#9D9D9D]">
                     {uploadedFiles[key]?.name || label}
                   </div>
-
-                  {/* Hidden File Input */}
                   <input
                     type="file"
                     id={key}
@@ -601,8 +585,6 @@ export default function AddClientPage() {
                     onChange={(e) => handleFileUpload(key, e)}
                     accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
                   />
-
-                  {/* Upload Button */}
                   <Button
                     type="button"
                     variant="outline"
@@ -622,7 +604,6 @@ export default function AddClientPage() {
               <h3 className="font-medium mb-3 text-sm text-gray-900">
                 Upload Your FTC Report
               </h3>
-
               <div
                 className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center cursor-pointer"
                 onClick={() => setShowFtcDialog(true)}
@@ -643,9 +624,6 @@ export default function AddClientPage() {
                   </div>
                 )}
               </div>
-
-              {/* Dialog */}
-              {/* Dialog */}
               <Dialog open={showFtcDialog} onOpenChange={setShowFtcDialog}>
                 <DialogContent className="sm:max-w-[974px]">
                   <DialogHeader>
@@ -655,16 +633,12 @@ export default function AddClientPage() {
                   </DialogHeader>
 
                   <div className="space-y-4 flex gap-8">
-                    {/* Title input */}
-
-                    {/* Upload area */}
                     <div
                       className="border-2 border-dashed border-blue-300 rounded-lg p-8 text-center cursor-pointer bg-[#E4E4E7]  transition-colors"
                       onClick={() =>
                         document.getElementById("ftcReportInput")?.click()
                       }
                     >
-                      {/* Cloud upload icon */}
                       <div className="mb-4">
                         <div className="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center">
                           <svg
@@ -682,27 +656,23 @@ export default function AddClientPage() {
                           </svg>
                         </div>
                       </div>
-
                       <div className="w-[296px]">
-
-                      <div className="text-[16px] text-[#040415] mb-1">
-                        Drop your file here, or{" "}
-                        <span className="text-[16px] text-[#2196F3] underline hover:text-blue-800">
-                          Browse
-                        </span>
+                        <div className="text-[16px] text-[#040415] mb-1">
+                          Drop your file here, or{" "}
+                          <span className="text-[16px] text-[#2196F3] underline hover:text-blue-800">
+                            Browse
+                          </span>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          Supports: pdf Max file size 80MB
+                        </div>
                       </div>
-                      <div className="text-sm text-gray-500">
-                        Supports: pdf Max file size 80MB
-                      </div>
-                      </div>
-
                       {uploadedFiles.ftcReport && (
                         <div className="mt-3 text-sm text-green-600 font-medium">
                           Uploaded: {uploadedFiles.ftcReport.name}
                         </div>
                       )}
                     </div>
-
                     <div className="w-[311px]">
                       <Label
                         htmlFor="ftcTitle"
@@ -716,8 +686,6 @@ export default function AddClientPage() {
                         className="mt-1 h-10"
                       />
                     </div>
-
-                    {/* Hidden File Input */}
                     <input
                       type="file"
                       id="ftcReportInput"
@@ -738,4 +706,3 @@ export default function AddClientPage() {
     </div>
   );
 }
-

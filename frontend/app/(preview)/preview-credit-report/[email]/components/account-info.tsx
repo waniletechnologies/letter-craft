@@ -83,20 +83,22 @@ const AccountTable: React.FC<{ account: AccountInfoRow }> = ({ account }) => {
     const disputeId = `${account.id}-${bureau}`;
 
     if (checked) {
-      addOrUpdateDisputeItem({
-        id: disputeId,
-        creditor: bureauData.accountName,
-        account: bureauData.accountNumber,
-        dateOpened: bureauData.lastVerified,
-        balance: bureauData.highBalance,
-        type: account.status,
-        hasExperian: bureau === "Experian",
-        hasEquifax: bureau === "Equifax",
-        hasTransUnion: bureau === "TransUnion",
-      });
-    } else {
-      removeDisputeItem(disputeId);
-    }
+  addOrUpdateDisputeItem({
+    id: disputeId,
+    creditor: bureauData.accountName,
+    account: bureauData.accountNumber,
+    dateOpened: bureauData.lastVerified,
+    balance: bureauData.highBalance,
+    type: account.status,
+    disputed: false, // ✅ Add this field to match DisputeItem type
+    hasExperian: bureau === "Experian",
+    hasEquifax: bureau === "Equifax",
+    hasTransUnion: bureau === "TransUnion",
+  });
+} else {
+  removeDisputeItem(disputeId);
+}
+
   };
 
   // Pre-check if item already exists in context
@@ -166,7 +168,7 @@ const AccountTable: React.FC<{ account: AccountInfoRow }> = ({ account }) => {
                   >
                     <ValueCell
                       value={
-                        (account.values[b] as any)[key as keyof typeof account]
+                        (account.values[b] as never)[key as keyof typeof account]
                       }
                     />
                   </TableCell>

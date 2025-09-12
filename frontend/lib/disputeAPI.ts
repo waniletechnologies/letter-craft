@@ -8,7 +8,7 @@ import { DisputePayload } from "@/types/dispute"; // We will define this type ne
  */
 export async function saveDispute(
   disputeData: DisputePayload
-): Promise<{ success: boolean; data?: any; message?: string }> {
+): Promise<{ success: boolean; data?: unknown; message?: string }> {
   try {
     const response = await apiFetch("/disputes", {
       // Assumes API endpoint is /api/disputes
@@ -50,8 +50,8 @@ export async function fetchDisputes() {
 
 export async function updateDispute(
   id: string,
-  data: DisputePayload
-): Promise<{ success: boolean; data?: any; message?: string }> {
+  data: Partial<DisputePayload> // 👈 Allow partial payloads
+): Promise<{ success: boolean; data?: unknown; message?: string }> {
   try {
     const res = await apiFetch(`/disputes/${id}`, {
       method: "PUT",
@@ -65,3 +65,4 @@ export async function updateDispute(
     return { success: false, message };
   }
 }
+

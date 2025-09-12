@@ -7,6 +7,8 @@ import globalErrorHandler from "./src/middlewares/errorHandler.js";
 import routes from "./src/routes/index.js";
 import { seedUser } from "./src/seed/seedUser.js";
 import authRoutes from "./src/routes/auth.route.js";
+import creditReport from "./src/routes/creditReport.route.js";
+import disputeRoutes from "./src/routes/dispute.route.js";
 
 dotenv.config();
 
@@ -43,6 +45,8 @@ app.use((req, res, next) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api', routes);
+app.use("/api", creditReport);
+app.use("/api/disputes", disputeRoutes);
 
 // 404 handler for undefined routes - Fixed the wildcard issue
 app.use((req, res) => {

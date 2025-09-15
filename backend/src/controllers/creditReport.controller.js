@@ -15,56 +15,152 @@ import {
 export const getCreditReport = async (req, res) => {
   const { username, password, provider, notes } = req.body;
 
-  
+  console.log("📩 [getCreditReport] Incoming request body:", {
+    username,
+    password: password ? "***MASKED***" : "❌ MISSING",
+    provider,
+    notes,
+  });
+
+  if (!username) {
+    console.warn("⚠️ [getCreditReport] No username/email provided.");
+    return res
+      .status(400)
+      .json({ success: false, message: "Username/email is required" });
+  }
+
   try {
-    // 🔎 Check if report for this email already exists
+    console.log(
+      "🔎 [getCreditReport] Checking for existing report for:",
+      username
+    );
     const existingReport = await CreditReport.findOne({ email: username });
+
     if (existingReport) {
+      console.info(
+        "ℹ️ [getCreditReport] Existing report found:",
+        existingReport._id
+      );
       return res.json({
         success: true,
         message: "Credit report already exists for this member",
         data: existingReport,
       });
     }
-    
-    // 🛠 Fetch and parse report if not already stored
+
+    console.log(
+      "📡 [getCreditReport] No existing report. Fetching API token..."
+    );
     const token = await fetchApiToken();
-    console.log("Report: ", token);
+    if (!token) {
+      console.error("❌ [getCreditReport] Failed to fetch API token.");
+      return res
+        .status(500)
+        .json({ success: false, message: "Failed to retrieve API token" });
+    }
+    console.log(
+      "✅ [getCreditReport] Token fetched:",
+      token ? "Token received" : token
+    );
+
+    console.log(`📥 [getCreditReport] Fetching member report for ${username}`);
     const reportData = await fetchMemberReport(token, username, password);
+    if (!reportData) {
+      console.error("❌ [getCreditReport] No report data returned from API.");
+      return res
+        .status(502)
+        .json({ success: false, message: "Failed to fetch member report" });
+    }
+    console.log(
+      "📑 [getCreditReport] Raw report data length:",
+      JSON.stringify(reportData).length
+    );
 
+    // Extract and log potential issues with report sections
+    console.log("🔧 [getCreditReport] Extracting negative accounts...");
     const negatives = extractNegativeAccounts(reportData);
-    const inquiries = extractInquiries(reportData);
-    const accountInfoRaw = extractAccountInfo(reportData);
-    const creditSummary = extractCreditSummary(reportData);
-    const personalInfo = extractPersonalInfo(reportData);
-    const publicRecords = extractPublicRecords(reportData);
+    console.log(
+      "🔧 [getCreditReport] Negatives extracted:",
+      negatives?.length ?? 0
+    );
 
-    // 👉 Add status flag to accounts
+    console.log("🔧 [getCreditReport] Extracting inquiries...");
+    const inquiries = extractInquiries(reportData);
+    console.log(
+      "🔧 [getCreditReport] Inquiries extracted:",
+      inquiries?.length ?? 0
+    );
+
+    console.log("🔧 [getCreditReport] Extracting account info...");
+    const accountInfoRaw = extractAccountInfo(reportData);
+    console.log(
+      "🔧 [getCreditReport] Raw account info keys:",
+      Object.keys(accountInfoRaw || {})
+    );
+
+    console.log("🔧 [getCreditReport] Extracting credit summary...");
+    const creditSummary = extractCreditSummary(reportData);
+    console.log("🔧 [getCreditReport] Credit summary:", creditSummary);
+
+    console.log("🔧 [getCreditReport] Extracting personal info...");
+    const personalInfo = extractPersonalInfo(reportData);
+    console.log("🔧 [getCreditReport] Personal info:", personalInfo);
+
+    console.log("🔧 [getCreditReport] Extracting public records...");
+    const publicRecords = extractPublicRecords(reportData);
+    console.log(
+      "🔧 [getCreditReport] Public records extracted:",
+      publicRecords?.length ?? 0
+    );
+
+    // Add status flags to accounts
     const accountInfo = {};
     for (const bureau of ["Experian", "TransUnion", "Equifax"]) {
-      accountInfo[bureau] = accountInfoRaw[bureau].map((acc) => ({
-        ...acc,
-        status: "Negative",
-      }));
+      const accounts = accountInfoRaw?.[bureau] || [];
+      accountInfo[bureau] = accounts.map((acc, idx) => {
+        if (!acc)
+          console.warn(
+            `⚠️ [getCreditReport] Empty account entry at index ${idx} for ${bureau}`
+          );
+        return {
+          ...acc,
+          status: "Negative",
+        };
+      });
+      console.log(
+        `📊 [getCreditReport] ${bureau} accounts processed:`,
+        accountInfo[bureau].length
+      );
     }
 
-    // 💾 Save new report
-    // 💾 Save new report
-const report = await CreditReport.create({
-  email: username,
-  provider: provider || "myfreescorenow",
-  notes,
-  negatives,
-  inquiries,
-  accountInfo,
-  creditSummary,
-  personalInfo,
-  publicRecords,
-});
+    console.log("💾 [getCreditReport] Saving new report for:", username);
+    const report = await CreditReport.create({
+      email: username,
+      provider: provider || "myfreescorenow",
+      notes,
+      negatives,
+      inquiries,
+      accountInfo,
+      creditSummary,
+      personalInfo,
+      publicRecords,
+    });
+    console.log("✅ [getCreditReport] Report saved with _id:", report._id);
 
-// ✅ Force MongoDB to confirm write
-await CreditReport.collection.findOne({ _id: report._id });
-
+    // Confirm write
+    const confirmWrite = await CreditReport.collection.findOne({
+      _id: report._id,
+    });
+    if (!confirmWrite) {
+      console.error(
+        "❌ [getCreditReport] MongoDB write confirmation failed for:",
+        report._id
+      );
+      return res
+        .status(500)
+        .json({ success: false, message: "Failed to confirm report storage" });
+    }
+    console.log("✅ [getCreditReport] MongoDB write confirmed.");
 
     res.json({
       success: true,
@@ -72,28 +168,29 @@ await CreditReport.collection.findOne({ _id: report._id });
       data: report,
     });
   } catch (err) {
-    console.error("Error saving credit report:", err.message);
+    console.error("🔥 [getCreditReport] Error saving credit report:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };
 
+
 export const getStoredCreditReport = async (req, res) => {
   const { email } = req.params;
 
-  console.log("Email: ", email)
-  
+  console.log("Email: ", email);
+
   try {
     const report = await CreditReport.findOne({ email });
     console.log("report: ", report);
-    
+
     if (!report) {
       console.log("report not found: ");
       return res
-      .status(404)
-      .json({ success: false, message: "Credit report not found" });
+        .status(404)
+        .json({ success: false, message: "Credit report not found" });
     }
-    
-    console.log("report found: " );
+
+    console.log("report found: ");
     res.json({
       success: true,
       message: "Credit report fetched successfully",

@@ -74,6 +74,7 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   try {
     const result = await importCreditReport({ email, password, provider, notes });
 
+    setTimeout(()=> {}, 1000);
     if (result.success && result.data) {
       router.push(
         `/preview-credit-report/${encodeURIComponent(email)}`

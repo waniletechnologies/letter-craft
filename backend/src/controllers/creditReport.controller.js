@@ -16,7 +16,6 @@ export const getCreditReport = async (req, res) => {
   const { username, password, provider, notes } = req.body;
 
   
-    console.log("Report: ", username, password);
   try {
     // 🔎 Check if report for this email already exists
     const existingReport = await CreditReport.findOne({ email: username });
@@ -27,9 +26,10 @@ export const getCreditReport = async (req, res) => {
         data: existingReport,
       });
     }
-
+    
     // 🛠 Fetch and parse report if not already stored
     const token = await fetchApiToken();
+    console.log("Report: ", token);
     const reportData = await fetchMemberReport(token, username, password);
 
     const negatives = extractNegativeAccounts(reportData);
@@ -80,15 +80,20 @@ await CreditReport.collection.findOne({ _id: report._id });
 export const getStoredCreditReport = async (req, res) => {
   const { email } = req.params;
 
+  console.log("Email: ", email)
+  
   try {
     const report = await CreditReport.findOne({ email });
-
+    console.log("report: ", report);
+    
     if (!report) {
+      console.log("report not found: ");
       return res
-        .status(404)
-        .json({ success: false, message: "Credit report not found" });
+      .status(404)
+      .json({ success: false, message: "Credit report not found" });
     }
-
+    
+    console.log("report found: " );
     res.json({
       success: true,
       message: "Credit report fetched successfully",

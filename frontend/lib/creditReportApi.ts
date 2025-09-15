@@ -21,6 +21,7 @@ export async function importCreditReport(
         notes: credentials.notes,
       }),
     });
+    console.log("Data: ", data)
     return data;
   } catch (error) {
     console.error("Error importing credit report:", error);

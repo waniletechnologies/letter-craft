@@ -134,7 +134,7 @@ export const getCreditReport = async (req, res) => {
     }
 
     console.log("💾 [getCreditReport] Saving new report for:", username);
-    const report = await CreditReport.create({
+    const report = new CreditReport({
       email: username,
       provider: provider || "myfreescorenow",
       notes,
@@ -145,6 +145,8 @@ export const getCreditReport = async (req, res) => {
       personalInfo,
       publicRecords,
     });
+    await report.save({ writeConcern: { w: "majority" } });
+
     console.log("✅ [getCreditReport] Report saved with _id:", report._id);
 
     // Confirm write

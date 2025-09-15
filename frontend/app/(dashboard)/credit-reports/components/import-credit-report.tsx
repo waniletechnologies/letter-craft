@@ -74,14 +74,10 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   try {
     const result = await importCreditReport({ email, password, provider, notes });
 
-    if (result.success) {
-      // 🔎 Poll until the stored report is available
-      await waitForReport(email);
-
-      onOpenChange(false);
-      const url = `/preview-credit-report/${encodeURIComponent(email)}`;
-      console.log("Navigating to:", url);
-      router.push(`/preview-credit-report/${encodeURIComponent(email)}`);
+    if (result.success && result.data) {
+      router.push(
+        `/preview-credit-report/${encodeURIComponent(email)}`
+      );
     } else {
       throw new Error(result.message || "Failed to import credit report");
     }

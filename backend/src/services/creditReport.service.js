@@ -6,10 +6,13 @@ import {
 } from "../config/api.config.js";
 
 export async function fetchApiToken() {
+  console.log("Email: ", API_CREDENTIALS.email);
+  console.log("Password of user: ", API_CREDENTIALS.password);
   // Send as URLSearchParams (query/form encoding)
   const params = new URLSearchParams();
   params.append("email", API_CREDENTIALS.email);
   params.append("password", API_CREDENTIALS.password);
+
 
   const res = await axios.post(LOGIN_URL, params, {
     headers: { "Content-Type": "application/x-www-form-urlencoded" },

@@ -52,7 +52,13 @@ const Page = () => {
   ]);
   const [reports, setReports] = useState<NormalizedCreditReport[]>([]);
   const [loading, setLoading] = useState(true);
-  const totalPages = Math.ceil(reports.length / 10);
+  const reportsPerPage = 10;
+  const totalPages = Math.ceil(reports.length / reportsPerPage);
+
+  const startIndex = (currentPage - 1) * reportsPerPage;
+  const endIndex = startIndex + reportsPerPage;
+  const paginatedReports = reports.slice(startIndex, endIndex);
+
 
   useEffect(() => {
     const loadReports = async () => {
@@ -175,10 +181,14 @@ const Page = () => {
   };
 
   return (
-    <div className='p-0 md:p-6'>
+    <div className="p-0 md:p-6">
       <div className="mb-6">
-        <h1 className="font-semibold text-[32px] leading-[100%] -tracking-[0.07em] text-[#3D3D3D] mb-2">Credit Reports</h1>
-        <p className="font-medium text-[16px] leading-[100%] -tracking-[0.07em] text-[#606060]">Import and manage credit reports from various providers.</p>
+        <h1 className="font-semibold text-[32px] leading-[100%] -tracking-[0.07em] text-[#3D3D3D] mb-2">
+          Credit Reports
+        </h1>
+        <p className="font-medium text-[16px] leading-[100%] -tracking-[0.07em] text-[#606060]">
+          Import and manage credit reports from various providers.
+        </p>
       </div>
 
       <div className="mb-4 flex flex-col md:flex-row gap-4 md:gap-0 justify-between">
@@ -195,32 +205,36 @@ const Page = () => {
             className="text-[#292524] cursor-pointer bg-white hover:bg-transparent hover:text-[#2563EB] transition"
           >
             <LuListFilter className="h-5 w-5 mr-2" />
-           <span className='hidden md:block'>Filter</span>
+            <span className="hidden md:block">Filter</span>
           </Button>
         </div>
-        <div className='flex flex-col md:flex-row gap-4 md:gap-0 space-x-4'>
+        <div className="flex flex-col md:flex-row gap-4 md:gap-0 space-x-4">
           <Button
-          variant="outline"
-           className="bg-[#EFEFEF] text-[#3E3E3E] !hover:[#EFEFEF]/90 px-4 py-2 rounded transition">
+            variant="outline"
+            className="bg-[#EFEFEF] text-[#3E3E3E] !hover:[#EFEFEF]/90 px-4 py-2 rounded transition"
+          >
             <FaRegFile className="h-4 w-4 mr-0" />
-            View Groups 
+            View Groups
           </Button>
-          <Button 
+          <Button
             onClick={() => setImportDialogOpen(true)}
-            className="bg-primary text-white px-4 py-2 rounded hover:bg-primary/90 transition">
+            className="bg-primary text-white px-4 py-2 rounded hover:bg-primary/90 transition"
+          >
             Import Credit Report
           </Button>
         </div>
       </div>
 
-      <div className='grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4'>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading ? (
-            <p className="text-gray-500">Loading reports...</p>
+          <p className="text-gray-500">Loading reports...</p>
         ) : reports.length === 0 ? (
           <p className="text-gray-500">No credit reports found.</p>
         ) : (
-          reports.map((report) => {
-            const importedOn = new Date(report.createdAt || report.updatedAt || "").toLocaleDateString();
+          paginatedReports.map((report) => {
+            const importedOn = new Date(
+              report.createdAt || report.updatedAt || ""
+            ).toLocaleDateString();
             const negativeItems = getNegativeItems(report);
 
             return (
@@ -260,7 +274,7 @@ const Page = () => {
         />
       </div>
 
-      <ImportCreditReport 
+      <ImportCreditReport
         open={importDialogOpen}
         onOpenChange={setImportDialogOpen}
         onStartImport={({ email }) => {
@@ -269,7 +283,11 @@ const Page = () => {
         }}
       />
 
-      <AutoImportOverlay open={overlayOpen} onOpenChange={setOverlayOpen} steps={steps} />
+      <AutoImportOverlay
+        open={overlayOpen}
+        onOpenChange={setOverlayOpen}
+        steps={steps}
+      />
 
       {/* FIX 3: Pass real, computed data to the ViewCreditReport component */}
       {selectedReport && (
@@ -278,7 +296,9 @@ const Page = () => {
           onOpenChange={setViewDialogOpen}
           fullName={getFullName(selectedReport)}
           status="Complete"
-          importedOn={new Date(selectedReport.createdAt || selectedReport.updatedAt || "").toLocaleDateString()}
+          importedOn={new Date(
+            selectedReport.createdAt || selectedReport.updatedAt || ""
+          ).toLocaleDateString()}
           bureaus={selectedReport.bureaus || []}
           score={getCreditScore(selectedReport)}
           accounts={selectedReport.accounts.map((acc, i) => ({
@@ -295,30 +315,29 @@ const Page = () => {
 
       {/* FIX 4: Pass correct props to ExportCreditReport */}
       {selectedReport && (
-  <ExportCreditReport
-    open={exportDialogOpen}
-    onOpenChange={setExportDialogOpen}
-    fullName={getFullName(selectedReport)}
-    status="Complete"
-    importedOn={new Date(
-      selectedReport.createdAt || selectedReport.updatedAt || ""
-    ).toLocaleDateString()}
-    provider={selectedReport.provider || "N/A"}
-    bureaus={selectedReport.bureaus || []}
-    score={getCreditScore(selectedReport)}
-    accounts={selectedReport.accounts.map((acc, i) => ({
-      id: `${acc.accountNumber || i}`,
-      name: acc.accountName || "Unnamed Account",
-      type: acc.worstPayStatus || acc.status || "N/A",
-      balance: acc.currentBalance ? `${acc.currentBalance}` : "$0",
-      status: acc.payStatus || acc.worstPayStatus || acc.status || "N/A",
-    }))}
-    negativeItems={getNegativeItems(selectedReport)}
-  />
-)}
-
+        <ExportCreditReport
+          open={exportDialogOpen}
+          onOpenChange={setExportDialogOpen}
+          fullName={getFullName(selectedReport)}
+          status="Complete"
+          importedOn={new Date(
+            selectedReport.createdAt || selectedReport.updatedAt || ""
+          ).toLocaleDateString()}
+          provider={selectedReport.provider || "N/A"}
+          bureaus={selectedReport.bureaus || []}
+          score={getCreditScore(selectedReport)}
+          accounts={selectedReport.accounts.map((acc, i) => ({
+            id: `${acc.accountNumber || i}`,
+            name: acc.accountName || "Unnamed Account",
+            type: acc.worstPayStatus || acc.status || "N/A",
+            balance: acc.currentBalance ? `${acc.currentBalance}` : "$0",
+            status: acc.payStatus || acc.worstPayStatus || acc.status || "N/A",
+          }))}
+          negativeItems={getNegativeItems(selectedReport)}
+        />
+      )}
     </div>
-  )
+  );
 }
 
 export default Page

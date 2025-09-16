@@ -198,10 +198,11 @@ const StepOne: React.FC = () => {
       </div>
 
       <div className="p-4">
-        <div className="rounded-lg border border-gray-200 overflow-hidden">
+        {/* 🔄 Add horizontal scroll wrapper */}
+        <div className="rounded-lg border border-gray-200 overflow-x-auto">
           {/* Header */}
-          <div className="grid grid-cols-10 bg-gray-50 text-xs font-medium text-gray-600 px-3 py-2">
-            <div>Creditor/Furnisher</div>
+          <div className="grid grid-cols-10 min-w-[900px] bg-gray-50 text-xs font-medium text-gray-600 px-3 py-2 gap-2">
+            <div>Creditor</div>
             <div>Account #</div>
             <div>Date Opened</div>
             <div>Balance</div>
@@ -223,16 +224,16 @@ const StepOne: React.FC = () => {
           {disputeItems.map((item, idx) => (
             <div
               key={item.id}
-              className={`grid grid-cols-10 items-center px-3 py-2 border-t ${
+              className={`grid grid-cols-10 min-w-[900px] items-center px-3 py-2 border-t gap-2 ${
                 idx % 2 === 0 ? "bg-white" : "bg-gray-50"
               }`}
             >
-              <div>{item.creditor}</div>
-              <div>{item.account}</div>
-              <div>{item.dateOpened}</div>
-              <div>{item.balance}</div>
-              <div>{"---"}</div>
-              <div>{item.disputed ? "YES" : "NO"}</div>
+              <div className="truncate">{item.creditor}</div>
+              <div className="truncate">{item.account}</div>
+              <div className="truncate">{item.dateOpened}</div>
+              <div className="truncate">{item.balance}</div>
+              <div className="truncate">---</div>
+              <div className="truncate">{item.disputed ? "YES" : "NO"}</div>
               <div className="text-center text-green-500">
                 {item.hasExperian && "✔"}
               </div>
@@ -252,6 +253,7 @@ const StepOne: React.FC = () => {
           ))}
         </div>
 
+        {/* Buttons */}
         <div className="flex justify-end mt-4">
           <Button className="bg-[#2196F3] hover:bg-[#1976D2]">
             Save & Continue

@@ -14,7 +14,7 @@ import ViewDisputeDetails, {
 import { Plus } from "lucide-react";
 import { fetchDisputes, updateDispute } from "@/lib/disputeAPI";
 import ImportCreditReport from "../credit-reports/components/import-credit-report";
-
+import Loader from "@/components/Loader";
 
 type Bureau = "Experian" | "Equifax" | "TransUnion";
 type DisputeStatus = "in-progress" | "completed" | "pending" | "failed";
@@ -37,7 +37,6 @@ const DisputesPage = () => {
   const [loading, setLoading] = useState(true);
   const [importDialogOpen, setImportDialogOpen] = useState(false);
   const router = useRouter();
-
 
   const [downloadOpen, setDownloadOpen] = useState(false);
   const [selectedDispute, setSelectedDispute] = useState<{
@@ -147,8 +146,6 @@ const DisputesPage = () => {
     }
   };
 
-
-
   const handleDownloadLetters = (id: string) => {
     const d = disputes.find((x) => x.id === id);
     if (d) {
@@ -162,7 +159,7 @@ const DisputesPage = () => {
   };
 
   if (loading) {
-    return <div className="p-6 text-gray-600">Loading disputes...</div>;
+    return <Loader />;
   }
 
   return (
@@ -177,10 +174,9 @@ const DisputesPage = () => {
             Manage and track credit dispute progress across all credit bureaus
           </p>
           <Button onClick={() => setImportDialogOpen(true)}>
-  <Plus className="h-4 w-4" />
-  Add New Dispute
-</Button>
-
+            <Plus className="h-4 w-4" />
+            Add New Dispute
+          </Button>
         </div>
       </div>
 
@@ -264,15 +260,14 @@ const DisputesPage = () => {
       )}
 
       <ImportCreditReport
-  open={importDialogOpen}
-  onOpenChange={setImportDialogOpen}
-  onStartImport={({ email }) => {
-    setImportDialogOpen(false);
-    // ✅ Optionally navigate to the preview page after import
-    router.push(`/preview-credit-report/${encodeURIComponent(email)}`);
-  }}
-/>
-
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
+        onStartImport={({ email }) => {
+          setImportDialogOpen(false);
+          // ✅ Optionally navigate to the preview page after import
+          router.push(`/preview-credit-report/${encodeURIComponent(email)}`);
+        }}
+      />
     </div>
   );
 };

@@ -1,12 +1,10 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import Image from "next/image";
 import { getCurrentUser } from "@/lib/auth";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
-  ChevronDown,
   LogOut,
   Settings,
   CreditCard,
@@ -14,18 +12,19 @@ import {
   FileChartColumnIncreasing,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import { Button } from "../../components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "../../components/ui/dropdown-menu";
 import { LuSparkle, LuWand } from "react-icons/lu";
 import { GoCheckCircle } from "react-icons/go";
 import { AppSidebar } from "../../components/AppSidebar";
+
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+
+import { FiBell } from "react-icons/fi";
 import {
   SidebarInset,
   SidebarProvider,
@@ -108,6 +107,14 @@ const getHeadingForPath = (pathname: string) => {
   );
 };
 
+const AvatarPlaceholder = ({ initials }: { initials: string }) => (
+  <div className="h-8 w-8 rounded-full bg-primary flex items-center justify-center shadow-sm">
+    <span className="text-white text-xs font-semibold tracking-wide">
+      {initials}
+    </span>
+  </div>
+);
+
 // Layout
 // --------------------------------------
 const SBProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => (
@@ -178,48 +185,65 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
             </div>
 
             <div className="ml-auto flex items-center gap-2">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="flex items-center gap-1">
-                    <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded-lg p-1 transition-colors duration-200">
-                      <div className="h-8 w-8 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden">
-                        {user.image ? (
-                          <Image
-                            src={user.image}
-                            alt={user.name}
-                            width={40}
-                            height={40}
-                            className="object-cover"
-                          />
-                        ) : (
-                          <span className="text-sm font-semibold text-gray-600">
-                            {getUserInitials(user.name)}
-                          </span>
-                        )}
-                      </div>
-                      <span className="hidden md:inline text-sm ml-1 font-medium text-foreground">
-                        {user.name}
-                      </span>
-                      <ChevronDown className="hidden md:inline h-4 w-4 text-muted-foreground" />
-                    </div>
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent
-                  align="end"
-                  className="w-fit z-50 bg-white"
-                >
-                  <DropdownMenuLabel className="text-xs">
-                    {user.email}
-                  </DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem
-                    onClick={handleLogout}
-                    className="gap-2 text-[11px] cursor-pointer"
-                  >
-                    <LogOut className="h-3 w-3" /> Log out
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <FiBell className="w-4 h-4" />
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded-lg p-1 transition-colors duration-200">
+                              <Avatar className="h-8 w-8">
+                                {user.image ? (
+                                  <AvatarImage src={user.image} alt={user.name} />
+                                ) : (
+                                  <AvatarFallback className="bg-transparent p-0">
+                                    <AvatarPlaceholder
+                                      initials={getUserInitials(user.name)}
+                                    />
+                                  </AvatarFallback>
+                                )}
+                              </Avatar>
+                              <span className="hidden sm:inline text-sm font-medium text-[#171717]">
+                                {user.name}
+                              </span>
+                            </div>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="w-68 p-2">
+                            {/* User Info */}
+                            <div className="px-3 py-3 border-b border-gray-100">
+                              <div className="flex items-center gap-2">
+                                <Avatar className="h-10 w-10">
+                                  {user.image ? (
+                                    <AvatarImage src={user.image} alt={user.name} />
+                                  ) : (
+                                    <AvatarFallback className="bg-transparent p-0">
+                                      <AvatarPlaceholder
+                                        initials={getUserInitials(user.name)}
+                                      />
+                                    </AvatarFallback>
+                                  )}
+                                </Avatar>
+                                <div className="flex-1 min-w-0">
+                                  <p className="text-sm font-semibold text-gray-900 truncate">
+                                    {user.name}
+                                  </p>
+                                  <p className="text-xs text-gray-500 truncate">
+                                    {user.email}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+              
+                            {/* Logout */}
+                            <div className="py-1">
+                              <div className="my-1 border-t border-gray-100" />
+                              <DropdownMenuItem
+                                onClick={handleLogout}
+                                className="flex items-center gap-3 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer"
+                              >
+                                <LogOut className="h-4 w-4 text-red-500" />
+                                <span>Log out</span>
+                              </DropdownMenuItem>
+                            </div>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
             </div>
           </header>
           <main className="flex-1 px-6 py-4">{children}</main>

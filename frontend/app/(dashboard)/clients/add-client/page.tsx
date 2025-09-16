@@ -184,22 +184,24 @@ export default function AddClientPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         {/* Header */}
-        <div className="bg-[#F6F6F6] px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">
-                Add Client
-              </h1>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="ghost" className="text-sm h-9" onClick={() => router.push('/clients')}>
-                {" "}
-                Back to clients list{" "}
+        {/* Header */}
+        <div className="bg-[#F6F6F6] px-4 sm:px-6 py-4 border-b border-gray-200">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h1 className="text-lg sm:text-xl font-semibold text-gray-900">
+              Add Client
+            </h1>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="ghost"
+                className="text-sm h-9 w-full sm:w-auto"
+                onClick={() => router.push("/clients")}
+              >
+                Back to clients list
               </Button>
               <Button
                 onClick={handleSubmit}
                 disabled={isPending}
-                className="primary hover:bg-blue-700 text-white h-9 px-4"
+                className="primary hover:bg-blue-700 text-white h-9 px-4 w-full sm:w-auto"
               >
                 {isPending ? "Adding..." : "Add Client"}
               </Button>
@@ -533,26 +535,36 @@ export default function AddClientPage() {
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <Label htmlFor="disputeScheduleDate" className="text-sm font-medium mb-2 block">
+                <Label
+                  htmlFor="disputeScheduleDate"
+                  className="text-sm font-medium mb-2 block"
+                >
                   Dispute Schedule Date
                 </Label>
                 <Input
                   id="disputeScheduleDate"
                   type="date"
                   value={formData.disputeScheduleDate}
-                  onChange={(e) => handleInputChange("disputeScheduleDate", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("disputeScheduleDate", e.target.value)
+                  }
                   className="h-10"
                 />
               </div>
               <div>
-                <Label htmlFor="disputeScheduleTime" className="text-sm font-medium mb-2 block">
+                <Label
+                  htmlFor="disputeScheduleTime"
+                  className="text-sm font-medium mb-2 block"
+                >
                   Dispute Schedule Time
                 </Label>
                 <Input
                   id="disputeScheduleTime"
                   type="time"
                   value={formData.disputeScheduleTime}
-                  onChange={(e) => handleInputChange("disputeScheduleTime", e.target.value)}
+                  onChange={(e) =>
+                    handleInputChange("disputeScheduleTime", e.target.value)
+                  }
                   className="h-10"
                 />
               </div>
@@ -565,7 +577,7 @@ export default function AddClientPage() {
               Upload Documents
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
                 { key: "driversLicense", label: "Upload for Driver's License" },
                 { key: "proofOfSS", label: "Upload for Proof of SS" },
@@ -573,9 +585,9 @@ export default function AddClientPage() {
               ].map(({ key, label }) => (
                 <div
                   key={key}
-                  className="flex items-center justify-between border border-gray-200 rounded-lg px-4 h-[62px] w-[311px]"
+                  className="flex items-center justify-between border border-gray-200 rounded-lg px-3 sm:px-4 py-3 h-auto w-full"
                 >
-                  <div className="text-[12px] text-[#9D9D9D]">
+                  <div className="text-[12px] text-[#9D9D9D] truncate">
                     {uploadedFiles[key]?.name || label}
                   </div>
                   <input
@@ -589,7 +601,7 @@ export default function AddClientPage() {
                     type="button"
                     variant="outline"
                     size="sm"
-                    className="bg-[#2196F3] text-white hover:bg-blue-700 h-8 px-3"
+                    className="bg-[#2196F3] text-white hover:bg-blue-700 h-8 px-3 shrink-0"
                     onClick={() => document.getElementById(key)?.click()}
                   >
                     <Upload className="h-3 w-3 mr-1" />

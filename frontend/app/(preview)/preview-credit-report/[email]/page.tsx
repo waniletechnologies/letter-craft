@@ -110,9 +110,9 @@ const Page = () => {
         </p>
       </div>
 
-      <div className="flex gap-4">
+      <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
         <Button
-          className="bg-primary text-white"
+          className="bg-primary text-white w-full sm:w-auto"
           onClick={() =>
             router.push(
               `/dispute-wizard?email=${encodeURIComponent(
@@ -123,7 +123,11 @@ const Page = () => {
         >
           Save my work and continue to Wizard
         </Button>
-        <Button variant="outline" className="border-primary text-primary">
+
+        <Button
+          variant="outline"
+          className="border-primary text-primary w-full sm:w-auto"
+        >
           Save my work and show all Dispute Items
         </Button>
       </div>

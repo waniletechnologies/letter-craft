@@ -1,4 +1,4 @@
-"use client"
+"use client";
 import React, { useEffect, useMemo, useState, Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,6 +16,7 @@ import Image from "next/image";
 import { UploadFile } from "../../../../public/images";
 import { useGetClient, useUpdateClient } from "@/hooks/clients";
 import { toast } from "sonner";
+import Loader from "@/components/Loader";
 
 function EditClientForm() {
   const router = useRouter();
@@ -71,7 +72,7 @@ function EditClientForm() {
   });
 
   useEffect(() => {
-    const client = (data)?.data;
+    const client = data?.data;
     if (!client) return;
     setFormData({
       firstName: client.firstName || "",
@@ -79,7 +80,9 @@ function EditClientForm() {
       lastName: client.lastName || "",
       suffix: client.suffix || "",
       email: client.email || "",
-      dateOfBirth: client.dateOfBirth ? String(client.dateOfBirth).substring(0, 10) : "",
+      dateOfBirth: client.dateOfBirth
+        ? String(client.dateOfBirth).substring(0, 10)
+        : "",
       mailingAddress: client.mailingAddress || "",
       city: client.city || "",
       state: client.state || "",
@@ -165,28 +168,25 @@ function EditClientForm() {
         },
         onError: (error) => {
           console.error(error);
-          toast.error((error as { response?: { data?: { message?: string } } }).response?.data?.message || "Failed to update client");
+          toast.error(
+            (error as { response?: { data?: { message?: string } } }).response
+              ?.data?.message || "Failed to update client"
+          );
         },
       }
     );
   };
 
   if (!clientId) {
-    return (
-      <div className="p-6">Missing client id</div>
-    );
+    return <div className="p-6">Missing client id</div>;
   }
 
   if (isLoading) {
-    return (
-      <div className="p-6">Loading client...</div>
-    );
+    return <Loader />;
   }
 
   if (error) {
-    return (
-      <div className="p-6">Failed to load client</div>
-    );
+    return <div className="p-6">Failed to load client</div>;
   }
 
   const states = [
@@ -246,21 +246,23 @@ function EditClientForm() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         {/* Header */}
-        <div className="bg-[#F6F6F6] px-6 py-4 border-b border-gray-200">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <h1 className="text-xl font-semibold text-gray-900">
-                Edit Client
-              </h1>
-            </div>
-            <div className="flex gap-2">
-              <Button variant="ghost" className="text-sm h-9 text-gray-600">
+        <div className="bg-[#F6F6F6] px-4 sm:px-6 py-4 border-b border-gray-200">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <h1 className="text-lg sm:text-xl font-semibold text-gray-900">
+              Edit Client
+            </h1>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant="ghost"
+                className="text-sm h-9 w-full sm:w-auto"
+                onClick={() => router.push("/clients")}
+              >
                 Back to clients list
               </Button>
               <Button
                 onClick={handleSubmit}
                 disabled={updateMutation.isPending}
-                className="bg-[#2196F3] hover:bg-blue-700 text-white h-9 px-4"
+                className="primary hover:bg-blue-700 text-white h-9 px-4 w-full sm:w-auto"
               >
                 {updateMutation.isPending ? "Updating..." : "Edit Client"}
               </Button>
@@ -611,7 +613,7 @@ function EditClientForm() {
                   className="h-10"
                 />
               </div>
-          
+
               {/* Dispute Time */}
               <div>
                 <Label
@@ -632,7 +634,6 @@ function EditClientForm() {
               </div>
             </div>
           </div>
-
 
           {/* Upload Documents */}
           <div className="space-y-6">
@@ -745,43 +746,47 @@ function EditClientForm() {
 
 export default function EditClientPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-gray-50 p-6">
-        <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
-          <div className="bg-[#F6F6F6] px-6 py-4 border-b border-gray-200">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <h1 className="text-xl font-semibold text-gray-900">Edit Client</h1>
-              </div>
-              <div className="flex gap-2">
-                <div className="h-9 w-32 bg-gray-200 rounded animate-pulse"></div>
-                <div className="h-9 w-24 bg-gray-200 rounded animate-pulse"></div>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-gray-50 p-6">
+          <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+            <div className="bg-[#F6F6F6] px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <h1 className="text-xl font-semibold text-gray-900">
+                    Edit Client
+                  </h1>
+                </div>
+                <div className="flex gap-2">
+                  <div className="h-9 w-32 bg-gray-200 rounded animate-pulse"></div>
+                  <div className="h-9 w-24 bg-gray-200 rounded animate-pulse"></div>
+                </div>
               </div>
             </div>
-          </div>
-          <div className="p-6">
-            <div className="animate-pulse space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="h-10 bg-gray-200 rounded"></div>
-                <div className="h-10 bg-gray-200 rounded"></div>
-                <div className="h-10 bg-gray-200 rounded"></div>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="h-10 bg-gray-200 rounded"></div>
-                <div className="h-10 bg-gray-200 rounded"></div>
-                <div className="h-10 bg-gray-200 rounded"></div>
-              </div>
-              <div className="flex flex-wrap gap-4">
-                <div className="h-10 bg-gray-200 rounded w-[311px]"></div>
-                <div className="h-10 bg-gray-200 rounded w-[315px]"></div>
-                <div className="h-10 bg-gray-200 rounded w-[148px]"></div>
-                <div className="h-10 bg-gray-200 rounded w-[148px]"></div>
+            <div className="p-6">
+              <div className="animate-pulse space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                </div>
+                <div className="flex flex-wrap gap-4">
+                  <div className="h-10 bg-gray-200 rounded w-[311px]"></div>
+                  <div className="h-10 bg-gray-200 rounded w-[315px]"></div>
+                  <div className="h-10 bg-gray-200 rounded w-[148px]"></div>
+                  <div className="h-10 bg-gray-200 rounded w-[148px]"></div>
+                </div>
               </div>
             </div>
           </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <EditClientForm />
     </Suspense>
   );

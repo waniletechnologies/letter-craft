@@ -10,9 +10,11 @@ class ClientService {
   async createClient(clientData, createdBy) {
     try {
       if (!clientData || typeof clientData !== 'object') {
+        console.log("Client Data: ", clientData);
         throw new Error('Invalid request body');
       }
       if (!clientData.email) {
+        console.log("Client Email: ", clientData.email);
         throw new Error('Email is required');
       }
       if (!clientData.ssn) {

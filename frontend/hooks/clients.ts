@@ -47,14 +47,30 @@ export function useListClients(params?: {
   });
 }
 
+// hooks/clients.ts
 export function useCreateClient() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: (payload: ClientPayload) =>
-      apiFetch("/clients", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      }),
+    mutationFn: async (payload: ClientPayload) => {
+      console.log("Sending payload:", payload);
+
+      try {
+        const response = await apiFetch("/clients", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(payload),
+        });
+
+        console.log("Success response:", response);
+        return response;
+      } catch (error) {
+        console.log("Raw error from apiFetch:", error);
+        // Re-throw so onError can handle it
+        throw error;
+      }
+    },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["clients"] });
     },

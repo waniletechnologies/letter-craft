@@ -10,14 +10,18 @@ export async function apiFetch(endpoint: string, options: RequestInit = {}) {
     credentials: "include",
   });
 
+  const responseData = await res.json();
+
   if (!res.ok) {
-    let errorMessage = "Request failed";
-    try {
-      const err = await res.json();
-      errorMessage = err.message || errorMessage;
-    } catch {}
-    throw new Error(errorMessage);
+    // Preserve the entire error response structure
+    throw new Error(
+      JSON.stringify({
+        message: responseData.message || "Request failed",
+        errors: responseData.errors || [],
+        status: res.status,
+      })
+    );
   }
 
-  return res.json();
+  return responseData;
 }

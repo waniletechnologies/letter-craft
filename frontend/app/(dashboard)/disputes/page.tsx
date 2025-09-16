@@ -5,7 +5,7 @@ import DisputeCard from "./components/dispute-card";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import Image from "next/image";
-import { Upload } from "@/public/images";
+import { CloudUpload } from "@/public/images";
 import DownloadLetter from "./components/download-letter";
 import EditDispute, { EditDisputePayload } from "./components/edit-dispute";
 import ViewDisputeDetails, {
@@ -204,7 +204,7 @@ const DisputesPage = () => {
         </p>
         <div className="border-2 border-dashed border-[#E5E7EB] rounded-lg bg-[#F9FAFB] p-8 text-center">
           <Image
-            src={Upload}
+            src={CloudUpload}
             alt="Upload"
             width={51}
             height={44}

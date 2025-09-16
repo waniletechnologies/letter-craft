@@ -13,11 +13,11 @@ const router = Router();
 
 // Client routes
 router.route('/')
-  .get(
-    validateQuery(clientQuerySchema),
-    clientController.getAllClients
-  )
-  .post(
+.get(
+  validateQuery(clientQuerySchema),
+  clientController.getAllClients
+)
+.post(
     requireAuth,
     validate(createClientSchema),
     clientController.createClient

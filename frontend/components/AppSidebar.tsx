@@ -18,7 +18,7 @@ import {
   LayoutDashboard,
 } from "lucide-react";
 import { motion } from "framer-motion";
-import {Logo, Upload} from "@/public/images";
+import { Logo, CloudUpload } from "@/public/images";
 import { FiUsers } from "react-icons/fi";
 import { LuCircleSlash, LuFileChartColumnIncreasing, LuSendHorizontal } from "react-icons/lu";
 import { Button } from "./ui/button";
@@ -128,20 +128,30 @@ export function AppSidebar({ ...props }) {
   };
 
   return (
-    <Sidebar className="bg-white min-w-0 max-w-xs" collapsible="icon" {...props}>
+    <Sidebar
+      className="bg-white min-w-0 max-w-xs"
+      collapsible="icon"
+      {...props}
+    >
       <SidebarHeader className="bg-white">
         <SidebarMenu>
           <SidebarMenuItem
             className={`${state === "collapsed" ? "px-3" : "px-5"} py-3`}
           >
-            <Link href={"/dashboard"} className="flex items-center gap-2" onClick={handleLogoClick}>
+            <Link
+              href={"/dashboard"}
+              className="flex items-center gap-2"
+              onClick={handleLogoClick}
+            >
               <Image src={Logo} alt="LetterCraft" width={111} height={32} />
             </Link>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarHeader>
       <SidebarContent
-        className={`${state != "collapsed" ? "pt-5 px-2" : "pt-6"} gap-0 bg-white`}
+        className={`${
+          state != "collapsed" ? "pt-5 px-2" : "pt-6"
+        } gap-0 bg-white`}
       >
         <SidebarGroup>
           <SidebarMenu className="gap-2 m-0">
@@ -161,16 +171,23 @@ export function AppSidebar({ ...props }) {
       <SidebarFooter className="bg-white">
         {state !== "collapsed" && (
           <Link href="/chat" onClick={handleFooterClick}>
-            <div
-              className="mx-auto mb-10 w-[175px] h-[179px] rounded-md overflow-hidden flex justify-center cursor-pointer bg-[#2196F30F] hover:opacity-90 transition-opacity"
-            >
+            <div className="mx-auto mb-10 w-[175px] h-[179px] rounded-md overflow-hidden flex justify-center cursor-pointer bg-[#2196F30F] hover:opacity-90 transition-opacity">
               <div className="p-4 flex flex-col items-center justify-center gap-2">
-                <Image src={Upload} alt="LetterCraft" width={29} height={25} />
+                <Image
+                  src={CloudUpload}
+                  alt="LetterCraft"
+                  width={29}
+                  height={25}
+                />
                 <p className="font-semibold text-[11px] leading-[11px] -tracking-[0.03em] text-[#3D3D3D] ">
-                Import Your Credit Report
+                  Import Your Credit Report
                 </p>
-                <span className="text-[#3D3D3DB2]/70 font-medium text-[11px] leading-[11px] -tracking-[0.03em] ">Drag & Drop or</span>
-                <Button className="bg-primary text-white w-full cursor-pointer">Browse</Button>
+                <span className="text-[#3D3D3DB2]/70 font-medium text-[11px] leading-[11px] -tracking-[0.03em] ">
+                  Drag & Drop or
+                </span>
+                <Button className="bg-primary text-white w-full cursor-pointer">
+                  Browse
+                </Button>
               </div>
             </div>
           </Link>

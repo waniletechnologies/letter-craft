@@ -4,6 +4,9 @@ import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import Image from "next/image";
+
+import { CloudUpload } from "@/public/images";
 import {
   Select,
   SelectContent,
@@ -11,21 +14,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Upload } from "lucide-react";
+import { Calendar, Upload, Info } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
 } from "@/components/ui/dialog";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useCreateClient } from "@/hooks/clients";
 import { toast } from "sonner";
 
 export default function AddClientPage() {
   const router = useRouter();
   const [showFtcDialog, setShowFtcDialog] = useState(false);
+  const [showSsnInfo, setShowSsnInfo] = useState(false);
   const { mutate, isPending } = useCreateClient();
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   interface ClientData {
     firstName: string;
@@ -87,13 +99,62 @@ export default function AddClientPage() {
       ...prev,
       [field]: value,
     }));
+    if (errors[field]) {
+      setErrors((prev) => ({ ...prev, [field]: "" }));
+    }
+  };
+
+  // Format phone number as user types
+  const formatPhoneNumber = (value: string): string => {
+    const numbers = value.replace(/\D/g, "");
+    if (numbers.length <= 3) return numbers;
+    if (numbers.length <= 6)
+      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 6)}-${numbers.slice(
+      6,
+      10
+    )}`;
+  };
+
+  const handlePhoneChange = (field: keyof ClientData, value: string) => {
+    const formatted = formatPhoneNumber(value);
+    handleInputChange(field, formatted);
+  };
+
+  // Format SSN as user types
+  const formatSSN = (value: string): string => {
+    const numbers = value.replace(/\D/g, "");
+    if (numbers.length <= 3) return numbers;
+    if (numbers.length <= 5)
+      return `${numbers.slice(0, 3)}-${numbers.slice(3)}`;
+    return `${numbers.slice(0, 3)}-${numbers.slice(3, 5)}-${numbers.slice(
+      5,
+      9
+    )}`;
+  };
+
+  const handleSSNChange = (value: string) => {
+    const formatted = formatSSN(value);
+    handleInputChange("ssn", formatted);
+  };
+
+  // Format zip code as user types
+  const formatZipCode = (value: string): string => {
+    const numbers = value.replace(/\D/g, "");
+    if (numbers.length <= 5) return numbers;
+    return `${numbers.slice(0, 5)}-${numbers.slice(5, 9)}`;
+  };
+
+  const handleZipCodeChange = (value: string) => {
+    const formatted = formatZipCode(value);
+    handleInputChange("zipCode", formatted);
   };
 
   const handleFileUpload = (
     type: string,
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
-    console.log("Upload File")
+    console.log("Upload File");
     const file = event.target.files?.[0] || null;
     setUploadedFiles((prev) => ({
       ...prev,
@@ -102,6 +163,9 @@ export default function AddClientPage() {
   };
 
   const handleSubmit = () => {
+    // Clear previous errors
+    setErrors({});
+
     mutate(
       {
         ...formData,
@@ -120,11 +184,33 @@ export default function AddClientPage() {
           router.push("/clients");
         },
         onError: (error) => {
-          console.error("Create client failed:", error);
-          toast.error((error as Error)?.message || "Failed to create client");
+          try {
+            const errorData = JSON.parse((error as Error).message);
+            console.log("Error Data: ", errorData);
+
+            if (errorData.errors && Array.isArray(errorData.errors)) {
+              const fieldErrors: { [key: string]: string } = {};
+              errorData.errors.forEach(
+                (err: { field: string; message: string }) => {
+                  fieldErrors[err.field] = err.message;
+                }
+              );
+
+              setErrors(fieldErrors);
+              toast.error(errorData.message || "Validation failed");
+            } else {
+              toast.error(errorData.message || "Failed to create client");
+            }
+          } catch (e) {
+            toast.error((error as Error)?.message || "Failed to create client");
+          }
         },
       }
     );
+  };
+
+  const getFieldError = (fieldName: string): string | undefined => {
+    return errors[fieldName];
   };
 
   const states = [
@@ -184,7 +270,6 @@ export default function AddClientPage() {
     <div className="min-h-screen bg-gray-50 p-6">
       <div className="max-w-5xl mx-auto bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         {/* Header */}
-        {/* Header */}
         <div className="bg-[#F6F6F6] px-4 sm:px-6 py-4 border-b border-gray-200">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h1 className="text-lg sm:text-xl font-semibold text-gray-900">
@@ -226,8 +311,16 @@ export default function AddClientPage() {
                   onChange={(e) =>
                     handleInputChange("firstName", e.target.value)
                   }
-                  className="h-10"
+                  className={`h-10 ${
+                    getFieldError("firstName") ? "border-red-500" : ""
+                  }`}
+                  placeholder="John"
                 />
+                {getFieldError("firstName") && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {getFieldError("firstName")}
+                  </p>
+                )}
               </div>
               <div>
                 <Label
@@ -243,6 +336,7 @@ export default function AddClientPage() {
                     handleInputChange("middleName", e.target.value)
                   }
                   className="h-10"
+                  placeholder="Michael"
                 />
               </div>
               <div>
@@ -258,8 +352,16 @@ export default function AddClientPage() {
                   onChange={(e) =>
                     handleInputChange("lastName", e.target.value)
                   }
-                  className="h-10"
+                  className={`h-10 ${
+                    getFieldError("lastName") ? "border-red-500" : ""
+                  }`}
+                  placeholder="Doe"
                 />
+                {getFieldError("lastName") && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {getFieldError("lastName")}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -276,6 +378,7 @@ export default function AddClientPage() {
                   value={formData.suffix}
                   onChange={(e) => handleInputChange("suffix", e.target.value)}
                   className="h-10"
+                  placeholder="Jr."
                 />
               </div>
               <div>
@@ -283,22 +386,30 @@ export default function AddClientPage() {
                   htmlFor="email"
                   className="text-sm font-medium mb-2 block"
                 >
-                  Email Address (Necessary for onboarding)
+                  Email Address <span className="text-[#DC2626]"> *</span>
                 </Label>
                 <Input
                   id="email"
                   type="email"
                   value={formData.email}
                   onChange={(e) => handleInputChange("email", e.target.value)}
-                  className="h-10"
+                  className={`h-10 ${
+                    getFieldError("email") ? "border-red-500" : ""
+                  }`}
+                  placeholder="john.doe@example.com"
                 />
+                {getFieldError("email") && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {getFieldError("email")}
+                  </p>
+                )}
               </div>
               <div>
                 <Label
                   htmlFor="dateOfBirth"
                   className="text-sm font-medium mb-2 block"
                 >
-                  Date of Birth
+                  Date of Birth <span className="text-[#DC2626]"> *</span>
                 </Label>
                 <div className="relative">
                   <Input
@@ -308,10 +419,17 @@ export default function AddClientPage() {
                     onChange={(e) =>
                       handleInputChange("dateOfBirth", e.target.value)
                     }
-                    className="h-10 pr-10"
+                    className={`h-10 pr-10 ${
+                      getFieldError("dateOfBirth") ? "border-red-500" : ""
+                    }`}
                   />
                   <Calendar className="absolute right-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
                 </div>
+                {getFieldError("dateOfBirth") && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {getFieldError("dateOfBirth")}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -324,7 +442,7 @@ export default function AddClientPage() {
                   htmlFor="mailingAddress"
                   className="text-sm font-medium mb-2 block"
                 >
-                  Mailing Address
+                  Mailing Address <span className="text-[#DC2626]"> *</span>
                 </Label>
                 <Input
                   id="mailingAddress"
@@ -332,8 +450,16 @@ export default function AddClientPage() {
                   onChange={(e) =>
                     handleInputChange("mailingAddress", e.target.value)
                   }
-                  className="h-10"
+                  className={`h-10 ${
+                    getFieldError("mailingAddress") ? "border-red-500" : ""
+                  }`}
+                  placeholder="123 Main St"
                 />
+                {getFieldError("mailingAddress") && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {getFieldError("mailingAddress")}
+                  </p>
+                )}
               </div>
 
               <div className="w-[315px]">
@@ -341,14 +467,22 @@ export default function AddClientPage() {
                   htmlFor="city"
                   className="text-sm font-medium mb-2 block"
                 >
-                  City
+                  City <span className="text-[#DC2626]"> *</span>
                 </Label>
                 <Input
                   id="city"
                   value={formData.city}
                   onChange={(e) => handleInputChange("city", e.target.value)}
-                  className="h-10"
+                  className={`h-10 ${
+                    getFieldError("city") ? "border-red-500" : ""
+                  }`}
+                  placeholder="New York"
                 />
+                {getFieldError("city") && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {getFieldError("city")}
+                  </p>
+                )}
               </div>
 
               <div className="w-[148px]">
@@ -356,7 +490,7 @@ export default function AddClientPage() {
                   htmlFor="state"
                   className="text-sm font-medium mb-2 block"
                 >
-                  State
+                  State <span className="text-[#DC2626]"> *</span>
                 </Label>
                 <Select
                   value={formData.state}
@@ -364,8 +498,12 @@ export default function AddClientPage() {
                     handleInputChange("state", value)
                   }
                 >
-                  <SelectTrigger className="h-10 w-[148px]">
-                    <SelectValue placeholder="---" />
+                  <SelectTrigger
+                    className={`h-10 w-[148px] ${
+                      getFieldError("state") ? "border-red-500" : ""
+                    }`}
+                  >
+                    <SelectValue placeholder="Select state" />
                   </SelectTrigger>
                   <SelectContent>
                     {states.map((state) => (
@@ -375,21 +513,35 @@ export default function AddClientPage() {
                     ))}
                   </SelectContent>
                 </Select>
+                {getFieldError("state") && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {getFieldError("state")}
+                  </p>
+                )}
               </div>
 
-              <div className="w-[148px] h-[70px]">
+              <div className="w-[148px]">
                 <Label
                   htmlFor="zipCode"
                   className="text-sm font-medium mb-2 block"
                 >
-                  Zip Code
+                  Zip Code <span className="text-[#DC2626]"> *</span>
                 </Label>
                 <Input
                   id="zipCode"
                   value={formData.zipCode}
-                  onChange={(e) => handleInputChange("zipCode", e.target.value)}
-                  className="h-[35px]"
+                  onChange={(e) => handleZipCodeChange(e.target.value)}
+                  className={`h-10 ${
+                    getFieldError("zipCode") ? "border-red-500" : ""
+                  }`}
+                  placeholder="12345 or 12345-6789"
+                  maxLength={10}
                 />
+                {getFieldError("zipCode") && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {getFieldError("zipCode")}
+                  </p>
+                )}
               </div>
             </div>
           </div>
@@ -410,6 +562,7 @@ export default function AddClientPage() {
                   value={formData.country}
                   onChange={(e) => handleInputChange("country", e.target.value)}
                   className="h-10"
+                  placeholder="United States"
                 />
               </div>
 
@@ -419,16 +572,25 @@ export default function AddClientPage() {
                   htmlFor="phoneMobile"
                   className="text-sm font-medium mb-2 block"
                 >
-                  Phone Mobile
+                  Phone Mobile <span className="text-[#DC2626]"> *</span>
                 </Label>
                 <Input
                   id="phoneMobile"
                   value={formData.phoneMobile}
                   onChange={(e) =>
-                    handleInputChange("phoneMobile", e.target.value)
+                    handlePhoneChange("phoneMobile", e.target.value)
                   }
-                  className="h-10"
+                  className={`h-10 ${
+                    getFieldError("phoneMobile") ? "border-red-500" : ""
+                  }`}
+                  placeholder="555-123-4567"
+                  maxLength={12}
                 />
+                {getFieldError("phoneMobile") && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {getFieldError("phoneMobile")}
+                  </p>
+                )}
               </div>
 
               {/* Phone Alternate */}
@@ -443,9 +605,11 @@ export default function AddClientPage() {
                   id="phoneAlternate"
                   value={formData.phoneAlternate}
                   onChange={(e) =>
-                    handleInputChange("phoneAlternate", e.target.value)
+                    handlePhoneChange("phoneAlternate", e.target.value)
                   }
                   className="h-10"
+                  placeholder="555-123-4567"
+                  maxLength={12}
                 />
               </div>
 
@@ -461,9 +625,11 @@ export default function AddClientPage() {
                   id="phoneWork"
                   value={formData.phoneWork}
                   onChange={(e) =>
-                    handleInputChange("phoneWork", e.target.value)
+                    handlePhoneChange("phoneWork", e.target.value)
                   }
                   className="h-10"
+                  placeholder="555-123-4567"
+                  maxLength={12}
                 />
               </div>
 
@@ -475,8 +641,10 @@ export default function AddClientPage() {
                 <Input
                   id="fax"
                   value={formData.fax}
-                  onChange={(e) => handleInputChange("fax", e.target.value)}
+                  onChange={(e) => handlePhoneChange("fax", e.target.value)}
                   className="h-10"
+                  placeholder="555-123-4567"
+                  maxLength={12}
                 />
               </div>
             </div>
@@ -487,14 +655,43 @@ export default function AddClientPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div>
                 <Label htmlFor="ssn" className="text-sm font-medium mb-2 block">
-                  SSN
+                  SSN <span className="text-[#DC2626]"> *</span>
                 </Label>
-                <Input
-                  id="ssn"
-                  value={formData.ssn}
-                  onChange={(e) => handleInputChange("ssn", e.target.value)}
-                  className="h-10"
-                />
+                <div className="flex items-center gap-2">
+                  <Input
+                    id="ssn"
+                    value={formData.ssn}
+                    onChange={(e) => handleSSNChange(e.target.value)}
+                    className={`h-10 flex-1 ${
+                      getFieldError("ssn") ? "border-red-500" : ""
+                    }`}
+                    placeholder="123-45-6789"
+                    maxLength={11}
+                  />
+                  <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="icon"
+                          className="h-10 w-10"
+                          onClick={() => setShowSsnInfo(true)}
+                        >
+                          <Info className="h-4 w-4" />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>
+                        <p>SSN Format Information</p>
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
+                </div>
+                {getFieldError("ssn") && (
+                  <p className="text-red-500 text-xs mt-1">
+                    {getFieldError("ssn")}
+                  </p>
+                )}
               </div>
               <div>
                 <Label
@@ -510,6 +707,7 @@ export default function AddClientPage() {
                     handleInputChange("experianReport", e.target.value)
                   }
                   className="h-10"
+                  placeholder="EX123456789"
                 />
               </div>
               <div>
@@ -526,6 +724,7 @@ export default function AddClientPage() {
                     handleInputChange("transunionFileNumber", e.target.value)
                   }
                   className="h-10"
+                  placeholder="TU123456789"
                 />
               </div>
             </div>
@@ -621,7 +820,13 @@ export default function AddClientPage() {
                 onClick={() => setShowFtcDialog(true)}
               >
                 <div className="mb-3">
-                  <Upload className="h-8 w-8 mx-auto text-gray-400" />
+                  <Image
+                    src={CloudUpload}
+                    alt="Upload"
+                    width={51}
+                    height={44}
+                    className="mx-auto mb-6"
+                  />
                 </div>
                 <div className="text-sm text-gray-600 mb-1">
                   Drop your file here, or{" "}
@@ -636,85 +841,94 @@ export default function AddClientPage() {
                   </div>
                 )}
               </div>
-              <Dialog open={showFtcDialog} onOpenChange={setShowFtcDialog}>
-                <DialogContent className="sm:max-w-[974px]">
-                  <DialogHeader>
-                    <DialogTitle className="text-lg font-semibold text-[#292524]">
-                      Upload Your FTC Report
-                    </DialogTitle>
-                  </DialogHeader>
-
-                  <div className="space-y-4 flex gap-8">
-                    <div
-                      className="border-2 border-dashed border-blue-300 rounded-lg p-8 text-center cursor-pointer bg-[#E4E4E7]  transition-colors"
-                      onClick={() =>
-                        document.getElementById("ftcReportInput")?.click()
-                      }
-                    >
-                      <div className="mb-4">
-                        <div className="w-16 h-16 mx-auto bg-blue-100 rounded-full flex items-center justify-center">
-                          <svg
-                            className="w-8 h-8 text-blue-500"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth="2"
-                              d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-                            />
-                          </svg>
-                        </div>
-                      </div>
-                      <div className="w-[296px]">
-                        <div className="text-[16px] text-[#040415] mb-1">
-                          Drop your file here, or{" "}
-                          <span className="text-[16px] text-[#2196F3] underline hover:text-blue-800">
-                            Browse
-                          </span>
-                        </div>
-                        <div className="text-sm text-gray-500">
-                          Supports: pdf Max file size 80MB
-                        </div>
-                      </div>
-                      {uploadedFiles.ftcReport && (
-                        <div className="mt-3 text-sm text-green-600 font-medium">
-                          Uploaded: {uploadedFiles.ftcReport.name}
-                        </div>
-                      )}
-                    </div>
-                    <div className="w-[311px]">
-                      <Label
-                        htmlFor="ftcTitle"
-                        className="text-sm font-medium text-gray-700"
-                      >
-                        Need a title of the FTC report
-                      </Label>
-                      <Input
-                        id="ftcTitle"
-                        placeholder="---"
-                        className="mt-1 h-10"
-                      />
-                    </div>
-                    <input
-                      type="file"
-                      id="ftcReportInput"
-                      className="hidden"
-                      accept=".pdf"
-                      onChange={(e) => {
-                        handleFileUpload("ftcReport", e);
-                        setShowFtcDialog(false);
-                      }}
-                    />
-                  </div>
-                </DialogContent>
-              </Dialog>
             </div>
           </div>
         </div>
       </div>
+
+      {/* SSN Information Dialog */}
+      <Dialog open={showSsnInfo} onOpenChange={setShowSsnInfo}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>SSN Format Information</DialogTitle>
+            <DialogDescription>
+              Social Security Numbers must be 9 digits and cannot be all zeros.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-2">
+            <p className="text-sm text-gray-600">Valid formats:</p>
+            <ul className="text-sm text-gray-600 list-disc list-inside space-y-1">
+              <li>123456789 (no dashes)</li>
+              <li>123-45-6789 (with dashes)</li>
+            </ul>
+            <p className="text-sm text-red-500 mt-2">
+              Invalid: 000-00-0000 or any all-zero combination
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* FTC Report Dialog */}
+      <Dialog open={showFtcDialog} onOpenChange={setShowFtcDialog}>
+        <DialogContent className="sm:max-w-[974px]">
+          <DialogHeader>
+            <DialogTitle className="text-lg font-semibold text-[#292524]">
+              Upload Your FTC Report
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 flex gap-8">
+            <div
+              className="border-2 border-dashed border-blue-300 rounded-lg p-8 text-center cursor-pointer bg-[#E4E4E7] transition-colors"
+              onClick={() => document.getElementById("ftcReportInput")?.click()}
+            >
+              <div className="mb-4">
+                <Image
+                  src={CloudUpload}
+                  alt="Upload"
+                  width={51}
+                  height={44}
+                  className="mx-auto mb-6"
+                />
+              </div>
+              <div className="w-[296px]">
+                <div className="text-[16px] text-[#040415] mb-1">
+                  Drop your file here, or{" "}
+                  <span className="text-[16px] text-[#2196F3] underline hover:text-blue-800">
+                    Browse
+                  </span>
+                </div>
+                <div className="text-sm text-gray-500">
+                  Supports: pdf Max file size 80MB
+                </div>
+              </div>
+              {uploadedFiles.ftcReport && (
+                <div className="mt-3 text-sm text-green-600 font-medium">
+                  Uploaded: {uploadedFiles.ftcReport.name}
+                </div>
+              )}
+            </div>
+            <div className="w-[311px]">
+              <Label
+                htmlFor="ftcTitle"
+                className="text-sm font-medium text-gray-700"
+              >
+                Need a title of the FTC report
+              </Label>
+              <Input id="ftcTitle" placeholder="---" className="mt-1 h-10" />
+            </div>
+            <input
+              type="file"
+              id="ftcReportInput"
+              className="hidden"
+              accept=".pdf"
+              onChange={(e) => {
+                handleFileUpload("ftcReport", e);
+                setShowFtcDialog(false);
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

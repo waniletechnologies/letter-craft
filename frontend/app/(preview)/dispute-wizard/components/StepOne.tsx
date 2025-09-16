@@ -118,7 +118,7 @@ const StepOne: React.FC = () => {
         for (const bureau of bureaus) {
           // Find the matching account in the full report to get the title
           const accountDetails = allBureauAccounts[bureau].find(
-            (acc) => acc.accountNumber === item.account
+            (acc: { accountNumber: string; }) => acc.accountNumber === item.account
           );
 
           // The title is the negative reason, e.g., "Coll/Chargeoff"

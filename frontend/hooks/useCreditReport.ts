@@ -8,39 +8,44 @@ export const useCreditReport = (email?: string) => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // useCreditReport.ts
   useEffect(() => {
     if (!email) return;
     let cancelled = false;
 
-    const fetchWithRetry = async (attempts = 5, delay = 1000) => {
-      for (let i = 0; i < attempts; i++) {
-        const res = await fetchStoredCreditReport(email);
-        if (cancelled) return;
+    const fetchUntilAvailable = async (delay = 1500) => {
+      setLoading(true);
+      setError(null);
 
-        if (res.success && res.data) {
-          const transformed = transformCreditReportData(res.data);
-          setData(transformed);
+      while (!cancelled) {
+        try {
+          const res = await fetchStoredCreditReport(email);
+          if (cancelled) return;
 
-          // extract name
-          const nameObj = res.data.personalInfo?.Experian?.names?.[0];
-          if (nameObj) {
-            setUserName(`${nameObj.first ?? ""} ${nameObj.last ?? ""}`.trim());
+          if (res.success && res.data) {
+            const transformed = transformCreditReportData(res.data);
+            setData(transformed);
+
+            const nameObj = res.data.personalInfo?.Experian?.names?.[0];
+            if (nameObj) {
+              setUserName(
+                `${nameObj.first ?? ""} ${nameObj.last ?? ""}`.trim()
+              );
+            }
+            setError(null);
+            setLoading(false); // ✅ stop loading once we have valid data
+            return;
           }
-          setError(null);
-          return;
+        } catch (err) {
+          console.error("Fetch credit report error:", err);
+          if (!cancelled) setError("Unable to fetch credit report.");
         }
 
-        // wait and retry if report not found
+        // Wait before trying again
         await new Promise((resolve) => setTimeout(resolve, delay));
       }
-      if (!cancelled) setError("Credit report not found. Try again.");
     };
 
-    setLoading(true);
-    fetchWithRetry().finally(() => {
-      if (!cancelled) setLoading(false);
-    });
+    fetchUntilAvailable();
 
     return () => {
       cancelled = true;

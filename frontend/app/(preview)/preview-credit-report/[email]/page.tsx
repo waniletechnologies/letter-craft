@@ -8,6 +8,7 @@ import PublicRecordTable from "./components/public-record";
 import AccountInfoTable from "./components/account-info";
 import { Button } from "@/components/ui/button";
 import { useCreditReport } from "@/hooks/useCreditReport";
+import Loader from '@/components/Loader';
 
 const Page = () => {
   const router = useRouter();
@@ -17,7 +18,7 @@ const Page = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <p>Loading credit report…</p>
+        <Loader />
       </div>
     );
   }

@@ -177,32 +177,30 @@ export const getCreditReport = async (req, res) => {
 
 
 export const getStoredCreditReport = async (req, res) => {
-  const { email } = req.params;
-
-  console.log("Email: ", email);
+  // Decode in case the frontend sent %40 for '@'
+  const email = decodeURIComponent(req.params.email);
+  console.log("🔎 Decoded email param:", email);
 
   try {
     const report = await CreditReport.findOne({ email });
-    console.log("report: ", report);
-
     if (!report) {
-      console.log("report not found: ");
+      console.log("⚠️ Report not found for:", email);
       return res
         .status(404)
         .json({ success: false, message: "Credit report not found" });
     }
-
-    console.log("report found: ");
+    console.log("✅ Report found for:", email);
     res.json({
       success: true,
       message: "Credit report fetched successfully",
       data: report,
     });
   } catch (err) {
-    console.error("Error fetching credit report:", err.message);
+    console.error("🔥 Error fetching credit report:", err.message);
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
 
 export const getAllStoredCreditReports = async (req, res) => {
   try {

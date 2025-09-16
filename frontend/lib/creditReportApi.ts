@@ -34,11 +34,12 @@ export async function importCreditReport(
 }
 
 // 👇 New function to fetch a stored report by email
-export async function fetchStoredCreditReport(
-  email: string
-): Promise<CreditReportResponse> {
+// creditReportApi.ts
+export async function fetchStoredCreditReport(email: string) {
   try {
-    const data = await apiFetch(`/credit-report/${email}`, {
+    // 🔑 Always encode to avoid Express route confusion
+    const encodedEmail = encodeURIComponent(email);
+    const data = await apiFetch(`/credit-report/${encodedEmail}`, {
       method: "GET",
     });
     return data;
@@ -51,6 +52,7 @@ export async function fetchStoredCreditReport(
     };
   }
 }
+
 
 export interface NormalizedCreditReport extends CreditReportData {
   negativeItems: NegativeAccount[];

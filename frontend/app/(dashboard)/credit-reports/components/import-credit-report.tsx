@@ -21,7 +21,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { LuEye, LuEyeOff } from "react-icons/lu";
-import { importCreditReport } from "@/lib/creditReportApi";
+import {
+  importCreditReport,
+  fetchStoredCreditReport,
+} from "@/lib/creditReportApi";
 
 interface ImportCreditReportProps {
   open: boolean;
@@ -57,15 +60,17 @@ export const ImportCreditReport: React.FC<ImportCreditReportProps> = ({
 
   const router = useRouter();
 
- async function waitForReport(email: string, tries = 5) {
-  for (let i = 0; i < tries; i++) {
-    const res = await fetch(`/preview-credit-report/${encodeURIComponent(email)}`, { cache: "no-store" });
-    if (res.ok) return true;
-    await new Promise((r) => setTimeout(r, 400)); // wait 400 ms
-  }
-  throw new Error("Report not available yet");
-}
-
+ async function waitForReport(email: string, tries = 10) {
+   for (let i = 0; i < tries; i++) {
+     const res = await fetchStoredCreditReport(email);
+     if (res.success && res.data) {
+       return true;
+     }
+     // Wait for 1 second before trying again
+     await new Promise((resolve) => setTimeout(resolve, 1000));
+   }
+   throw new Error("Report not available yet.");
+ }
 const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
   e.preventDefault();
   setIsLoading(true);
@@ -75,10 +80,12 @@ const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     setTimeout(()=> {}, 2000);
     const result = await importCreditReport({ email, password, provider, notes });
 
-    if (result.success && result.data) {
-      router.push(
-        `/preview-credit-report/${encodeURIComponent(email)}`
-      );
+    if (result.success) {
+      // Now we poll for the report to be available
+      await waitForReport(email); // make sure this verifies existence
+      // Add small buffer to ensure Mongo indexes/replicas finish writing
+      await new Promise((r) => setTimeout(r, 300));
+      router.push(`/preview-credit-report/${encodeURIComponent(email)}`);
     } else {
       throw new Error(result.message || "Failed to import credit report");
     }

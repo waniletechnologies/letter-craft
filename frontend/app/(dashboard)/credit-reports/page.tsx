@@ -16,7 +16,11 @@ import { GoCreditCard } from 'react-icons/go'
 import { RiHome2Line } from "react-icons/ri";
 import { Car } from 'lucide-react'
 import { SlGraduation } from 'react-icons/sl'
-import { fetchAllReports, NormalizedCreditReport } from "@/lib/creditReportApi";
+import {
+  fetchAllReports,
+  NormalizedCreditReport,
+  fetchStoredCreditReport,
+} from "@/lib/creditReportApi";
 
 // This interface is no longer needed for selectedReport state but kept for context.
 interface CreditReport {
@@ -87,6 +91,20 @@ const Page = () => {
     const avg = scores.reduce((a, b) => a + b, 0) / scores.length;
     return Math.round(avg);
   };
+
+  async function waitForReport(email: string, tries = 10) {
+    console.log("Wait function...")
+    for (let i = 0; i < tries; i++) {
+      const res = await fetchStoredCreditReport(email);
+      console.log("Response: ", res)
+       if (res.success && res.data) {
+         return true;
+       }
+       // Wait for 1 second before trying again
+       await new Promise((resolve) => setTimeout(resolve, 10000));
+     }
+     throw new Error("Report not available yet.");
+   }
   
   // Build negative items array from accountInfo payStatus or worstPayStatus
   const getNegativeItems = (report: NormalizedCreditReport) => {
@@ -112,20 +130,48 @@ const Page = () => {
     return negatives;
   };
   
-  const startOverlay = (email: string) => {
-    setSteps((s) => s.map((x) => ({ ...x, status: 'pending' })));
+  const startOverlay = async (email: string) => {
+    setSteps((s) => s.map((x) => ({ ...x, status: "pending" })));
     setOverlayOpen(true);
-    setTimeout(() => setSteps((s) => s.map((x, i) => ({ ...x, status: i === 0 ? 'done' : i === 1 ? 'running' : 'pending' }))), 800);
-    setTimeout(() => setSteps((s) => s.map((x, i) => ({ ...x, status: i === 0 ? 'done' : i === 1 ? 'done' : i === 2 ? 'running' : x.status }))), 1600);
-    setTimeout(() => setSteps((s) => s.map((x) => ({ ...x, status: 'done' }))), 2400);
+    setTimeout(
+      () =>
+        setSteps((s) =>
+          s.map((x, i) => ({
+            ...x,
+            status: i === 0 ? "done" : i === 1 ? "running" : "pending",
+          }))
+        ),
+      800
+    );
+    setTimeout(
+      () =>
+        setSteps((s) =>
+          s.map((x, i) => ({
+            ...x,
+            status:
+              i === 0
+                ? "done"
+                : i === 1
+                ? "done"
+                : i === 2
+                ? "running"
+                : x.status,
+          }))
+        ),
+      1600
+    );
+    setTimeout(
+      () => setSteps((s) => s.map((x) => ({ ...x, status: "done" }))),
+      2400
+    );
     setTimeout(() => {
-        setOverlayOpen(false);
-        if (email) {
-         router.push(`/preview-credit-report/${encodeURIComponent(email)}`);
-       } else {
-         console.error("Email not provided to startOverlay");
-       }
-    }, 3300);
+      setOverlayOpen(false);
+      if (email) {
+        router.push(`/preview-credit-report/${encodeURIComponent(email)}`);
+      } else {
+        console.error("Email not provided to startOverlay");
+      }
+    }, 6300);
   };
 
   return (

@@ -53,6 +53,17 @@ export async function fetchStoredCreditReport(email: string) {
   }
 }
 
+export async function fetchCreditReportStats() {
+  try {
+    const data = await apiFetch("/credit-report/stats", { method: "GET" });
+    return data;
+  } catch (error) {
+    console.error("Error fetching credit report stats:", error);
+    return { success: false, total: 0, monthlyCounts: [] };
+  }
+}
+
+
 
 export interface NormalizedCreditReport extends CreditReportData {
   negativeItems: NegativeAccount[];

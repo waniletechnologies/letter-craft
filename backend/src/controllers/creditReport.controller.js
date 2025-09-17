@@ -222,3 +222,31 @@ export const getAllStoredCreditReports = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
+// 📊 Credit report monthly stats
+export const getCreditReportStats = async (req, res) => {
+  try {
+    const allReports = await CreditReport.find({}, { createdAt: 1 }).lean();
+
+    // Group counts by month (Jan, Feb, ...)
+    const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+    const monthlyCounts = monthNames.map((m) => ({ month: m, reports: 0 }));
+
+    allReports.forEach((r) => {
+      const date = new Date(r.createdAt);
+      const month = monthNames[date.getMonth()];
+      const idx = monthlyCounts.findIndex((m) => m.month === month);
+      if (idx !== -1) monthlyCounts[idx].reports += 1;
+    });
+
+    const total = allReports.length;
+    res.json({
+      success: true,
+      total,
+      monthlyCounts,
+    });
+  } catch (err) {
+    console.error("🔥 Error fetching credit report stats:", err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};

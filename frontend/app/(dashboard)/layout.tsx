@@ -30,7 +30,7 @@ import {
   SidebarProvider,
   SidebarTrigger,
 } from "../../components/ui/sidebar";
-import Loader from '@/components/Loader';
+import Loader from "@/components/Loader";
 
 // --------------------------------------
 // Navigation config
@@ -86,7 +86,7 @@ const SUPPORT_LINKS = [
 // --------------------------------------
 const getHeadingForPath = (pathname: string) => {
   const found = [...MAIN_LINKS, ...SUPPORT_LINKS].find(
-    (l) => l.href === pathname,
+    (l) => l.href === pathname
   );
   if (found) return found.label;
   // fallback → take the next segment and capitalise return previous segment + next segment
@@ -96,7 +96,7 @@ const getHeadingForPath = (pathname: string) => {
     return (
       segments[0]?.replace(/-/g, " ").charAt(0).toUpperCase() +
       segments[0]?.replace(/-/g, " ").slice(1) +
-      " / " + 
+      " / " +
       segments[1]?.replace(/-/g, " ").charAt(0).toUpperCase() +
       segments[1]?.replace(/-/g, " ").slice(1)
     );
@@ -186,64 +186,64 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
 
             <div className="ml-auto flex items-center gap-2">
               <FiBell className="w-4 h-4" />
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded-lg p-1 transition-colors duration-200">
-                              <Avatar className="h-8 w-8">
-                                {user.image ? (
-                                  <AvatarImage src={user.image} alt={user.name} />
-                                ) : (
-                                  <AvatarFallback className="bg-transparent p-0">
-                                    <AvatarPlaceholder
-                                      initials={getUserInitials(user.name)}
-                                    />
-                                  </AvatarFallback>
-                                )}
-                              </Avatar>
-                              <span className="hidden sm:inline text-sm font-medium text-[#171717]">
-                                {user.name}
-                              </span>
-                            </div>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-68 p-2">
-                            {/* User Info */}
-                            <div className="px-3 py-3 border-b border-gray-100">
-                              <div className="flex items-center gap-2">
-                                <Avatar className="h-10 w-10">
-                                  {user.image ? (
-                                    <AvatarImage src={user.image} alt={user.name} />
-                                  ) : (
-                                    <AvatarFallback className="bg-transparent p-0">
-                                      <AvatarPlaceholder
-                                        initials={getUserInitials(user.name)}
-                                      />
-                                    </AvatarFallback>
-                                  )}
-                                </Avatar>
-                                <div className="flex-1 min-w-0">
-                                  <p className="text-sm font-semibold text-gray-900 truncate">
-                                    {user.name}
-                                  </p>
-                                  <p className="text-xs text-gray-500 truncate">
-                                    {user.email}
-                                  </p>
-                                </div>
-                              </div>
-                            </div>
-              
-                            {/* Logout */}
-                            <div className="py-1">
-                              <div className="my-1 border-t border-gray-100" />
-                              <DropdownMenuItem
-                                onClick={handleLogout}
-                                className="flex items-center gap-3 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer"
-                              >
-                                <LogOut className="h-4 w-4 text-red-500" />
-                                <span>Log out</span>
-                              </DropdownMenuItem>
-                            </div>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded-lg p-1 transition-colors duration-200">
+                    <Avatar className="h-8 w-8">
+                      {user.image ? (
+                        <AvatarImage src={user.image} alt={user.name} />
+                      ) : (
+                        <AvatarFallback className="bg-transparent p-0">
+                          <AvatarPlaceholder
+                            initials={getUserInitials(user.name)}
+                          />
+                        </AvatarFallback>
+                      )}
+                    </Avatar>
+                    <span className="hidden sm:inline text-sm font-medium text-[#171717]">
+                      {user.name}
+                    </span>
+                  </div>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-68 p-2">
+                  {/* User Info */}
+                  <div className="px-3 py-3 border-b border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <Avatar className="h-10 w-10">
+                        {user.image ? (
+                          <AvatarImage src={user.image} alt={user.name} />
+                        ) : (
+                          <AvatarFallback className="bg-transparent p-0">
+                            <AvatarPlaceholder
+                              initials={getUserInitials(user.name)}
+                            />
+                          </AvatarFallback>
+                        )}
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-semibold text-gray-900 truncate">
+                          {user.name}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {user.email}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Logout */}
+                  <div className="py-1">
+                    <div className="my-1 border-t border-gray-100" />
+                    <DropdownMenuItem
+                      onClick={handleLogout}
+                      className="flex items-center gap-3 px-3 py-2.5 text-sm text-red-600 hover:bg-red-50 hover:text-red-700 cursor-pointer"
+                    >
+                      <LogOut className="h-4 w-4 text-red-500" />
+                      <span>Log out</span>
+                    </DropdownMenuItem>
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           </header>
           <main className="flex-1 px-6 py-4">{children}</main>
@@ -252,6 +252,5 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
     </>
   );
 };
-
 
 export default SBProvider;

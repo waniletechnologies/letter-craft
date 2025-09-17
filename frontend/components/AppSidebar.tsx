@@ -1,5 +1,6 @@
+"use client";
+
 import { usePathname, useRouter } from "next/navigation";
-import { useTransition } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -12,15 +13,19 @@ import {
   SidebarRail,
   useSidebar,
 } from "./ui/sidebar";
+import ImportCreditReport from "@/app/(dashboard)/credit-reports/components/import-credit-report";
+import React, { useState, useTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import {
-  LayoutDashboard,
-} from "lucide-react";
+import { LayoutDashboard } from "lucide-react";
 import { motion } from "framer-motion";
 import { Logo, CloudUpload } from "@/public/images";
 import { FiUsers } from "react-icons/fi";
-import { LuCircleSlash, LuFileChartColumnIncreasing, LuSendHorizontal } from "react-icons/lu";
+import {
+  LuCircleSlash,
+  LuFileChartColumnIncreasing,
+  LuSendHorizontal,
+} from "react-icons/lu";
 import { Button } from "./ui/button";
 
 const MAIN_LINKS = [
@@ -84,7 +89,9 @@ function SidebarLink({
       <SidebarMenuItem key={href}>
         <MotionSidebarMenuButton
           onClick={handleClick}
-          className={`relative text-sm ${state == "collapsed" ? "rounded-full p-4" : "rounded-md p-5"} flex justify-start items-center leading-10 w-full min-w-0`}
+          className={`relative text-sm ${
+            state == "collapsed" ? "rounded-full p-4" : "rounded-md p-5"
+          } flex justify-start items-center leading-10 w-full min-w-0`}
           style={{ maxWidth: 256 }}
           animate={{
             backgroundColor: isActive ? "#2196F3" : "transparent",
@@ -111,6 +118,9 @@ function SidebarLink({
 
 export function AppSidebar({ ...props }) {
   const { state, setOpenMobile, isMobile } = useSidebar();
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
+  const router = useRouter();
+
   const pathname = usePathname();
 
   const isTabActive = (tabPath: string) => pathname === tabPath;
@@ -170,32 +180,43 @@ export function AppSidebar({ ...props }) {
       </SidebarContent>
       <SidebarFooter className="bg-white">
         {state !== "collapsed" && (
-          <Link href="/chat" onClick={handleFooterClick}>
-            <div className="mx-auto mb-10 w-[175px] h-[179px] rounded-md overflow-hidden flex justify-center cursor-pointer bg-[#2196F30F] hover:opacity-90 transition-opacity">
-              <div className="p-4 flex flex-col items-center justify-center gap-2">
-                <Image
-                  src={CloudUpload}
-                  alt="LetterCraft"
-                  width={29}
-                  height={25}
-                />
-                <p className="font-semibold text-[11px] leading-[11px] -tracking-[0.03em] text-[#3D3D3D] ">
-                  Import Your Credit Report
-                </p>
-                <span className="text-[#3D3D3DB2]/70 font-medium text-[11px] leading-[11px] -tracking-[0.03em] ">
-                  Drag & Drop or
-                </span>
-                <Button className="bg-primary text-white w-full cursor-pointer">
-                  Browse
-                </Button>
-              </div>
+          <div
+            onClick={() => {
+              if (isMobile) setOpenMobile(false);
+              setImportDialogOpen(true);
+            }}
+            className="mx-auto mb-10 w-[175px] h-[179px] rounded-md overflow-hidden flex justify-center cursor-pointer bg-[#2196F30F] hover:opacity-90 transition-opacity"
+          >
+            <div className="p-4 flex flex-col items-center justify-center gap-2">
+              <Image
+                src={CloudUpload}
+                alt="LetterCraft"
+                width={29}
+                height={25}
+              />
+              <p className="font-semibold text-[11px] leading-[11px] -tracking-[0.03em] text-[#3D3D3D] ">
+                Import Your Credit Report
+              </p>
+              <span className="text-[#3D3D3DB2]/70 font-medium text-[11px] leading-[11px] -tracking-[0.03em] ">
+                Drag & Drop or
+              </span>
+              <Button className="bg-primary text-white w-full cursor-pointer">
+                Browse
+              </Button>
             </div>
-          </Link>
+          </div>
         )}
+        <ImportCreditReport
+          open={importDialogOpen}
+          onOpenChange={setImportDialogOpen}
+          onStartImport={({ email }) => {
+            setImportDialogOpen(false);
+            router.push(`/preview-credit-report/${encodeURIComponent(email)}`);
+          }}
+        />
       </SidebarFooter>
+
       <SidebarRail />
     </Sidebar>
   );
 }
-
-

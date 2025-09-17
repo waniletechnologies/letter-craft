@@ -66,3 +66,17 @@ export async function updateDispute(
   }
 }
 
+export async function fetchDisputeStats(): Promise<{
+  success: boolean;
+  total: number;
+  monthlyCounts: { month: string; disputes: number }[];
+}> {
+  try {
+    const res = await apiFetch("/disputes/stats", { method: "GET" });
+    return res;
+  } catch (err) {
+    console.error("Error fetching dispute stats:", err);
+    return { success: false, total: 0, monthlyCounts: [] };
+  }
+}
+

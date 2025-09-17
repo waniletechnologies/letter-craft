@@ -67,3 +67,42 @@ export const deleteDisputeController = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
+
+export const getDisputeStatsController = async (req, res) => {
+  try {
+    console.log("📊 [getDisputeStats] Fetching dispute stats...");
+    const disputes = await getAllDisputes(); // Should return all disputes with createdAt
+
+    // Month names for display
+    const monthNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+    const monthlyCounts = monthNames.map((m) => ({ month: m, disputes: 0 }));
+
+    disputes.forEach((d) => {
+      const date = new Date(d.createdAt || d.createdDate);
+      const idx = date.getMonth();
+      if (idx >= 0 && idx < 12) monthlyCounts[idx].disputes++;
+    });
+
+    res.json({
+      success: true,
+      total: disputes.length,
+      monthlyCounts,
+    });
+  } catch (err) {
+    console.error("🔥 Error fetching dispute stats:", err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};

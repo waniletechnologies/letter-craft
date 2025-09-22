@@ -42,5 +42,25 @@ router.route('/:id')
 
 // Client status update
 router.patch('/:id/status', requireAuth, clientController.updateClientStatus);
+router.post(
+  "/:id/files",
+  requireAuth,
+  clientController.uploadMiddleware,
+  clientController.uploadFile
+);
+
+router.get("/:id/files", requireAuth, clientController.getClientFiles);
+
+router.get(
+  "/:id/files/:field/:fileId",
+  requireAuth,
+  clientController.getFileUrl
+);
+
+router.delete(
+  "/:id/files/:field/:fileId",
+  requireAuth,
+  clientController.deleteFile
+);
 
 export default router;

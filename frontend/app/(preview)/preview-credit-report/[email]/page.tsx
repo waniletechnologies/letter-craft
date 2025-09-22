@@ -1,19 +1,24 @@
+// app/preview-credit-report/page.tsx
 "use client";
-import React from "react";
+import React, { useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import PersonalInfoTable from "./components/personal-info";
 import CreditSummaryTable from "./components/credit-summary";
 import CreditInquiryTable from "./components/credit-inquiries";
 import PublicRecordTable from "./components/public-record";
-import AccountInfoTable from "./components/account-info";
+import AccountInfoTable, { AccountInfoRow } from "./components/account-info";
 import { Button } from "@/components/ui/button";
 import { useCreditReport } from "@/hooks/useCreditReport";
-import Loader from '@/components/Loader';
+import Loader from "@/components/Loader";
 
 const Page = () => {
   const router = useRouter();
   const { email } = useParams();
   const { data, userName, loading, error } = useCreditReport(email as string);
+
+  const decodedEmail = decodeURIComponent(email as string);
+
+ 
 
   if (loading) {
     return (
@@ -99,14 +104,21 @@ const Page = () => {
         <p className="text-[#666] text-sm">
           Detailed account information across all three credit bureaus.
         </p>
-        <AccountInfoTable rows={data.accountInfoRows} />
+        <AccountInfoTable
+          rows={data.accountInfoRows}
+          email={decodedEmail}
+          onAccountUpdate={(accountId, updates) => {
+            // This will now trigger the API call to update the database
+            console.log("Account updated:", decodedEmail);
+          }}
+        />
       </section>
 
       <div className="border border-[#FFB74D] p-6 rounded-lg my-6">
         <p className="text-sm text-[#71717A]">
           <span className="font-bold text-black mr-2">Finished?</span>
-          All “Negative” items you’ve tagged will be saved as dispute items for
-          the wizard. Choose one of the options below.
+          All &quot;Negative&quot; items you&apos;ve tagged will be saved as
+          dispute items for the wizard. Choose one of the options below.
         </p>
       </div>
 

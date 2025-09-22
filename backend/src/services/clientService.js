@@ -1,5 +1,5 @@
 import Client from '../models/Client.js';
-
+import s3Service from "./s3Service.js";
 class ClientService {
   /**
    * Create a new client
@@ -9,33 +9,33 @@ class ClientService {
    */
   async createClient(clientData, createdBy) {
     try {
-      if (!clientData || typeof clientData !== 'object') {
+      if (!clientData || typeof clientData !== "object") {
         console.log("Client Data: ", clientData);
-        throw new Error('Invalid request body');
+        throw new Error("Invalid request body");
       }
       if (!clientData.email) {
         console.log("Client Email: ", clientData.email);
-        throw new Error('Email is required');
+        throw new Error("Email is required");
       }
       if (!clientData.ssn) {
-        throw new Error('SSN is required');
+        throw new Error("SSN is required");
       }
       // Check if client with same email already exists
       const existingClient = await Client.findOne({ email: clientData.email });
       if (existingClient) {
-        throw new Error('Client with this email already exists');
+        throw new Error("Client with this email already exists");
       }
 
       // Check if client with same SSN already exists
       const existingSSN = await Client.findOne({ ssn: clientData.ssn });
       if (existingSSN) {
-        throw new Error('Client with this SSN already exists');
+        throw new Error("Client with this SSN already exists");
       }
 
       const client = new Client({
         ...clientData,
         createdBy,
-        lastModifiedBy: createdBy
+        lastModifiedBy: createdBy,
       });
 
       const savedClient = await client.save();
@@ -60,25 +60,25 @@ class ClientService {
       const {
         page = 1,
         limit = 10,
-        search = '',
-        status = '',
-        sortBy = 'createdAt',
-        sortOrder = 'desc'
+        search = "",
+        status = "",
+        sortBy = "createdAt",
+        sortOrder = "desc",
       } = queryParams;
 
       // Build filter object
       const filter = {};
-      
+
       if (status) {
         filter.status = status;
       }
 
       if (search) {
         filter.$or = [
-          { firstName: { $regex: search, $options: 'i' } },
-          { lastName: { $regex: search, $options: 'i' } },
-          { email: { $regex: search, $options: 'i' } },
-          { fullName: { $regex: search, $options: 'i' } }
+          { firstName: { $regex: search, $options: "i" } },
+          { lastName: { $regex: search, $options: "i" } },
+          { email: { $regex: search, $options: "i" } },
+          { fullName: { $regex: search, $options: "i" } },
         ];
       }
 
@@ -87,16 +87,16 @@ class ClientService {
 
       // Build sort object
       const sort = {};
-      sort[sortBy] = sortOrder === 'asc' ? 1 : -1;
+      sort[sortBy] = sortOrder === "asc" ? 1 : -1;
 
       // Execute query
       const [clients, totalCount] = await Promise.all([
         Client.find(filter)
-          .select('-ssn') // Exclude SSN from list view
+          .select("-ssn") // Exclude SSN from list view
           .sort(sort)
           .skip(skip)
           .limit(limit),
-        Client.countDocuments(filter)
+        Client.countDocuments(filter),
       ]);
 
       // Calculate pagination info
@@ -112,8 +112,8 @@ class ClientService {
           totalCount,
           limit,
           hasNextPage,
-          hasPrevPage
-        }
+          hasPrevPage,
+        },
       };
     } catch (error) {
       throw error;
@@ -126,14 +126,12 @@ class ClientService {
    * @param {boolean} includeSSN - Whether to include SSN in response
    * @returns {Promise<Object>} Client data
    */
-  async getClientById(clientId, includeSSN = false) {
+  async getClientById(clientId) {
     try {
-      const selectFields = includeSSN ? '' : '-ssn';
-      const client = await Client.findById(clientId)
-        .select(selectFields);
+      const client = await Client.findById(clientId);
 
       if (!client) {
-        throw new Error('Client not found');
+        throw new Error("Client not found");
       }
 
       return client;
@@ -153,27 +151,27 @@ class ClientService {
     try {
       const existingClient = await Client.findById(clientId);
       if (!existingClient) {
-        throw new Error('Client not found');
+        throw new Error("Client not found");
       }
 
       if (updateData.email && updateData.email !== existingClient.email) {
-        const emailExists = await Client.findOne({ 
-          email: updateData.email, 
-          _id: { $ne: clientId } 
+        const emailExists = await Client.findOne({
+          email: updateData.email,
+          _id: { $ne: clientId },
         });
         if (emailExists) {
-          throw new Error('Client with this email already exists');
+          throw new Error("Client with this email already exists");
         }
       }
 
       // Check for SSN conflicts (if SSN is being updated)
       if (updateData.ssn && updateData.ssn !== existingClient.ssn) {
-        const ssnExists = await Client.findOne({ 
-          ssn: updateData.ssn, 
-          _id: { $ne: clientId } 
+        const ssnExists = await Client.findOne({
+          ssn: updateData.ssn,
+          _id: { $ne: clientId },
         });
         if (ssnExists) {
-          throw new Error('Client with this SSN already exists');
+          throw new Error("Client with this SSN already exists");
         }
       }
 
@@ -181,12 +179,12 @@ class ClientService {
         clientId,
         {
           ...updateData,
-          lastModifiedBy: modifiedBy
+          lastModifiedBy: modifiedBy,
         },
-        { 
-          new: true, 
+        {
+          new: true,
           runValidators: true,
-          select: '-ssn' // Exclude SSN from response by default
+          select: "-ssn", // Exclude SSN from response by default
         }
       );
 
@@ -209,11 +207,11 @@ class ClientService {
     try {
       const client = await Client.findById(clientId);
       if (!client) {
-        throw new Error('Client not found');
+        throw new Error("Client not found");
       }
 
       await Client.findByIdAndDelete(clientId);
-      return { message: 'Client deleted successfully' };
+      return { message: "Client deleted successfully" };
     } catch (error) {
       throw error;
     }
@@ -228,26 +226,28 @@ class ClientService {
    */
   async updateClientStatus(clientId, status, modifiedBy) {
     try {
-      const validStatuses = ['active', 'inactive', 'pending', 'archived'];
+      const validStatuses = ["active", "inactive", "pending", "archived"];
       if (!validStatuses.includes(status)) {
-        throw new Error('Invalid status. Must be one of: active, inactive, pending, archived');
+        throw new Error(
+          "Invalid status. Must be one of: active, inactive, pending, archived"
+        );
       }
 
       const updatedClient = await Client.findByIdAndUpdate(
         clientId,
-        { 
+        {
           status,
-          lastModifiedBy: modifiedBy
+          lastModifiedBy: modifiedBy,
         },
-        { 
-          new: true, 
+        {
+          new: true,
           runValidators: true,
-          select: '-ssn'
+          select: "-ssn",
         }
       );
 
       if (!updatedClient) {
-        throw new Error('Client not found');
+        throw new Error("Client not found");
       }
 
       return updatedClient;
@@ -264,57 +264,70 @@ class ClientService {
    * @returns {Promise<Object>} Client statistics
    */
   // clientService.js
-async getClientStatistics() {
-  try {
-    const [
-      totalClients,
-      activeClients,
-      pendingClients,
-      inactiveClients,
-      archivedClients,
-      recentClients,
-      monthlyGrowth
-    ] = await Promise.all([
-      Client.countDocuments(),
-      Client.countDocuments({ status: 'active' }),
-      Client.countDocuments({ status: 'pending' }),
-      Client.countDocuments({ status: 'inactive' }),
-      Client.countDocuments({ status: 'archived' }),
-      Client.countDocuments({
-        createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) }
-      }),
-      // Group by month for the past 12 months
-      Client.aggregate([
-        {
-          $group: {
-            _id: { $month: "$createdAt" },
-            count: { $sum: 1 }
-          }
-        },
-        { $sort: { "_id": 1 } }
-      ])
-    ]);
+  async getClientStatistics() {
+    try {
+      const [
+        totalClients,
+        activeClients,
+        pendingClients,
+        inactiveClients,
+        archivedClients,
+        recentClients,
+        monthlyGrowth,
+      ] = await Promise.all([
+        Client.countDocuments(),
+        Client.countDocuments({ status: "active" }),
+        Client.countDocuments({ status: "pending" }),
+        Client.countDocuments({ status: "inactive" }),
+        Client.countDocuments({ status: "archived" }),
+        Client.countDocuments({
+          createdAt: { $gte: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000) },
+        }),
+        // Group by month for the past 12 months
+        Client.aggregate([
+          {
+            $group: {
+              _id: { $month: "$createdAt" },
+              count: { $sum: 1 },
+            },
+          },
+          { $sort: { _id: 1 } },
+        ]),
+      ]);
 
-    // Map month numbers to short labels
-    const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-    const growthData = monthlyGrowth.map(m => ({
-      month: months[m._id - 1],
-      clients: m.count
-    }));
+      // Map month numbers to short labels
+      const months = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+      const growthData = monthlyGrowth.map((m) => ({
+        month: months[m._id - 1],
+        clients: m.count,
+      }));
 
-    return {
-      total: totalClients,
-      active: activeClients,
-      pending: pendingClients,
-      inactive: inactiveClients,
-      archived: archivedClients,
-      recent: recentClients,
-      growth: growthData
-    };
-  } catch (error) {
-    throw error;
+      return {
+        total: totalClients,
+        active: activeClients,
+        pending: pendingClients,
+        inactive: inactiveClients,
+        archived: archivedClients,
+        recent: recentClients,
+        growth: growthData,
+      };
+    } catch (error) {
+      throw error;
+    }
   }
-}
 
   /**
    * Search clients by various criteria
@@ -326,17 +339,177 @@ async getClientStatistics() {
     try {
       const clients = await Client.find({
         $or: [
-          { firstName: { $regex: searchTerm, $options: 'i' } },
-          { lastName: { $regex: searchTerm, $options: 'i' } },
-          { email: { $regex: searchTerm, $options: 'i' } },
-          { fullName: { $regex: searchTerm, $options: 'i' } }
-        ]
+          { firstName: { $regex: searchTerm, $options: "i" } },
+          { lastName: { $regex: searchTerm, $options: "i" } },
+          { email: { $regex: searchTerm, $options: "i" } },
+          { fullName: { $regex: searchTerm, $options: "i" } },
+        ],
       })
-      .select('-ssn')
-      .limit(limit)
-      .sort({ createdAt: -1 });
+        .select("-ssn")
+        .limit(limit)
+        .sort({ createdAt: -1 });
 
       return clients;
+    } catch (error) {
+      throw error;
+    }
+  }
+  /**
+   * Upload file for a client
+   * @param {string} clientId - Client ID
+   * @param {string} field - Field name (driversLicense, proofOfSS, etc.)
+   * @param {Object} file - Multer file object
+   * @param {string} userId - Authenticated user ID
+   * @returns {Promise<Object>} Updated client
+   */
+  async uploadFile(clientId, field, file, userId) {
+    try {
+      const validFields = [
+        "driversLicense",
+        "proofOfSS",
+        "proofOfAddress",
+        "ftcReport",
+      ];
+
+      if (!validFields.includes(field)) {
+        throw new Error("Invalid file field");
+      }
+
+      const client = await Client.findById(clientId);
+      if (!client) {
+        throw new Error("Client not found");
+      }
+
+      // Upload file to S3
+      const uploadResult = await s3Service.uploadFile(
+        file.buffer,
+        file.originalname,
+        file.mimetype,
+        `clients/${clientId}/${field}`
+      );
+
+      // Add file metadata to client document
+      const fileData = {
+        ...uploadResult,
+        uploadedBy: userId,
+      };
+
+      client[field].push(fileData);
+      await client.save();
+
+      return client;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Get signed URL for a file
+   * @param {string} clientId - Client ID
+   * @param {string} field - Field name
+   * @param {string} fileId - File ID
+   * @returns {Promise<string>} Signed URL
+   */
+  async getFileUrl(clientId, field, fileId) {
+    try {
+      const validFields = [
+        "driversLicense",
+        "proofOfSS",
+        "proofOfAddress",
+        "ftcReport",
+      ];
+
+      if (!validFields.includes(field)) {
+        throw new Error("Invalid file field");
+      }
+
+      const client = await Client.findById(clientId);
+      if (!client) {
+        throw new Error("Client not found");
+      }
+
+      const file = client[field].id(fileId);
+      if (!file) {
+        throw new Error("File not found");
+      }
+
+      // Generate signed URL
+      const signedUrl = await s3Service.getSignedUrl(file.s3Key);
+
+      return {
+        url: signedUrl,
+        fileName: file.originalName,
+        mimeType: file.mimeType,
+      };
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Delete a file
+   * @param {string} clientId - Client ID
+   * @param {string} field - Field name
+   * @param {string} fileId - File ID
+   * @returns {Promise<Object>} Updated client
+   */
+  async deleteFile(clientId, field, fileId) {
+    try {
+      const validFields = [
+        "driversLicense",
+        "proofOfSS",
+        "proofOfAddress",
+        "ftcReport",
+      ];
+
+      if (!validFields.includes(field)) {
+        throw new Error("Invalid file field");
+      }
+
+      const client = await Client.findById(clientId);
+      if (!client) {
+        throw new Error("Client not found");
+      }
+
+      const file = client[field].id(fileId);
+      if (!file) {
+        throw new Error("File not found");
+      }
+
+      // Delete from S3
+      await s3Service.deleteFile(file.s3Key);
+
+      // Remove from database
+      client[field].pull(fileId);
+      await client.save();
+
+      return client;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Get all files for a client
+   * @param {string} clientId - Client ID
+   * @returns {Promise<Object>} Client files
+   */
+  async getClientFiles(clientId) {
+    try {
+      const client = await Client.findById(clientId).select(
+        "driversLicense proofOfSS proofOfAddress ftcReport"
+      );
+
+      if (!client) {
+        throw new Error("Client not found");
+      }
+
+      return {
+        driversLicense: client.driversLicense,
+        proofOfSS: client.proofOfSS,
+        proofOfAddress: client.proofOfAddress,
+        ftcReport: client.ftcReport,
+      };
     } catch (error) {
       throw error;
     }

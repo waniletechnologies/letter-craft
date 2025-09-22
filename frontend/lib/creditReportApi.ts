@@ -130,3 +130,40 @@ export async function fetchAllReports(): Promise<NormalizedCreditReport[]> {
 }
 
 
+export interface UpdateAccountRequest {
+  email: string;
+  bureau: "Experian" | "Equifax" | "TransUnion";
+  accountId: string;
+  updates: {
+    accountName?: string;
+    accountNumber?: string;
+    highBalance?: string;
+    lastVerified?: string;
+    status?: string;
+  };
+}
+
+export interface UpdateAccountResponse {
+  success: boolean;
+  message?: string;
+  data?: AccountInfo;
+}
+
+export async function updateAccountInfo(
+  request: UpdateAccountRequest
+): Promise<UpdateAccountResponse> {
+  try {
+    const data = await apiFetch("/credit-report/account", {
+      method: "PUT",
+      body: JSON.stringify(request),
+    });
+    return data;
+  } catch (error) {
+    console.error("Error updating account info:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred",
+    };
+  }
+}

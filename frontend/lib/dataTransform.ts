@@ -392,6 +392,8 @@ export function transformInquiries(inquiries: {
 
 
 // Transform account info from API to component format
+// lib/dataTransform.ts
+// Make sure the transformAccountInfo function preserves the original bureau-specific account numbers
 export function transformAccountInfo(accountInfo: {
   Experian: ApiAccountInfo[];
   Equifax: ApiAccountInfo[];
@@ -401,17 +403,19 @@ export function transformAccountInfo(accountInfo: {
 
   // Process Experian accounts
   accountInfo.Experian.forEach((account: ApiAccountInfo, index: number) => {
+    if (!account.accountNumber) return; // Skip accounts without account numbers
+    
     accountRows.push({
       id: `exp_acc_${index}`,
       accountName: account.accountName,
-      accountNumber: account.accountNumber,
+      accountNumber: account.accountNumber, // Use Experian's account number as main
       highBalance: account.highBalance,
       lastVerified: account.lastVerified,
       status: account.status,
       values: {
         Experian: {
           accountName: account.accountName,
-          accountNumber: account.accountNumber,
+          accountNumber: account.accountNumber, // Preserve Experian's format
           highBalance: account.highBalance,
           lastVerified: account.lastVerified,
           status: account.status,
@@ -436,16 +440,18 @@ export function transformAccountInfo(accountInfo: {
 
   // Process Equifax accounts
   accountInfo.Equifax.forEach((account: ApiAccountInfo, index: number) => {
-    // Check if account already exists
+    if (!account.accountNumber) return;
+    
+    // Try to find matching account by name or other criteria
     const existingIndex = accountRows.findIndex(
-      (row) => row.accountNumber === account.accountNumber
+      (row) => row.accountName === account.accountName
     );
 
     if (existingIndex >= 0) {
       // Update existing row with Equifax data
       accountRows[existingIndex].values.Equifax = {
         accountName: account.accountName,
-        accountNumber: account.accountNumber,
+        accountNumber: account.accountNumber, // Preserve Equifax's format
         highBalance: account.highBalance,
         lastVerified: account.lastVerified,
         status: account.status,
@@ -455,7 +461,7 @@ export function transformAccountInfo(accountInfo: {
       accountRows.push({
         id: `equ_acc_${index}`,
         accountName: account.accountName,
-        accountNumber: account.accountNumber,
+        accountNumber: account.accountNumber, // Use Equifax's account number as main
         highBalance: account.highBalance,
         lastVerified: account.lastVerified,
         status: account.status,
@@ -486,24 +492,23 @@ export function transformAccountInfo(accountInfo: {
     }
   });
 
-  // Process TransUnion accounts
+  // Process TransUnion accounts similarly...
   accountInfo.TransUnion.forEach((account: ApiAccountInfo, index: number) => {
-    // Check if account already exists
+    if (!account.accountNumber) return;
+    
     const existingIndex = accountRows.findIndex(
-      (row) => row.accountNumber === account.accountNumber
+      (row) => row.accountName === account.accountName
     );
 
     if (existingIndex >= 0) {
-      // Update existing row with TransUnion data
       accountRows[existingIndex].values.TransUnion = {
         accountName: account.accountName,
-        accountNumber: account.accountNumber,
+        accountNumber: account.accountNumber, // Preserve TransUnion's format
         highBalance: account.highBalance,
         lastVerified: account.lastVerified,
         status: account.status,
       };
     } else {
-      // Add new row
       accountRows.push({
         id: `tru_acc_${index}`,
         accountName: account.accountName,

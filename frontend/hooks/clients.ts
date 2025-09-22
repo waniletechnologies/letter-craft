@@ -2,6 +2,25 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { apiFetch } from "../lib/api";
 
+export interface UploadedFile {
+  _id: string;
+  fileName: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  uploadedAt: string;
+  uploadedBy?: string;
+  url?: string;
+  s3Key?: string;
+}
+
+export interface ClientFiles {
+  driversLicense: UploadedFile[];
+  proofOfSS: UploadedFile[];
+  proofOfAddress: UploadedFile[];
+  ftcReport: UploadedFile[];
+}
+
 export type ClientPayload = {
   firstName: string;
   middleName?: string;
@@ -67,12 +86,12 @@ export function useCreateClient() {
         return response;
       } catch (error) {
         console.log("Raw error from apiFetch:", error);
-        // Re-throw so onError can handle it
         throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       qc.invalidateQueries({ queryKey: ["clients"] });
+      return data; // Return the data so we can access it in the component
     },
   });
 }
@@ -135,3 +154,68 @@ export function useClientStats() {
   });
 }
 
+export function useUploadClientFile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      clientId,
+      field,
+      file,
+    }: {
+      clientId: string;
+      field: string;
+      file: File;
+    }) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("field", field);
+
+      const response = await apiFetch(`/clients/${clientId}/files`, {
+        method: "POST",
+        body: formData,
+        // Remove headers - browser will set Content-Type automatically
+      });
+
+      return response;
+    },
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: ["client", variables.clientId] });
+      qc.invalidateQueries({ queryKey: ["clientFiles", variables.clientId] });
+    },
+  });
+}
+
+export function useDeleteClientFile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      clientId,
+      field,
+      fileId,
+    }: {
+      clientId: string;
+      field: string;
+      fileId: string;
+    }) => {
+      const response = await apiFetch(
+        `/clients/${clientId}/files/${field}/${fileId}`,
+        {
+          method: "DELETE",
+        }
+      );
+      return response;
+    },
+    onSuccess: (_, variables) => {
+      qc.invalidateQueries({ queryKey: ["client", variables.clientId] });
+      qc.invalidateQueries({ queryKey: ["clientFiles", variables.clientId] });
+    },
+  });
+}
+
+export function useGetClientFiles(clientId: string) {
+  return useQuery({
+    queryKey: ["clientFiles", clientId],
+    queryFn: () => apiFetch(`/clients/${clientId}/files`),
+    enabled: Boolean(clientId),
+  });
+}

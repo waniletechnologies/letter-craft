@@ -38,6 +38,8 @@ const MAIN_LINKS = [
     href: "/clients",
     label: "Clients",
     icon: FiUsers,
+    // Add all client-related routes that should activate the Clients tab
+    activePaths: ["/clients", "/add-client", "/edit-client", "/client-details"],
   },
   {
     href: "/credit-reports",
@@ -64,12 +66,14 @@ function SidebarLink({
   icon: Icon,
   isActive,
   state,
+  activePaths,
 }: Readonly<{
   href: string;
   label: string;
   icon: React.ElementType;
   isActive: boolean;
   state: string;
+  activePaths?: string[];
 }>) {
   const { setOpenMobile, isMobile } = useSidebar();
   const router = useRouter();
@@ -123,7 +127,17 @@ export function AppSidebar({ ...props }) {
 
   const pathname = usePathname();
 
-  const isTabActive = (tabPath: string) => pathname === tabPath;
+  // Function to check if a tab should be active
+  const isTabActive = (tabPath: string, activePaths?: string[]) => {
+    if (activePaths) {
+      // Check if current path starts with any of the active paths
+      return activePaths.some(
+        (activePath) =>
+          pathname === activePath || pathname.startsWith(activePath + "/")
+      );
+    }
+    return pathname === tabPath;
+  };
 
   const handleFooterClick = () => {
     if (isMobile) {
@@ -165,14 +179,15 @@ export function AppSidebar({ ...props }) {
       >
         <SidebarGroup>
           <SidebarMenu className="gap-2 m-0">
-            {MAIN_LINKS.map(({ href, label, icon: Icon }) => (
+            {MAIN_LINKS.map(({ href, label, icon: Icon, activePaths }) => (
               <SidebarLink
                 key={href}
                 href={href}
                 label={label}
                 icon={Icon}
-                isActive={isTabActive(href)}
+                isActive={isTabActive(href, activePaths)}
                 state={state}
+                activePaths={activePaths}
               />
             ))}
           </SidebarMenu>

@@ -24,7 +24,6 @@ import { AppSidebar } from "../../components/AppSidebar";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
-import { FiBell } from "react-icons/fi";
 import {
   SidebarInset,
   SidebarProvider,
@@ -185,7 +184,7 @@ const DashboardLayout: React.FC<{ children: React.ReactNode }> = ({
             </div>
 
             <div className="ml-auto flex items-center gap-2">
-              <FiBell className="w-4 h-4" />
+              
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded-lg p-1 transition-colors duration-200">

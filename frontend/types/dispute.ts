@@ -1,7 +1,9 @@
+// types/dispute.ts
 export interface DisputedItemPayload {
   title: string;
   account: string;
   status: "Pending" | "In Review" | "Resolved";
+  groupName?: string; // Add group name field
 }
 
 export interface DisputePayload {
@@ -14,4 +16,25 @@ export interface DisputePayload {
   expectedResponseDate: Date;
   accountsCount: number;
   items: DisputedItemPayload[];
+  groupName?: string; // Optional group name at dispute level
+}
+
+export interface RawDispute {
+  _id: string;
+  clientName: string;
+  round: number;
+  status: string;
+  progress: number;
+  bureau: string;
+  accountsCount: number;
+  createdDate: string;
+  expectedResponseDate: string;
+  items: {
+    _id: string;
+    title: string;
+    account: string;
+    status: string;
+    groupName?: string; // Add group name field
+  }[];
+  groupName?: string; // Optional group name at dispute level
 }

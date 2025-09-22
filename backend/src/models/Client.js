@@ -116,7 +116,7 @@ const clientSchema = new mongoose.Schema(
       required: [true, "SSN is required"],
       trim: true,
       match: [/^\d{9}$/, "SSN must be exactly 9 digits"],
-      select: false,
+      
     },
     experianReport: {
       type: String,
@@ -157,12 +157,108 @@ const clientSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    driversLicense: [
+      {
+        fileName: String,
+        s3Key: String,
+        originalName: String,
+        mimeType: String,
+        size: Number,
+        uploadedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        uploadedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      },
+    ],
+
+    proofOfSS: [
+      {
+        fileName: String,
+        s3Key: String,
+        originalName: String,
+        mimeType: String,
+        size: Number,
+        uploadedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        uploadedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      },
+    ],
+
+    proofOfAddress: [
+      {
+        fileName: String,
+        s3Key: String,
+        originalName: String,
+        mimeType: String,
+        size: Number,
+        uploadedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        uploadedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      },
+    ],
+
+    ftcReport: [
+      {
+        fileName: String,
+        s3Key: String,
+        originalName: String,
+        mimeType: String,
+        size: Number,
+        uploadedAt: {
+          type: Date,
+          default: Date.now,
+        },
+        uploadedBy: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+      },
+    ],
   },
   {
     timestamps: true,
     toJSON: {
       transform: function (doc, ret) {
         delete ret.__v;
+        // Generate signed URLs for file access
+        if (ret.driversLicense) {
+          ret.driversLicense = ret.driversLicense.map((file) => ({
+            ...file,
+            url: `/api/clients/${ret._id}/files/drivers-license/${file._id}`,
+          }));
+        }
+        if (ret.proofOfSS) {
+          ret.proofOfSS = ret.proofOfSS.map((file) => ({
+            ...file,
+            url: `/api/clients/${ret._id}/files/proof-of-ss/${file._id}`,
+          }));
+        }
+        if (ret.proofOfAddress) {
+          ret.proofOfAddress = ret.proofOfAddress.map((file) => ({
+            ...file,
+            url: `/api/clients/${ret._id}/files/proof-of-address/${file._id}`,
+          }));
+        }
+        if (ret.ftcReport) {
+          ret.ftcReport = ret.ftcReport.map((file) => ({
+            ...file,
+            url: `/api/clients/${ret._id}/files/ftc-report/${file._id}`,
+          }));
+        }
         return ret;
       },
     },

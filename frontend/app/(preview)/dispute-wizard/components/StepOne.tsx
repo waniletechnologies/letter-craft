@@ -1,36 +1,23 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useSearchParams, useRouter } from "next/navigation";
 import Image from "next/image";
 import { Equifax, Experian, TransUnion } from "@/public/images";
 import AddDisputeItemsDialog from "./AddDisputeItemsDialog";
-import { useDispute } from "@/context/disputeContext";
 import { fetchStoredCreditReport } from "@/lib/creditReportApi"; // Assuming you have this client-side service
 import { saveDispute } from "@/lib/disputeAPI";
 import { DisputePayload, DisputedItemPayload } from "@/types/dispute";
 import {  PersonalInfo } from "@/types/creditReport";
-
+import { useDispute, DisputeItem } from "@/context/disputeContext";
+import { Trash2 } from "lucide-react";
 // The shape of personalInfo in CreditReportData
 type PersonalInfoByBureau = {
   Experian: PersonalInfo;
   Equifax: PersonalInfo;
   TransUnion: PersonalInfo;
 };
-interface DisputeItem {
-  id: string;
-  creditor: string;
-  account: string;
-  dateOpened: string;
-  balance: string;
-  type: string;
-  disputed: boolean;
-  hasExperian: boolean;
-  hasEquifax: boolean;
-  hasTransUnion: boolean;
-}
-
 // Helper function to get full name
 // ✅ Safely get the first name entry from personalInfo
 const getClientName = (personalInfo: PersonalInfoByBureau): string => {
@@ -48,13 +35,32 @@ const getClientName = (personalInfo: PersonalInfoByBureau): string => {
 
 
 const StepOne: React.FC = () => {
-  
-    const router = useRouter();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const email = searchParams.get("email") || "";
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const { disputeItems, addMultipleDisputeItems, removeDisputeItem } = useDispute();
+  const {
+    disputeItems,
+    addMultipleDisputeItems,
+    removeDisputeItem,
+    loadAccountGroups,
+  } = useDispute();
+
+  useEffect(() => {
+    if (email) {
+      loadAccountGroups(email);
+    }
+  }, [email, loadAccountGroups]);
+
+  const groupedDisputeItems = disputeItems.reduce((groups, item) => {
+    const groupName = item.groupName || "Ungrouped";
+    if (!groups[groupName]) {
+      groups[groupName] = [];
+    }
+    groups[groupName].push(item);
+    return groups;
+  }, {} as Record<string, typeof disputeItems>);
 
   const handleAddDisputeItems = (ids: string[]) => {
     // This function remains for adding items to the list before saving
@@ -95,7 +101,6 @@ const StepOne: React.FC = () => {
       const creditReport = reportResponse.data;
       const clientName = getClientName(creditReport.personalInfo);
 
-
       // 2. Group selected dispute items by bureau
       const disputesByBureau: { [key: string]: DisputedItemPayload[] } = {
         Experian: [],
@@ -118,7 +123,8 @@ const StepOne: React.FC = () => {
         for (const bureau of bureaus) {
           // Find the matching account in the full report to get the title
           const accountDetails = allBureauAccounts[bureau].find(
-            (acc: { accountNumber: string; }) => acc.accountNumber === item.account
+            (acc: { accountNumber: string }) =>
+              acc.accountNumber === item.account
           );
 
           // The title is the negative reason, e.g., "Coll/Chargeoff"
@@ -198,67 +204,101 @@ const StepOne: React.FC = () => {
       </div>
 
       <div className="p-4">
-        {/* 🔄 Add horizontal scroll wrapper */}
-        <div className="rounded-lg border border-gray-200 overflow-x-auto">
-          {/* Header */}
-          <div className="grid grid-cols-10 min-w-[900px] bg-gray-50 text-xs font-medium text-gray-600 px-3 py-2 gap-2">
-            <div>Creditor</div>
-            <div>Account #</div>
-            <div>Date Opened</div>
-            <div>Balance</div>
-            <div>Type</div>
-            <div>Disputed</div>
-            <div className="text-center">
-              <Image src={Experian} alt="Experian" width={54} height={14} />
-            </div>
-            <div className="text-center">
-              <Image src={Equifax} alt="Equifax" width={54} height={14} />
-            </div>
-            <div className="text-center">
-              <Image src={TransUnion} alt="TransUnion" width={54} height={14} />
-            </div>
-            <div className="text-center">Action</div>
-          </div>
+        {/* Grouped Display */}
+        <div className="space-y-4">
+          {Object.entries(groupedDisputeItems).map(([groupName, items]) => (
+            <div key={groupName} className="border border-gray-200 rounded-lg">
+              {/* Group Header */}
+              <div className="bg-blue-50 px-3 py-2 border-b border-gray-200">
+                <h3 className="font-semibold text-blue-800">
+                  📁 {groupName} ({items.length} accounts)
+                </h3>
+              </div>
 
-          {/* Items */}
-          {disputeItems.map((item, idx) => (
-            <div
-              key={item.id}
-              className={`grid grid-cols-10 min-w-[900px] items-center px-3 py-2 border-t gap-2 ${
-                idx % 2 === 0 ? "bg-white" : "bg-gray-50"
-              }`}
-            >
-              <div className="truncate">{item.creditor}</div>
-              <div className="truncate">{item.account}</div>
-              <div className="truncate">{item.dateOpened}</div>
-              <div className="truncate">{item.balance}</div>
-              <div className="truncate">---</div>
-              <div className="truncate">{item.disputed ? "YES" : "NO"}</div>
-              <div className="text-center text-green-500">
-                {item.hasExperian && "✔"}
-              </div>
-              <div className="text-center text-green-500">
-                {item.hasEquifax && "✔"}
-              </div>
-              <div className="text-center text-green-500">
-                {item.hasTransUnion && "✔"}
-              </div>
-              <div
-                className="text-center text-red-500 cursor-pointer"
-                onClick={() => removeDisputeItem(item.id)}
-              >
-                🗑
+              {/* Group Content */}
+              <div className="overflow-x-auto">
+                <div className="grid grid-cols-10 min-w-[900px] bg-gray-50 text-xs font-medium text-gray-600 px-3 py-2 gap-2">
+                  <div>Creditor</div>
+                  <div>Account #</div>
+                  <div>Date Opened</div>
+                  <div>Balance</div>
+                  <div>Type</div>
+                  <div>Disputed</div>
+                  <div className="text-center">
+                    <Image
+                      src={Experian}
+                      alt="Experian"
+                      width={54}
+                      height={14}
+                    />
+                  </div>
+                  <div className="text-center">
+                    <Image src={Equifax} alt="Equifax" width={54} height={14} />
+                  </div>
+                  <div className="text-center">
+                    <Image
+                      src={TransUnion}
+                      alt="TransUnion"
+                      width={54}
+                      height={14}
+                    />
+                  </div>
+                  <div className="text-center">Action</div>
+                </div>
+
+                {items.map((item, idx) => (
+                  <div
+                    key={item.id}
+                    className={`grid grid-cols-10 min-w-[900px] items-center px-3 py-2 border-t gap-2 ${
+                      idx % 2 === 0 ? "bg-white" : "bg-gray-50"
+                    }`}
+                  >
+                    <div className="truncate">{item.creditor}</div>
+                    <div className="truncate">{item.account}</div>
+                    <div className="truncate">{item.dateOpened}</div>
+                    <div className="truncate">{item.balance}</div>
+                    <div className="truncate">---</div>
+                    <div className="truncate">
+                      {item.disputed ? "YES" : "NO"}
+                    </div>
+                    <div className="ml-[10px] text-green-500">
+                      {item.hasExperian && "✔"}
+                    </div>
+                    <div className="ml-[10px] text-green-500">
+                      {item.hasEquifax && "✔"}
+                    </div>
+                    <div className="ml-[10px] text-green-500">
+                      {item.hasTransUnion && "✔"}
+                    </div>
+                    <div
+                      className="flex items-center justify-center text-red-500 cursor-pointer"
+                      onClick={() => removeDisputeItem(item.id)}
+                    >
+                      <Trash2 className="h-3 w-3 text-red-500" />
+                    </div>
+                  </div>
+                ))}
               </div>
             </div>
           ))}
         </div>
 
+        {/* Show empty state */}
+        {disputeItems.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            No dispute items added yet. Click &quot;+ Add Dispute Item&quot; to
+            get started.
+          </div>
+        )}
+
         {/* Buttons */}
-        <div className="flex justify-end mt-4">
-          <Button className="bg-[#2196F3] hover:bg-[#1976D2]">
-            Save & Continue
-          </Button>
-        </div>
+        {disputeItems.length > 0 && (
+          <div className="flex justify-end mt-4">
+            <Button className="bg-[#2196F3] hover:bg-[#1976D2]">
+              Save & Continue
+            </Button>
+          </div>
+        )}
       </div>
 
       <AddDisputeItemsDialog

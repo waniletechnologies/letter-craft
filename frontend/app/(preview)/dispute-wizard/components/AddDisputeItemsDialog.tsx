@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import Image from "next/image";
+import { Trash2 } from "lucide-react";
 import { Equifax, Experian, TransUnion } from "@/public/images";
 import {
   Table,
@@ -21,8 +22,49 @@ import {
 } from "@/components/ui/table";
 import { fetchStoredCreditReport } from "@/lib/creditReportApi";
 import { CreditReportData } from "@/types/creditReport";
-
 import { useDispute } from "@/context/disputeContext";
+
+import {
+  useSensor,
+  useSensors,
+  PointerSensor,
+  DndContext,
+  closestCenter,
+  DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import SortableItem from "./SortableItem";
+import { toast } from "sonner";
+
+// Add these imports for group functionality
+import {
+  createAccountGroups,
+  getAccountGroups,
+  moveAccount,
+} from "@/lib/accountGroupApi";
+
+// Define proper interfaces for account data
+interface AccountData {
+  _id?: string;
+  accountNumber: string;
+  accountName: string;
+  dateOpened: string;
+  currentBalance: string;
+  payStatus: string;
+  disputed: boolean;
+  bureau: string;
+  order?: number;
+  groupName?: string;
+  // Add other properties that might exist in your account objects
+  highBalance?: string;
+  lastVerified?: string;
+  status?: string;
+  worstPayStatus?: string;
+  remarks?: string[];
+}
 
 interface ItemRow {
   id: string;
@@ -35,6 +77,9 @@ interface ItemRow {
   hasExperian: boolean;
   hasEquifax: boolean;
   hasTransUnion: boolean;
+  groupName: string;
+  order: number;
+  bureau: string;
 }
 
 export interface AddDisputeItemsDialogProps {
@@ -50,148 +95,244 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
   onAdd,
   email,
 }) => {
-  const [selected, setSelected] = useState<string[]>([]);
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [rows, setRows] = useState<ItemRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [groups, setGroups] = useState<Map<string, ItemRow[]>>(new Map());
+  const [groupOrder, setGroupOrder] = useState<string[]>([]);
+  const { disputeItems, addMultipleDisputeItems } = useDispute();
+  const decodedEmail = decodeURIComponent(email as string);
 
   useEffect(() => {
-    if (open && email) {
-      loadCreditReportData();
+    if (open && decodedEmail) {
+      loadAccountGroups();
     }
-  }, [open, email]);
-  const { disputeItems, addMultipleDisputeItems } = useDispute();
+  }, [open, decodedEmail]);
 
   useEffect(() => {
     if (open && rows.length) {
-      const preSelected = rows
-        .filter((r) => disputeItems.some((d) => d.id === r.id))
-        .map((r) => r.id);
-      setSelected(preSelected);
+      // Pre-select groups that already have items in dispute
+      const groupsWithDisputes = new Set<string>();
+      disputeItems.forEach((item) => {
+        if (item.groupName) {
+          groupsWithDisputes.add(item.groupName);
+        }
+      });
+      setSelectedGroups(Array.from(groupsWithDisputes));
     }
   }, [open, rows, disputeItems]);
 
-  const loadCreditReportData = async () => {
+  const loadAccountGroups = async () => {
     try {
       setLoading(true);
-      const response = await fetchStoredCreditReport(email);
 
-      if (response.success && response.data) {
-        const creditData = response.data as CreditReportData;
-        const disputeRows = transformCreditDataToDisputeRows(creditData);
-        setRows(disputeRows);
+      const groupsResponse = await getAccountGroups(decodedEmail);
+
+      if (groupsResponse.success && groupsResponse.data) {
+        const { groups: groupsObj, groupOrder } = groupsResponse.data;
+
+        // ✅ Convert plain object to Map with proper typing
+        const groupsMap = new Map<string, ItemRow[]>();
+        Object.entries(groupsObj).forEach(([groupName, accounts]) => {
+          // Cast accounts to the proper type
+          const typedAccounts = accounts as AccountData[];
+          groupsMap.set(
+            groupName,
+            typedAccounts.map((account) => ({
+              id: account._id || account.accountNumber,
+              creditor: account.accountName || "",
+              account: account.accountNumber || "",
+              dateOpened: account.dateOpened || "",
+              balance: account.currentBalance || account.highBalance || "",
+              type: account.payStatus || account.status || "",
+              disputed: account.disputed || false,
+              hasExperian: account.bureau === "Experian",
+              hasEquifax: account.bureau === "Equifax",
+              hasTransUnion: account.bureau === "TransUnion",
+              groupName,
+              order: account.order || 0,
+              bureau: account.bureau || "",
+            }))
+          );
+        });
+
+        setGroups(groupsMap);
+        setGroupOrder(groupOrder);
+
+        // ✅ Flatten all accounts for table rows
+        const allAccounts = Array.from(groupsMap.entries()).flatMap(
+          ([groupName, accounts]) => accounts.map((a) => ({ ...a, groupName }))
+        );
+        setRows(allAccounts);
+      } else {
+        await createAccountGroupsFromReport();
       }
     } catch (error) {
-      console.error("Error loading credit report:", error);
+      console.error("Error loading account groups:", error);
+      await createAccountGroupsFromReport();
     } finally {
       setLoading(false);
     }
   };
 
-  const transformCreditDataToDisputeRows = (
-    creditData: CreditReportData
-  ): ItemRow[] => {
-    const rows: ItemRow[] = [];
+  const createAccountGroupsFromReport = async () => {
+    try {
+      const response = await fetchStoredCreditReport(email);
+      if (response.success && response.data) {
+        const createResponse = await createAccountGroups(decodedEmail);
 
-    // Add inquiries as dispute items
+        if (createResponse.success && createResponse.data) {
+          // Use proper typing instead of any[]
+          const groupsData = createResponse.data.groups as Record<
+            string,
+            AccountData[]
+          >;
+          const groupOrderData = createResponse.data.groupOrder || [];
 
-    // Add negative accounts as dispute items
-    if (creditData.accountInfo) {
-      // Experian accounts
-      creditData.accountInfo.Experian?.forEach((account, index) => {
-        if (account.status === "Negative") {
-          rows.push({
-            id: `exp_acc_${index}`,
-            creditor: account.accountName || "",
-            account: account.accountNumber || "N/A",
-            dateOpened: account.dateOpened || "N/A",
-            balance: account.currentBalance || "N/A",
-            type: "---",
-            disputed: false,
-            hasExperian: true,
-            hasEquifax: false,
-            hasTransUnion: false,
+          const groupsMap = new Map<string, ItemRow[]>();
+          Object.entries(groupsData).forEach(([groupName, accounts]) => {
+            groupsMap.set(
+              groupName,
+              accounts.map((account) => ({
+                id: account._id || account.accountNumber,
+                creditor: account.accountName || "",
+                account: account.accountNumber || "",
+                dateOpened: account.dateOpened || "",
+                balance: account.currentBalance || account.highBalance || "",
+                type: account.payStatus || account.status || "",
+                disputed: account.disputed || false,
+                hasExperian: account.bureau === "Experian",
+                hasEquifax: account.bureau === "Equifax",
+                hasTransUnion: account.bureau === "TransUnion",
+                groupName,
+                order: account.order || 0,
+                bureau: account.bureau || "",
+              }))
+            );
           });
-        }
-      });
 
-      // Equifax accounts
-      creditData.accountInfo.Equifax?.forEach((account, index) => {
-        if (account.status === "Negative") {
-          rows.push({
-            id: `equ_acc_${index}`,
-            creditor: account.accountName || "",
-            account: account.accountNumber || "N/A",
-            dateOpened: account.dateOpened || "N/A",
-            balance: account.currentBalance || "N/A",
-            type: "---",
-            disputed: false,
-            hasExperian: false,
-            hasEquifax: true,
-            hasTransUnion: false,
-          });
-        }
-      });
+          setGroups(groupsMap);
+          setGroupOrder(groupOrderData);
 
-      // TransUnion accounts
-      creditData.accountInfo.TransUnion?.forEach((account, index) => {
-        if (account.status === "Negative") {
-          rows.push({
-            id: `tru_acc_${index}`,
-            creditor: account.accountName || "",
-            account: account.accountNumber || "N/A",
-            dateOpened: account.dateOpened || "N/A",
-            balance: account.currentBalance || "N/A",
-            type: "---",
-            disputed: false,
-            hasExperian: false,
-            hasEquifax: false,
-            hasTransUnion: true,
-          });
+          const allAccounts = Array.from(groupsMap.entries()).flatMap(
+            ([groupName, accounts]) =>
+              accounts.map((a) => ({ ...a, groupName }))
+          );
+          setRows(allAccounts);
         }
-      });
+      }
+    } catch (error) {
+      console.error("Error creating account groups:", error);
     }
-
-    return rows;
   };
 
-  const allChecked = selected.length === rows.length;
-  const toggleAll = (checked: boolean) =>
-    setSelected(checked ? rows.map((r) => r.id) : []);
-  const toggle = (id: string, checked: boolean) =>
-    setSelected((prev) =>
-      checked ? [...prev, id] : prev.filter((x) => x !== id)
+  const allChecked = selectedGroups.length === groupOrder.length;
+  const toggleAllGroups = (checked: boolean) =>
+    setSelectedGroups(checked ? [...groupOrder] : []);
+
+  const toggleGroup = (groupName: string, checked: boolean) =>
+    setSelectedGroups((prev) =>
+      checked ? [...prev, groupName] : prev.filter((name) => name !== groupName)
     );
 
   const countLabel = useMemo(() => {
-    if (selected.length === 0) return "0 Selected Accounts";
-    if (selected.length === 1) return "1 Selected Account";
-    return `${selected.length} Selected Accounts`;
-  }, [selected.length]);
+    const totalAccounts = selectedGroups.reduce((total, groupName) => {
+      return total + (groups.get(groupName)?.length || 0);
+    }, 0);
+
+    if (totalAccounts === 0) return "0 Selected Accounts";
+    if (totalAccounts === 1) return "1 Selected Account";
+    return `${totalAccounts} Selected Accounts from ${selectedGroups.length} Groups`;
+  }, [selectedGroups, groups]);
 
   const handleAdd = () => {
-  const selectedItems = rows.filter((r) => selected.includes(r.id));
-  addMultipleDisputeItems(
-    selectedItems.map((r) => ({
-      id: r.id,
-      creditor: r.creditor,
-      account: r.account,
-      dateOpened: r.dateOpened,
-      balance: r.balance,
-      type: r.type,
-      disputed: r.disputed, // ✅ Include disputed field
-      hasExperian: r.hasExperian,
-      hasEquifax: r.hasEquifax,
-      hasTransUnion: r.hasTransUnion,
-    }))
-  );
-  onOpenChange(false);
-};
+    const selectedItems = rows.filter((r) =>
+      selectedGroups.includes(r.groupName)
+    );
+    addMultipleDisputeItems(
+      selectedItems.map((r) => ({
+        id: r.id,
+        creditor: r.creditor,
+        account: r.account,
+        dateOpened: r.dateOpened,
+        balance: r.balance,
+        type: r.type,
+        disputed: r.disputed,
+        hasExperian: r.hasExperian,
+        hasEquifax: r.hasEquifax,
+        hasTransUnion: r.hasTransUnion,
+        groupName: r.groupName,
+      }))
+    );
+    onOpenChange(false);
+  };
 
+  const sensors = useSensors(useSensor(PointerSensor));
 
-  // const handleAdd = () => {
-  //   onAdd?.(selected);
-  //   onOpenChange(false);
-  // };
+  const handleDragEnd = async (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+
+    const [sourceGroup, accountId] = (active.id as string).split("::");
+    const [targetGroup] = (over.id as string).split("::");
+
+    // Check if target group already has 5 accounts
+    const targetAccounts = groups.get(targetGroup) || [];
+    if (targetAccounts.length >= 5) {
+      toast.error("Cannot add more than 5 accounts to a group");
+      return;
+    }
+
+    if (sourceGroup !== targetGroup) {
+      // Remove from source group and add to target group locally
+      const updatedGroups = new Map(groups);
+      const sourceAccounts = updatedGroups.get(sourceGroup) || [];
+      const targetAccounts = updatedGroups.get(targetGroup) || [];
+
+      const movedIdx = sourceAccounts.findIndex((acc) => acc.id === accountId);
+      const [movedAcc] = sourceAccounts.splice(movedIdx, 1);
+      movedAcc.groupName = targetGroup;
+
+      targetAccounts.push(movedAcc);
+      updatedGroups.set(sourceGroup, sourceAccounts);
+      updatedGroups.set(targetGroup, targetAccounts);
+
+      setGroups(updatedGroups);
+
+      // Flatten to rows for table
+      const allAccounts = Array.from(updatedGroups.entries()).flatMap(
+        ([g, accs]) => accs.map((a) => ({ ...a, groupName: g }))
+      );
+      setRows(allAccounts);
+
+      // Persist to DB
+      try {
+        await moveAccount(
+          decodedEmail,
+          accountId,
+          sourceGroup,
+          targetGroup,
+          targetAccounts.length - 1
+        );
+        toast.success("Account moved successfully");
+      } catch (err) {
+        console.error("Failed to update DB:", err);
+        toast.error("Failed to move account");
+      }
+    }
+  };
+
+  // Group rows by group name for display
+  const groupedRows = useMemo(() => {
+    const grouped = new Map<string, ItemRow[]>();
+    rows.forEach((row) => {
+      if (!grouped.has(row.groupName)) {
+        grouped.set(row.groupName, []);
+      }
+      grouped.get(row.groupName)!.push(row);
+    });
+    return grouped;
+  }, [rows]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -203,20 +344,13 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
         </DialogHeader>
 
         <div className="font-semibold text-sm leading-[20px] tracking-normal text-[#595858]">
-          These are the negative items from your client&apos;s credit report. To
-          see a list of all credit items and status, view the{" "}
-          <span className="text-primary font-inter font-semibold text-sm leading-[20px] tracking-normal">
-            dispute items tab{" "}
-          </span>{" "}
-          on the My Clients page.
-          <br />
-          Select the item(s) to include in your letter. On the next page you can
-          choose which bureaus to include.
+          These are the negative items from your client&apos;s credit report
+          grouped for easy selection. Select entire groups to add to dispute.
         </div>
 
         {loading ? (
           <div className="flex justify-center items-center h-64">
-            <p>Loading dispute items...</p>
+            <p>Loading account groups...</p>
           </div>
         ) : (
           <>
@@ -224,15 +358,16 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
               <Table>
                 <TableHeader className="bg-[#F9FAFB] sticky top-0 z-10">
                   <TableRow>
-                    <TableHead className="w-[280px]">
+                    <TableHead className="w-[80px]">
                       <div className="flex items-center gap-2">
                         <Checkbox
                           checked={allChecked}
-                          onCheckedChange={(v) => toggleAll(Boolean(v))}
+                          onCheckedChange={(v) => toggleAllGroups(Boolean(v))}
                         />
-                        Creditor/Furnisher
+                        Select
                       </div>
                     </TableHead>
+                    <TableHead className="w-[200px]">Group</TableHead>
                     <TableHead className="w-[260px]">Account #</TableHead>
                     <TableHead className="w-[140px]">Date Opened</TableHead>
                     <TableHead className="w-[120px]">Balance</TableHead>
@@ -265,68 +400,87 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {rows.map((r, idx) => {
-                    const checked = selected.includes(r.id);
-                    return (
-                      <TableRow
-                        key={r.id}
-                        className={idx % 2 === 0 ? "bg-white" : "bg-[#FCFCFC]"}
-                      >
-                        <TableCell>
-                          <div className="flex items-start gap-2">
-                            <Checkbox
-                              checked={checked}
-                              onCheckedChange={(v) => toggle(r.id, Boolean(v))}
-                            />
-                            <div>
-                              <div className="font-medium text-[#111827] leading-4">
-                                {r.creditor}
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="whitespace-pre-line">
-                          <div className="max-w-[220px] truncate leading-4">
-                            {r.account}
-                          </div>
-                        </TableCell>
-                        <TableCell>{r.dateOpened}</TableCell>
-                        <TableCell>{r.balance}</TableCell>
-                        <TableCell>{r.type}</TableCell>
-                        <TableCell>{r.disputed ? "YES" : "NO"}</TableCell>
-                        <TableCell className="text-center">
-                          {r.hasExperian && (
-                            <span
-                              title="Remove Experian"
-                              className="inline-flex p-0 h-8 w-8 items-center justify-center text-[#EF4444] text-[20px]"
+                  <DndContext
+                    sensors={sensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handleDragEnd}
+                  >
+                    {groupOrder.map((groupName) => {
+                      const groupAccounts = groupedRows.get(groupName) || [];
+                      const isGroupSelected =
+                        selectedGroups.includes(groupName);
+                      const isGroupFull = groupAccounts.length >= 5;
+
+                      return (
+                        <React.Fragment key={groupName}>
+                          {/* Group Header */}
+                          <TableRow className="bg-blue-50">
+                            <TableCell>
+                              <Checkbox
+                                checked={isGroupSelected}
+                                onCheckedChange={(v) =>
+                                  toggleGroup(groupName, Boolean(v))
+                                }
+                              />
+                            </TableCell>
+                            <TableCell
+                              colSpan={8}
+                              className="font-bold text-blue-800"
                             >
-                              ×
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center p-0">
-                          {r.hasEquifax && (
-                            <span
-                              title="Remove Equifax"
-                              className="inline-flex p-0 h-8 w-8 items-center justify-center text-[#EF4444] text-[20px]"
-                            >
-                              ×
-                            </span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-center p-0">
-                          {r.hasTransUnion && (
-                            <span
-                              title="Remove TransUnion"
-                              className="inline-flex p-0 h-8 w-8 items-center justify-center text-[#EF4444] text-[20px]"
-                            >
-                              ×
-                            </span>
-                          )}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                              📁 {groupName} ({groupAccounts.length}/5 accounts)
+                              {isGroupFull && (
+                                <span className="ml-2 text-xs text-green-600">
+                                  ✓ Full
+                                </span>
+                              )}
+                            </TableCell>
+                          </TableRow>
+
+                          <SortableContext
+                            items={groupAccounts.map(
+                              (r) => `${groupName}::${r.id}`
+                            )}
+                            strategy={verticalListSortingStrategy}
+                          >
+                            {groupAccounts.map((r, idx) => (
+                              <SortableItem
+                                key={`${groupName}::${r.id}`}
+                                id={`${groupName}::${r.id}`}
+                              >
+                                <>
+                                  <TableCell></TableCell>{" "}
+                                  {/* Empty for checkbox column */}
+                                  <TableCell className="text-gray-500">
+                                    {r.creditor}
+                                  </TableCell>
+                                  <TableCell className="whitespace-pre-line">
+                                    <div className="max-w-[220px] truncate">
+                                      {r.account}
+                                    </div>
+                                  </TableCell>
+                                  <TableCell>{r.dateOpened}</TableCell>
+                                  <TableCell>{r.balance}</TableCell>
+                                  <TableCell>{r.type}</TableCell>
+                                  <TableCell>
+                                    {r.disputed ? "YES" : "NO"}
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    {r.hasExperian ? "✓" : ""}
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    {r.hasEquifax ? "✓" : ""}
+                                  </TableCell>
+                                  <TableCell className="text-center">
+                                    {r.hasTransUnion ? "✓" : ""}
+                                  </TableCell>
+                                </>
+                              </SortableItem>
+                            ))}
+                          </SortableContext>
+                        </React.Fragment>
+                      );
+                    })}
+                  </DndContext>
                 </TableBody>
               </Table>
             </div>
@@ -334,7 +488,7 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
             {/* Footer */}
             <div className="flex items-center justify-between mt-3">
               <div className="text-xs text-[#2563EB] bg-[#EEF2FF] rounded px-2 py-1">
-                {countLabel} – Create Group
+                {countLabel}
               </div>
               <div className="flex items-center gap-3">
                 <Button variant="outline" onClick={() => onOpenChange(false)}>
@@ -343,8 +497,9 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
                 <Button
                   className="bg-primary hover:bg-primary/90"
                   onClick={handleAdd}
+                  disabled={selectedGroups.length === 0}
                 >
-                  Add to Dispute
+                  Add Selected Groups to Dispute
                 </Button>
               </div>
             </div>

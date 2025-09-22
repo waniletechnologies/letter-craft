@@ -3,14 +3,16 @@ import {
   getCreditReport,
   getStoredCreditReport,
   getAllStoredCreditReports,
-  getCreditReportStats
+  getCreditReportStats,
+  updateAccountInfo,
 } from "../controllers/creditReport.controller.js";
 
 const router = express.Router();
 
 router.post("/credit-report", getCreditReport);
-router.get("/credit-report", getAllStoredCreditReports); // 👈 Add the new route for all reports
+router.get("/credit-report", getAllStoredCreditReports); 
 router.get("/credit-report/stats", getCreditReportStats);
 router.get("/credit-report/:email", getStoredCreditReport);
+router.put("/credit-report/account", updateAccountInfo);
 
 export default router;

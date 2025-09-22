@@ -14,7 +14,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Upload, Info } from "lucide-react";
+import { Calendar, Upload, Info, X, FileText, Download } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {
   Dialog,
@@ -29,14 +29,25 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useCreateClient } from "@/hooks/clients";
+import { useCreateClient, useUploadClientFile } from "@/hooks/clients";
 import { toast } from "sonner";
 
+interface UploadedFile {
+  _id: string;
+  fileName: string;
+  originalName: string;
+  mimeType: string;
+  size: number;
+  uploadedAt: string;
+  url: string;
+  fileObject: File; // Store the actual file object
+}
 export default function AddClientPage() {
   const router = useRouter();
   const [showFtcDialog, setShowFtcDialog] = useState(false);
   const [showSsnInfo, setShowSsnInfo] = useState(false);
-  const { mutate, isPending } = useCreateClient();
+  const { mutate: createClient, isPending: isCreating } = useCreateClient();
+  const { mutateAsync: uploadFile } = useUploadClientFile();
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
 
   interface ClientData {
@@ -86,13 +97,95 @@ export default function AddClientPage() {
   });
 
   const [uploadedFiles, setUploadedFiles] = useState<{
-    [key: string]: File | null;
+    [key: string]: UploadedFile[];
   }>({
-    driversLicense: null,
-    proofOfSS: null,
-    proofOfAddress: null,
-    ftcReport: null,
+    driversLicense: [],
+    proofOfSS: [],
+    proofOfAddress: [],
+    ftcReport: [],
   });
+
+  const [isUploadingFiles, setIsUploadingFiles] = useState(false);
+
+  const validateFileSize = (file: File): boolean => {
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (file.size > maxSize) {
+      toast.error(
+        `File size must be less than 10MB. Current size: ${(
+          file.size /
+          1024 /
+          1024
+        ).toFixed(2)}MB`
+      );
+      return false;
+    }
+    return true;
+  };
+
+  const handleFileUpload = async (
+    field: string,
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size
+    if (!validateFileSize(file)) {
+      return;
+    }
+
+    // Validate file type
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "text/plain",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error(
+        "Invalid file type. Please upload images, PDFs, or documents."
+      );
+      return;
+    }
+
+    try {
+      const tempFile: UploadedFile = {
+        _id: `temp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+        fileName: file.name,
+        originalName: file.name,
+        mimeType: file.type,
+        size: file.size,
+        uploadedAt: new Date().toISOString(),
+        url: URL.createObjectURL(file),
+        fileObject: file, // Store the actual file object
+      };
+
+      setUploadedFiles((prev) => ({
+        ...prev,
+        [field]: [...prev[field], tempFile],
+      }));
+
+      toast.success(`File "${file.name}" added successfully`);
+    } catch (error) {
+      toast.error("Failed to add file");
+      console.error("File upload error:", error);
+    } finally {
+      // Reset the file input
+      event.target.value = "";
+    }
+  };
+
+  const removeUploadedFile = (field: string, fileId: string) => {
+    setUploadedFiles((prev) => ({
+      ...prev,
+      [field]: prev[field].filter((file) => file._id !== fileId),
+    }));
+    toast.success("File removed");
+  };
 
   const handleInputChange = (field: keyof ClientData, value: string) => {
     setFormData((prev) => ({
@@ -150,23 +243,11 @@ export default function AddClientPage() {
     handleInputChange("zipCode", formatted);
   };
 
-  const handleFileUpload = (
-    type: string,
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    console.log("Upload File");
-    const file = event.target.files?.[0] || null;
-    setUploadedFiles((prev) => ({
-      ...prev,
-      [type]: file,
-    }));
-  };
-
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Clear previous errors
     setErrors({});
 
-    mutate(
+    createClient(
       {
         ...formData,
         middleName: formData.middleName || undefined,
@@ -179,13 +260,29 @@ export default function AddClientPage() {
         transunionFileNumber: formData.transunionFileNumber || undefined,
       },
       {
-        onSuccess: () => {
+        onSuccess: async (response) => {
+          const clientId = response.data._id;
           toast.success("Client created successfully");
+
+          // Upload files after client is created
+          if (Object.values(uploadedFiles).some((files) => files.length > 0)) {
+            setIsUploadingFiles(true);
+            try {
+              await uploadAllFiles(clientId);
+              toast.success("All files uploaded successfully");
+            } catch (error) {
+              toast.error("Some files failed to upload");
+              console.error("File upload error:", error);
+            } finally {
+              setIsUploadingFiles(false);
+            }
+          }
+
           router.push("/clients");
         },
         onError: (error) => {
           try {
-            const errorData = JSON.parse((error as Error).message);
+            const errorData = JSON.parse((error).message);
             console.log("Error Data: ", errorData);
 
             if (errorData.errors && Array.isArray(errorData.errors)) {
@@ -201,13 +298,74 @@ export default function AddClientPage() {
             } else {
               toast.error(errorData.message || "Failed to create client");
             }
-          } catch (e) {
+          } catch (error) {
             toast.error((error as Error)?.message || "Failed to create client");
           }
         },
       }
     );
   };
+
+  const uploadAllFiles = async (clientId: string) => {
+    const uploadPromises = [];
+
+    for (const [field, files] of Object.entries(uploadedFiles)) {
+      for (const file of files) {
+        if (file.fileObject) {
+          uploadPromises.push(
+            uploadFile({
+              clientId,
+              field,
+              file: file.fileObject,
+            })
+          );
+        }
+      }
+    }
+
+    // Execute all uploads in parallel
+    await Promise.all(uploadPromises);
+  };
+
+  const FilePreview = ({
+    file,
+    onRemove,
+  }: {
+    file: UploadedFile;
+    onRemove: () => void;
+  }) => (
+    <div className="flex items-center justify-between p-2 bg-gray-50 rounded-md border">
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <FileText className="h-4 w-4 text-gray-500 flex-shrink-0" />
+        <span className="text-sm text-gray-700 truncate flex-1">
+          {file.originalName}
+        </span>
+        <span className="text-xs text-gray-500 flex-shrink-0">
+          ({(file.size / 1024).toFixed(1)} KB)
+        </span>
+      </div>
+      <div className="flex items-center gap-1 flex-shrink-0">
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6"
+          onClick={() => window.open(file.url, "_blank")}
+          title="Download file"
+        >
+          <Download className="h-3 w-3" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          className="h-6 w-6 text-red-500"
+          onClick={onRemove}
+          title="Remove file"
+        >
+          <X className="h-3 w-3" />
+        </Button>
+      </div>
+    </div>
+  );
 
   const getFieldError = (fieldName: string): string | undefined => {
     return errors[fieldName];
@@ -285,10 +443,14 @@ export default function AddClientPage() {
               </Button>
               <Button
                 onClick={handleSubmit}
-                disabled={isPending}
+                disabled={isCreating || isUploadingFiles}
                 className="primary hover:bg-blue-700 text-white h-9 px-4 w-full sm:w-auto"
               >
-                {isPending ? "Adding..." : "Add Client"}
+                {isCreating
+                  ? "Creating..."
+                  : isUploadingFiles
+                  ? "Uploading files..."
+                  : "Add Client"}
               </Button>
             </div>
           </div>
@@ -433,7 +595,6 @@ export default function AddClientPage() {
               </div>
             </div>
           </div>
-
           {/* Address Information */}
           <div className="space-y-4">
             <div className="flex flex-wrap gap-4">
@@ -545,7 +706,6 @@ export default function AddClientPage() {
               </div>
             </div>
           </div>
-
           {/* Contact Information */}
           <div className="space-y-4">
             <div className="flex flex-wrap gap-4">
@@ -649,7 +809,6 @@ export default function AddClientPage() {
               </div>
             </div>
           </div>
-
           {/* Additional Information */}
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -729,7 +888,6 @@ export default function AddClientPage() {
               </div>
             </div>
           </div>
-
           {/* Dispute Schedule Information */}
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -769,7 +927,6 @@ export default function AddClientPage() {
               </div>
             </div>
           </div>
-
           {/* Upload Documents */}
           <div className="space-y-6">
             <h2 className="text-lg font-medium text-gray-900">
@@ -778,34 +935,49 @@ export default function AddClientPage() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {[
-                { key: "driversLicense", label: "Upload for Driver's License" },
-                { key: "proofOfSS", label: "Upload for Proof of SS" },
-                { key: "proofOfAddress", label: "Upload for Proof of Address" },
+                { key: "driversLicense", label: "Driver's License" },
+                { key: "proofOfSS", label: "Proof of SS" },
+                { key: "proofOfAddress", label: "Proof of Address" },
               ].map(({ key, label }) => (
-                <div
-                  key={key}
-                  className="flex items-center justify-between border border-gray-200 rounded-lg px-3 sm:px-4 py-3 h-auto w-full"
-                >
-                  <div className="text-[12px] text-[#9D9D9D] truncate">
-                    {uploadedFiles[key]?.name || label}
+                <div key={key} className="space-y-2">
+                  <Label className="text-sm font-medium">{label}</Label>
+                  <div className="flex items-center justify-between border border-gray-200 rounded-lg px-3 sm:px-4 py-3 h-auto w-full">
+                    <div className="text-[12px] text-[#9D9D9D] truncate">
+                      {uploadedFiles[key]?.length > 0
+                        ? `${uploadedFiles[key].length} file(s)`
+                        : `No files`}
+                    </div>
+                    <input
+                      type="file"
+                      id={key}
+                      className="hidden"
+                      onChange={(e) => handleFileUpload(key, e)}
+                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,image/*"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      className="bg-[#2196F3] text-white hover:bg-blue-700 h-8 px-3 shrink-0"
+                      onClick={() => document.getElementById(key)?.click()}
+                    >
+                      <Upload className="h-3 w-3 mr-1" />
+                      Upload
+                    </Button>
                   </div>
-                  <input
-                    type="file"
-                    id={key}
-                    className="hidden"
-                    onChange={(e) => handleFileUpload(key, e)}
-                    accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                  />
-                  <Button
-                    type="button"
-                    variant="outline"
-                    size="sm"
-                    className="bg-[#2196F3] text-white hover:bg-blue-700 h-8 px-3 shrink-0"
-                    onClick={() => document.getElementById(key)?.click()}
-                  >
-                    <Upload className="h-3 w-3 mr-1" />
-                    Upload
-                  </Button>
+
+                  {/* Show uploaded files preview */}
+                  {uploadedFiles[key]?.length > 0 && (
+                    <div className="space-y-2">
+                      {uploadedFiles[key].map((file) => (
+                        <FilePreview
+                          key={file._id}
+                          file={file}
+                          onRemove={() => removeUploadedFile(key, file._id)}
+                        />
+                      ))}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -833,11 +1005,16 @@ export default function AddClientPage() {
                   <span className="text-blue-600 underline">Browse</span>
                 </div>
                 <div className="text-xs text-gray-400">
-                  Supports: pdf Max file size 80MB
+                  Supports: pdf Max file size 10MB
                 </div>
-                {uploadedFiles.ftcReport && (
+                {uploadedFiles.ftcReport.length > 0 && (
                   <div className="text-sm text-green-600 mt-2">
-                    Uploaded: {uploadedFiles.ftcReport.name}
+                    Uploaded: {uploadedFiles.ftcReport.length} file(s)
+                    {uploadedFiles.ftcReport.map((file, index) => (
+                      <div key={file._id} className="text-xs">
+                        {index + 1}. {file.originalName}
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -867,7 +1044,6 @@ export default function AddClientPage() {
           </div>
         </DialogContent>
       </Dialog>
-
       {/* FTC Report Dialog */}
       <Dialog open={showFtcDialog} onOpenChange={setShowFtcDialog}>
         <DialogContent className="sm:max-w-[974px]">
@@ -876,9 +1052,9 @@ export default function AddClientPage() {
               Upload Your FTC Report
             </DialogTitle>
           </DialogHeader>
-          <div className="space-y-4 flex gap-8">
+          <div className="space-y-4 flex flex-col lg:flex-row gap-8">
             <div
-              className="border-2 border-dashed border-blue-300 rounded-lg p-8 text-center cursor-pointer bg-[#E4E4E7] transition-colors"
+              className="border-2 border-dashed border-blue-300 rounded-lg p-8 text-center cursor-pointer bg-[#E4E4E7] transition-colors flex-1"
               onClick={() => document.getElementById("ftcReportInput")?.click()}
             >
               <div className="mb-4">
@@ -890,7 +1066,7 @@ export default function AddClientPage() {
                   className="mx-auto mb-6"
                 />
               </div>
-              <div className="w-[296px]">
+              <div className="w-full">
                 <div className="text-[16px] text-[#040415] mb-1">
                   Drop your file here, or{" "}
                   <span className="text-[16px] text-[#2196F3] underline hover:text-blue-800">
@@ -898,24 +1074,47 @@ export default function AddClientPage() {
                   </span>
                 </div>
                 <div className="text-sm text-gray-500">
-                  Supports: pdf Max file size 80MB
+                  Supports: pdf Max file size 10MB
                 </div>
               </div>
-              {uploadedFiles.ftcReport && (
+              {uploadedFiles.ftcReport.length > 0 && (
                 <div className="mt-3 text-sm text-green-600 font-medium">
-                  Uploaded: {uploadedFiles.ftcReport.name}
+                  {uploadedFiles.ftcReport.length} file(s) uploaded
                 </div>
               )}
             </div>
-            <div className="w-[311px]">
-              <Label
-                htmlFor="ftcTitle"
-                className="text-sm font-medium text-gray-700"
-              >
-                Need a title of the FTC report
-              </Label>
-              <Input id="ftcTitle" placeholder="---" className="mt-1 h-10" />
+
+            <div className="flex-1 space-y-4">
+              <div>
+                <Label
+                  htmlFor="ftcTitle"
+                  className="text-sm font-medium text-gray-700"
+                >
+                  FTC Report Title
+                </Label>
+                <Input
+                  id="ftcTitle"
+                  placeholder="Enter report title"
+                  className="mt-1 h-10"
+                />
+              </div>
+
+              {uploadedFiles.ftcReport.length > 0 && (
+                <div className="space-y-2">
+                  <Label className="text-sm font-medium text-gray-700">
+                    Uploaded Files:
+                  </Label>
+                  {uploadedFiles.ftcReport.map((file) => (
+                    <FilePreview
+                      key={file._id}
+                      file={file}
+                      onRemove={() => removeUploadedFile("ftcReport", file._id)}
+                    />
+                  ))}
+                </div>
+              )}
             </div>
+
             <input
               type="file"
               id="ftcReportInput"

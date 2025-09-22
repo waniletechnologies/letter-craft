@@ -1,3 +1,4 @@
+// EditClientForm.tsx - Complete updated component
 "use client";
 import React, { useEffect, useMemo, useState, Suspense } from "react";
 import { Button } from "@/components/ui/button";
@@ -10,11 +11,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Upload, X } from "lucide-react";
+import { Calendar, Upload, X, FileText, Download, Trash2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import { UploadFile } from "../../../../public/images";
-import { useGetClient, useUpdateClient } from "@/hooks/clients";
+import {
+  useGetClient,
+  useUpdateClient,
+  useUploadClientFile,
+  useDeleteClientFile,
+  useGetClientFiles,
+  type UploadedFile,
+  type ClientFiles,
+} from "@/hooks/clients";
 import { toast } from "sonner";
 import Loader from "@/components/Loader";
 
@@ -23,7 +32,11 @@ function EditClientForm() {
   const searchParams = useSearchParams();
   const clientId = useMemo(() => searchParams.get("id") || "", [searchParams]);
   const { data, isLoading, error } = useGetClient(clientId);
+  const { data: clientFiles, refetch: refetchFiles } =
+    useGetClientFiles(clientId);
   const updateMutation = useUpdateClient(clientId);
+  const uploadFileMutation = useUploadClientFile();
+  const deleteFileMutation = useDeleteClientFile();
 
   interface ClientData {
     firstName: string;
@@ -71,9 +84,19 @@ function EditClientForm() {
     disputeScheduleTime: "",
   });
 
+  const [tempFiles, setTempFiles] = useState<{
+    [key: string]: File[];
+  }>({
+    driversLicense: [],
+    proofOfSS: [],
+    proofOfAddress: [],
+    ftcReport: [],
+  });
+
   useEffect(() => {
     const client = data?.data;
     if (!client) return;
+
     setFormData({
       firstName: client.firstName || "",
       middleName: client.middleName || "",
@@ -81,7 +104,7 @@ function EditClientForm() {
       suffix: client.suffix || "",
       email: client.email || "",
       dateOfBirth: client.dateOfBirth
-        ? String(client.dateOfBirth).substring(0, 10)
+        ? new Date(client.dateOfBirth).toISOString().split("T")[0]
         : "",
       mailingAddress: client.mailingAddress || "",
       city: client.city || "",
@@ -92,22 +115,15 @@ function EditClientForm() {
       phoneAlternate: client.phoneAlternate || "",
       phoneWork: client.phoneWork || "",
       fax: client.fax || "",
-      ssn: "", // keep hidden; not returned by API by default
+      ssn: client.ssn || "", // keep hidden; not returned by API by default
       experianReportNumber: client.experianReport || "",
       transUnionFileNumber: client.transunionFileNumber || "",
-      disputeScheduleDate: client.disputeScheduleDate || "",
+      disputeScheduleDate: client.disputeScheduleDate
+        ? new Date(client.disputeScheduleDate).toISOString().split("T")[0]
+        : "",
       disputeScheduleTime: client.disputeScheduleTime || "",
     });
   }, [data]);
-
-  const [uploadedFiles, setUploadedFiles] = useState<{
-    [key: string]: { name: string; size: string } | null;
-  }>({
-    driversLicense: { name: "Driver's License.jpg", size: "900kb" },
-    proofOfSS: { name: "Proof of SS.jpg", size: "900kb" },
-    proofOfAddress: { name: "Proof of Address.jpg", size: "900kb" },
-    ftcReport: null,
-  });
 
   const handleInputChange = (field: keyof ClientData, value: string) => {
     setFormData((prev) => ({
@@ -116,25 +132,77 @@ function EditClientForm() {
     }));
   };
 
-  const handleFileUpload = (
-    type: string,
+  const handleFileUpload = async (
+    field: string,
     event: React.ChangeEvent<HTMLInputElement>
   ) => {
     const file = event.target.files?.[0];
-    if (file) {
-      const sizeInKb = Math.round(file.size / 1024);
-      setUploadedFiles((prev) => ({
-        ...prev,
-        [type]: { name: file.name, size: `${sizeInKb}kb` },
-      }));
+    if (!file) return;
+
+    // Validate file size (10MB limit)
+    if (file.size > 10 * 1024 * 1024) {
+      toast.error("File size must be less than 10MB");
+      return;
     }
+
+    // Validate file type
+    const allowedTypes = [
+      "image/jpeg",
+      "image/png",
+      "image/gif",
+      "application/pdf",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+      "text/plain",
+    ];
+
+    if (!allowedTypes.includes(file.type)) {
+      toast.error(
+        "Invalid file type. Please upload images, PDFs, or documents."
+      );
+      return;
+    }
+
+    try {
+      // Upload file immediately for existing client
+      if (clientId) {
+        await uploadFileMutation.mutateAsync({
+          clientId,
+          field,
+          file,
+        });
+        toast.success(`File "${file.name}" uploaded successfully`);
+        refetchFiles();
+      } else {
+        // For new clients, store temporarily
+        setTempFiles((prev) => ({
+          ...prev,
+          [field]: [...prev[field], file],
+        }));
+        toast.success(`File "${file.name}" added successfully`);
+      }
+    } catch (error) {
+      toast.error("Failed to upload file");
+      console.error("File upload error:", error);
+    }
+
+    // Reset the file input
+    event.target.value = "";
   };
 
-  const handleFileRemove = (type: string) => {
-    setUploadedFiles((prev) => ({
-      ...prev,
-      [type]: null,
-    }));
+  const handleFileDelete = async (field: string, fileId: string) => {
+    try {
+      await deleteFileMutation.mutateAsync({
+        clientId,
+        field,
+        fileId,
+      });
+      toast.success("File deleted successfully");
+      refetchFiles();
+    } catch (error) {
+      toast.error("Failed to delete file");
+      console.error("File delete error:", error);
+    }
   };
 
   const handleSubmit = () => {
@@ -155,7 +223,6 @@ function EditClientForm() {
         phoneAlternate: formData.phoneAlternate || undefined,
         phoneWork: formData.phoneWork || undefined,
         fax: formData.fax || undefined,
-        // ssn is not updatable here by default for safety
         experianReport: formData.experianReportNumber || undefined,
         transunionFileNumber: formData.transUnionFileNumber || undefined,
         disputeScheduleDate: formData.disputeScheduleDate || undefined,
@@ -175,6 +242,23 @@ function EditClientForm() {
         },
       }
     );
+  };
+
+  // Helper function to get file icon based on type
+  const getFileIcon = (mimeType: string) => {
+    if (mimeType.startsWith("image/")) return "🖼️";
+    if (mimeType === "application/pdf") return "📄";
+    if (mimeType.includes("word") || mimeType.includes("document")) return "📝";
+    return "📁";
+  };
+
+  // Helper function to format file size
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return "0 Bytes";
+    const k = 1024;
+    const sizes = ["Bytes", "KB", "MB", "GB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
   };
 
   if (!clientId) {
@@ -264,7 +348,7 @@ function EditClientForm() {
                 disabled={updateMutation.isPending}
                 className="primary hover:bg-blue-700 text-white h-9 px-4 w-full sm:w-auto"
               >
-                {updateMutation.isPending ? "Updating..." : "Edit Client"}
+                {updateMutation.isPending ? "Updating..." : "Update Client"}
               </Button>
             </div>
           </div>
@@ -438,7 +522,7 @@ function EditClientForm() {
                 </Select>
               </div>
 
-              <div className="w-[148px] h-[70px]">
+              <div className="w-[148px]">
                 <Label
                   htmlFor="zipCode"
                   className="text-sm font-medium mb-2 block"
@@ -449,7 +533,7 @@ function EditClientForm() {
                   id="zipCode"
                   value={formData.zipCode}
                   onChange={(e) => handleInputChange("zipCode", e.target.value)}
-                  className="h-[35px]"
+                  className="h-10"
                 />
               </div>
             </div>
@@ -458,7 +542,6 @@ function EditClientForm() {
           {/* Contact Information */}
           <div className="space-y-4">
             <div className="flex flex-wrap gap-4">
-              {/* Country */}
               <div className="w-[311px]">
                 <Label
                   htmlFor="country"
@@ -474,7 +557,6 @@ function EditClientForm() {
                 />
               </div>
 
-              {/* Phone Mobile */}
               <div className="w-[148px]">
                 <Label
                   htmlFor="phoneMobile"
@@ -492,7 +574,6 @@ function EditClientForm() {
                 />
               </div>
 
-              {/* Phone Alternate */}
               <div className="w-[148px]">
                 <Label
                   htmlFor="phoneAlternate"
@@ -510,7 +591,6 @@ function EditClientForm() {
                 />
               </div>
 
-              {/* Phone Work */}
               <div className="w-[148px]">
                 <Label
                   htmlFor="phoneWork"
@@ -528,7 +608,6 @@ function EditClientForm() {
                 />
               </div>
 
-              {/* Fax */}
               <div className="w-[148px]">
                 <Label htmlFor="fax" className="text-sm font-medium mb-2 block">
                   Fax
@@ -595,7 +674,6 @@ function EditClientForm() {
           {/* Dispute Schedule Information */}
           <div className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              {/* Dispute Date */}
               <div>
                 <Label
                   htmlFor="disputeScheduleDate"
@@ -614,7 +692,6 @@ function EditClientForm() {
                 />
               </div>
 
-              {/* Dispute Time */}
               <div>
                 <Label
                   htmlFor="disputeScheduleTime"
@@ -641,102 +718,116 @@ function EditClientForm() {
               Upload Documents
             </h2>
 
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {[
-                { key: "driversLicense", label: "Driver's License.jpg" },
-                { key: "proofOfSS", label: "Proof of SS.jpg" },
-                { key: "proofOfAddress", label: "Proof of Address.jpg" },
+                { key: "driversLicense", label: "Driver's License" },
+                { key: "proofOfSS", label: "Proof of SS" },
+                { key: "proofOfAddress", label: "Proof of Address" },
+                { key: "ftcReport", label: "FTC Report" },
               ].map(({ key, label }) => (
-                <div key={key} className="space-y-2">
-                  {uploadedFiles[key] ? (
-                    <div className="flex items-center justify-between p-3 rounded-lg bg-[#EFEFEF]">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-blue-100 rounded flex items-center justify-center overflow-hidden relative">
-                          <Image
-                            src={UploadFile || "/placeholder.svg"}
-                            alt="file icon"
-                            fill
-                            className="object-contain"
-                            priority
-                          />
-                        </div>
+                <div key={key} className="space-y-3">
+                  <Label className="text-sm font-medium">{label}</Label>
 
-                        <div>
-                          <div className="text-[12px] font-medium text-gray-900">
-                            {uploadedFiles[key]?.name}
-                          </div>
-                          <div className="text-[12px] text-gray-500">
-                            {uploadedFiles[key]?.size}
+                  {/* File upload input */}
+                  <div className="border border-gray-200 rounded-lg p-4 text-center">
+                    <input
+                      type="file"
+                      id={key}
+                      className="hidden"
+                      onChange={(e) => handleFileUpload(key, e)}
+                      accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,image/*"
+                    />
+                    <label htmlFor={key} className="cursor-pointer block">
+                      <div className="text-sm text-gray-600 mb-3">
+                        Upload {label}
+                      </div>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="cursor-pointer bg-[#2196F3] text-white hover:bg-blue-700 h-8 px-3 w-full"
+                      >
+                        <Upload className="h-3 w-3 mr-1" />
+                        Upload
+                      </Button>
+                    </label>
+                  </div>
+
+                  {/* Uploaded files list */}
+                  <div className="space-y-2">
+                    {/* Show actual uploaded files from server */}
+                    {clientFiles?.data?.[key]?.map((file: UploadedFile) => (
+                      <div
+                        key={file._id}
+                        className="flex items-center justify-between p-2 bg-gray-50 rounded-md border"
+                      >
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="text-sm">
+                            {getFileIcon(file.mimeType)}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm text-gray-700 truncate">
+                              {file.originalName}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {formatFileSize(file.size)}
+                            </div>
                           </div>
                         </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6"
+                            onClick={() =>
+                              window.open(
+                                `/api/clients/${clientId}/files/${key}/${file._id}`,
+                                "_blank"
+                              )
+                            }
+                          >
+                            <Download className="h-3 w-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-6 w-6 text-red-500"
+                            onClick={() => handleFileDelete(key, file._id)}
+                            disabled={deleteFileMutation.isPending}
+                          >
+                            <Trash2 className="h-3 w-3" />
+                          </Button>
+                        </div>
                       </div>
-                      <button
-                        onClick={() => handleFileRemove(key)}
-                        className="p-1 bg-[#BBBBBB] hover:bg-gray-200 rounded-xl border-[#BBBBBB]"
+                    ))}
+
+                    {/* Show temporary files (for new uploads) */}
+                    {tempFiles[key]?.map((file, index) => (
+                      <div
+                        key={index}
+                        className="flex items-center justify-between p-2 bg-blue-50 rounded-md border"
                       >
-                        <X className="h-4 w-4 text-gray-400" />
-                      </button>
-                    </div>
-                  ) : (
-                    <div className="border border-gray-200 rounded-lg p-4 text-center">
-                      <div className="text-sm text-gray-600 mb-3">
-                        Upload for {label}
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
+                          <span className="text-sm">
+                            {getFileIcon(file.type)}
+                          </span>
+                          <div className="flex-1 min-w-0">
+                            <div className="text-sm text-gray-700 truncate">
+                              {file.name}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {formatFileSize(file.size)}
+                            </div>
+                          </div>
+                        </div>
+                        <span className="text-xs text-blue-600">
+                          Pending upload
+                        </span>
                       </div>
-                      <input
-                        type="file"
-                        id={key}
-                        className="hidden"
-                        onChange={(e) => handleFileUpload(key, e)}
-                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
-                      />
-                      <label htmlFor={key} className="cursor-pointer">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="cursor-pointer bg-[#2196F3] text-white hover:bg-blue-700 h-8 px-3"
-                        >
-                          <Upload className="h-3 w-3 mr-1" />
-                          Upload
-                        </Button>
-                      </label>
-                    </div>
-                  )}
+                    ))}
+                  </div>
                 </div>
               ))}
             </div>
-
-            {/* FTC Report Upload */}
-            {/* <div>
-              <h3 className="font-medium mb-3 text-sm text-gray-900">
-                Upload Your FTC Report
-              </h3>
-              <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                <div className="mb-3">
-                  <Upload className="h-8 w-8 mx-auto text-gray-400" />
-                </div>
-                <input
-                  type="file"
-                  id="ftcReport"
-                  className="hidden"
-                  onChange={(e) => handleFileUpload("ftcReport", e)}
-                  accept=".pdf"
-                />
-                <label htmlFor="ftcReport" className="cursor-pointer">
-                  <div className="text-sm text-gray-600 mb-1">
-                    Drop your file here, or{" "}
-                    <span className="text-blue-600 underline">Browse</span>
-                  </div>
-                  <div className="text-xs text-gray-400">
-                    Supports: pdf Max file size 80MB
-                  </div>
-                </label>
-                {uploadedFiles.ftcReport && (
-                  <div className="text-sm text-green-600 mt-2">
-                    Uploaded: {uploadedFiles.ftcReport.name}
-                  </div>
-                )}
-              </div>
-            </div> */}
           </div>
         </div>
       </div>

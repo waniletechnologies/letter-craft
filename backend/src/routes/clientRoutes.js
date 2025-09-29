@@ -1,47 +1,45 @@
-import { Router } from 'express';
-import clientController from '../controllers/clientController.js';
-import { 
-  validate, 
-  validateQuery, 
-  createClientSchema, 
-  updateClientSchema, 
-  clientQuerySchema 
-} from '../middlewares/validationMiddleware.js';
-import { requireAuth } from '../middlewares/auth.middleware.js';
+import { Router } from "express";
+import clientController from "../controllers/clientController.js";
+import {
+  validate,
+  validateQuery,
+  createClientSchema,
+  updateClientSchema,
+  clientQuerySchema,
+} from "../middlewares/validationMiddleware.js";
+import { requireAuth } from "../middlewares/auth.middleware.js";
 
 const router = Router();
 
 // Client routes
-router.route('/')
-.get(
-  validateQuery(clientQuerySchema),
-  clientController.getAllClients
-)
-.post(
+router
+  .route("/")
+  .get(validateQuery(clientQuerySchema), clientController.getAllClients)
+  .post(
     requireAuth,
     validate(createClientSchema),
     clientController.createClient
   );
 
 // Client statistics
-router.get('/statistics', clientController.getClientStatistics);
+router.get("/statistics", clientController.getClientStatistics);
 
 // Client search
-router.get('/search', clientController.searchClients);
-
+router.get("/search", clientController.searchClients);
+// Add to your client routes
+router.get("/search-combined", clientController.searchCombined);
+// Simple email search
+router.get("/search-email", clientController.searchByEmail);
 
 // Individual client routes
-router.route('/:id')
+router
+  .route("/:id")
   .get(clientController.getClientById)
-  .put(
-    requireAuth,
-    validate(updateClientSchema),
-    clientController.updateClient
-  )
+  .put(requireAuth, validate(updateClientSchema), clientController.updateClient)
   .delete(requireAuth, clientController.deleteClient);
 
 // Client status update
-router.patch('/:id/status', requireAuth, clientController.updateClientStatus);
+router.patch("/:id/status", requireAuth, clientController.updateClientStatus);
 router.post(
   "/:id/files",
   requireAuth,

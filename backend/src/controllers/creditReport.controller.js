@@ -254,86 +254,64 @@ export const getCreditReportStats = async (req, res) => {
 // controllers/creditReport.controller.js - Add this new function
 // controllers/creditReport.controller.js
 // controllers/creditReport.controller.js
+// Update account information
 export const updateAccountInfo = async (req, res) => {
   const { email, bureau, accountId, updates } = req.body;
 
-  console.log("📧 Email:", email);
-  console.log("🏢 Bureau:", bureau);
-  console.log("🔍 Account ID:", accountId);
-  console.log("🔄 Updates:", updates);
-
   try {
-    const report = await CreditReport.findOne({ email });
-    if (!report) {
-      return res
-        .status(404)
-        .json({ success: false, message: "Credit report not found" });
+    console.log("📧 Email:", email);
+    console.log("🏢 Bureau:", bureau);
+    console.log("🔍 Account ID:", accountId);
+    console.log("🔄 Updates:", JSON.stringify(updates, null, 2));
+
+    // Find the credit report for this email
+    const creditReport = await CreditReport.findOne({ email });
+    if (!creditReport) {
+      return res.status(404).json({
+        success: false,
+        message: "Credit report not found for this email",
+      });
     }
 
-    // Find the account in the specified bureau
-    const bureauAccounts = report.accountInfo[bureau] || [];
-    console.log("📊 Bureau accounts count:", bureauAccounts.length);
-
-    // Log all accounts for this bureau for debugging
-    bureauAccounts.forEach((acc, idx) => {
-      console.log(`📝 Account ${idx}:`, {
-        accountName: acc.accountName,
-        accountNumber: acc.accountNumber,
-        _id: acc._id,
+    // Check if accountInfo exists and has the bureau
+    if (!creditReport.accountInfo || !creditReport.accountInfo[bureau]) {
+      return res.status(404).json({
+        success: false,
+        message: `No accounts found for bureau: ${bureau}`,
       });
-    });
+    }
 
-    // FIXED: Only match by accountNumber since that's what the frontend sends
-    const accountIndex = bureauAccounts.findIndex((acc) => {
-      return acc.accountNumber && acc.accountNumber === accountId;
-    });
-
-    console.log("🔍 Found account index:", accountIndex);
+    // Find the account to update
+    const accounts = creditReport.accountInfo[bureau];
+    const accountIndex = accounts.findIndex(
+      (acc) => acc.accountNumber === accountId
+    );
 
     if (accountIndex === -1) {
-      console.log(
-        "❌ Account not found in",
-        bureau,
-        "with account number:",
-        accountId
-      );
-      console.log(
-        "Available account numbers in",
-        bureau + ":",
-        bureauAccounts.map((acc) => acc.accountNumber).filter(Boolean)
-      );
-      return res
-        .status(404)
-        .json({ success: false, message: "Account not found in " + bureau });
+      return res.status(404).json({
+        success: false,
+        message: `Account not found in ${bureau} bureau`,
+      });
     }
 
     // Update the account fields
-    const accountToUpdate = report.accountInfo[bureau][accountIndex];
-    console.log("Updated account information: ", accountToUpdate);
+    const accountToUpdate = accounts[accountIndex];
     
-    if (updates.accountName) {
-      console.log("Real Name: ", accountToUpdate.accountName);
-      accountToUpdate.accountName = updates.accountName;
-      console.log("Updated Name: ", accountToUpdate.accountName);
-      console.log("✅ Updated account name to:", updates.accountName);
-    }
-    if (updates.accountNumber) {
-      accountToUpdate.accountNumber = updates.accountNumber;
-      console.log("✅ Updated account number to:", updates.accountNumber);
-    }
-    if (updates.highBalance) {
-      accountToUpdate.highBalance = updates.highBalance;
-    }
-    if (updates.lastVerified) {
-      accountToUpdate.lastVerified = updates.lastVerified;
-    }
-    if (updates.status) {
-      accountToUpdate.status = updates.status;
-    }
+    // Apply updates to the account
+    Object.keys(updates).forEach((key) => {
+      if (updates[key] !== undefined) {
+        accountToUpdate[key] = updates[key];
+      }
+    });
 
-    report.markModified("accountInfo"); // Manually flag the object as dirty
-    await report.save();
-    console.log("💾 Report saved successfully");
+    // Mark the accountInfo field as modified
+    creditReport.markModified('accountInfo');
+    
+    // Save the entire document
+    await creditReport.save();
+
+    console.log("✅ Account updated successfully in database");
+    console.log("📊 Updated account:", accountToUpdate);
 
     res.json({
       success: true,
@@ -341,7 +319,10 @@ export const updateAccountInfo = async (req, res) => {
       data: accountToUpdate,
     });
   } catch (err) {
-    console.error("❌ Error updating account:", err.message);
-    res.status(500).json({ success: false, message: err.message });
+    console.error("❌ Error updating account info:", err);
+    res.status(500).json({ 
+      success: false, 
+      message: err.message 
+    });
   }
 };

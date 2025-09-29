@@ -7,6 +7,7 @@ import globalErrorHandler from "./src/middlewares/errorHandler.js";
 import routes from "./src/routes/index.js";
 import { seedUser } from "./src/seed/seedUser.js";
 import authRoutes from "./src/routes/auth.route.js";
+import letterRoute from "./src/routes/letter.route.js";
 import creditReport from "./src/routes/creditReport.route.js";
 import accountGroupRoutes from "./src/routes/accountGroup.route.js";
 import disputeRoutes from "./src/routes/dispute.route.js";
@@ -46,6 +47,7 @@ app.use((req, res, next) => {
 // API routes
 app.use('/api/auth', authRoutes);
 app.use('/api', routes);
+app.use("/api", letterRoute);
 app.use("/api", creditReport);
 app.use("/api", accountGroupRoutes);
 app.use("/api/disputes", disputeRoutes);

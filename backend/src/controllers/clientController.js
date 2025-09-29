@@ -2,7 +2,7 @@
 import clientService from "../services/clientService.js";
 import asyncHandler from "../middlewares/asyncHandler.js";
 import multer from "multer";
-
+import Client from "../models/Client.js";
 // Configure multer for memory storage
 const storage = multer.memoryStorage();
 const upload = multer({
@@ -120,6 +120,8 @@ class ClientController {
 
   searchClients = asyncHandler(async (req, res) => {
     const { q: searchTerm, limit = 10 } = req.query;
+
+    console.log("Search Query: ", searchTerm);
 
     if (!searchTerm || searchTerm.trim().length < 2) {
       return res.status(400).json({
@@ -294,6 +296,126 @@ class ClientController {
       next();
     });
   };
+
+  searchByEmail = asyncHandler(async (req, res) => {
+    const { email } = req.query;
+
+    console.log("Search by Email Query:", { email });
+
+    if (!email) {
+      return res.status(400).json({
+        success: false,
+        message: "Email is required",
+      });
+    }
+
+    let decodedEmail = email;
+    try {
+      // Properly decode the email
+      decodedEmail = decodeURIComponent(decodedEmail);
+      // Handle potential double encoding
+      if (decodedEmail.includes("%25")) {
+        decodedEmail = decodeURIComponent(decodedEmail);
+      }
+    } catch (error) {
+      console.log("Error decoding email:", error);
+    }
+
+    console.log("Searching by email:", decodedEmail);
+
+    try {
+      // Search for exact email match
+      const clients = await Client.find({
+        email: { $regex: new RegExp(`^${decodedEmail}$`, "i") },
+      })
+        .select("firstName lastName email _id")
+        .limit(10);
+
+      console.log("Email search results:", clients);
+
+      res.status(200).json({
+        success: true,
+        message: "Search completed successfully",
+        data: clients,
+      });
+    } catch (error) {
+      console.error("Error searching by email:", error);
+      res.status(500).json({
+        success: false,
+        message: "Error searching for client",
+      });
+    }
+  });
+
+  searchCombined = asyncHandler(async (req, res) => {
+    const { q, email } = req.query;
+
+    console.log("Search Combined Query:", { q, email });
+
+    if (!q && !email) {
+      return res.status(400).json({
+        status: false,
+        message: "Search query or email is required",
+      });
+    }
+
+    let clients = [];
+
+    // Priority 1: Search by exact email match first
+    if (email) {
+      let decodedEmail = email;
+      try {
+        // Properly decode the email
+        decodedEmail = decodeURIComponent(decodedEmail);
+        // Handle potential double encoding
+        if (decodedEmail.includes("%25")) {
+          decodedEmail = decodeURIComponent(decodedEmail);
+        }
+      } catch (error) {
+        console.log("Error decoding email:", error);
+      }
+
+      console.log("Searching by email:", decodedEmail);
+
+      // Try exact match first
+      clients = await Client.find({
+        email: { $regex: new RegExp(`^${decodedEmail}$`, "i") },
+      })
+        .select("firstName lastName email _id")
+        .limit(10);
+
+      // If no results, try partial match
+      if (clients.length === 0) {
+        clients = await Client.find({
+          email: { $regex: decodedEmail, $options: "i" },
+        })
+          .select("firstName lastName email _id")
+          .limit(10);
+      }
+    }
+
+    // Priority 2: If no email results, search by name
+    if (clients.length === 0 && q) {
+      console.log("Searching by name:", q);
+      clients = await Client.find({
+        $or: [
+          { firstName: { $regex: q, $options: "i" } },
+          { lastName: { $regex: q, $options: "i" } },
+          { email: { $regex: q, $options: "i" } },
+        ],
+      })
+        .select("firstName lastName email _id")
+        .limit(10);
+    }
+
+    console.log("Search Results:", clients);
+
+    res.status(200).json({
+      status: true,
+      message: "Search completed successfully",
+      data: clients,
+    });
+  });
 }
 
 export default new ClientController();

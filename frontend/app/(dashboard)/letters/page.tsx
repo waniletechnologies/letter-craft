@@ -1,10 +1,11 @@
 "use client"
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import LetterCard from "./components/letter-card";
 import LetterPreview from "./components/letter-preview";
 import { Mail, PhoneCall, Printer, SendHorizonal } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { getClientLetters } from "@/lib/lettersApi";
 
 const sampleLetters = [
   {
@@ -47,9 +48,43 @@ const LettersPage = () => {
     round: number;
     status: "Sent" | "Draft" | "Delivered";
   } | null>(null);
+  type Letter = {
+    clientName: string;
+    bureau: "Experian" | "Equifax" | "TransUnion";
+    letterType: string;
+    round: number;
+    status: "Sent" | "Draft" | "Delivered";
+    sendMethod: string;
+    dateSent: string;
+    tracking: string;
+  };
+
+  const [letters, setLetters] = useState<Letter[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Load letters from backend
+  useEffect(() => {
+    loadLetters();
+  }, []);
+
+  const loadLetters = async () => {
+    try {
+      setLoading(true);
+      // For now, we'll get all letters. In a real app, you might want to filter by user or client
+      // You would need to implement a getAllLetters endpoint or get letters for specific clients
+      // For demonstration, we'll use the sample data
+      setLetters(sampleLetters);
+    } catch (error) {
+      console.error("Error loading letters:", error);
+      // Fallback to sample data
+      setLetters(sampleLetters);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handlePreview = (idx: number) => {
-    const l = sampleLetters[idx];
+    const l = letters[idx];
     setPreviewData({ clientName: l.clientName, bureau: l.bureau, round: l.round, status: l.status });
     setPreviewOpen(true);
   };
@@ -73,14 +108,20 @@ const LettersPage = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        {sampleLetters.map((l, i) => (
-          <LetterCard
-            key={`${l.clientName}-${l.bureau}-${l.round}`}
-            {...l}
-            onPreview={() => handlePreview(i)}
-            onDownload={() => handleDownload(l.clientName)}
-          />
-        ))}
+        {loading ? (
+          <div className="col-span-2 text-center py-8">
+            <p>Loading letters...</p>
+          </div>
+        ) : (
+          letters.map((l, i) => (
+            <LetterCard
+              key={`${l.clientName}-${l.bureau}-${l.round}`}
+              {...l}
+              onPreview={() => handlePreview(i)}
+              onDownload={() => handleDownload(l.clientName)}
+            />
+          ))
+        )}
       </div>
 
       {/* Preview Dialog */}

@@ -1,17 +1,567 @@
-"use client"
-
-import React, { useState } from "react";
+// app/dispute-wizard/generate-letter/page.tsx
+"use client";
+import React, { useState, useEffect } from "react";
+import MultiSelect from "@/components/ui/multi-select";
+import Typo from "typo-js";
+import RichTextEditor from "@/components/ui/rich-text-editor";
 import Stepper from "../components/Stepper";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { FileText, Bold, Italic, Underline, List, AlignLeft, Sparkles } from "lucide-react";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { FileText, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { Experian, Equifax, TransUnion } from "@/public/images";
 import SaveLetterDialog, { SaveLetterData } from "./components/save-letter";
+import { useSearchParams } from "next/navigation";
+import { fetchLetterContent } from "@/lib/lettersApi";
+import { fetchStoredCreditReport } from "@/lib/creditReportApi";
+import { useDispute } from "@/context/disputeContext";
+import { useGetClientFiles, UploadedFile } from "@/hooks/clients";
+
+interface PersonalInfo {
+  names: Array<{
+    first: string;
+    middle: string;
+    last: string;
+    suffix?: string;
+    type: string;
+  }>;
+  addresses: Array<{
+    street: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    dateReported?: string;
+    dateUpdated?: string;
+  }>;
+  births: Array<{
+    date: string;
+    year: string;
+    month: string;
+    day: string;
+  }>;
+  ssns: Array<{
+    number: string;
+  }>;
+  employers: Array<{
+    name: string;
+  }>;
+  previousAddresses: Array<{
+    street: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    dateReported?: string;
+    dateUpdated?: string;
+  }>;
+  creditScore?: string;
+  creditReportDate?: string;
+}
+
+interface CreditReportData {
+  personalInfo: {
+    Experian: PersonalInfo;
+    Equifax: PersonalInfo;
+    TransUnion: PersonalInfo;
+  };
+  email: string;
+  clientId?: string; // Add clientId to the credit report data
+}
 
 const GenerateLetterPage = () => {
+  const [selectedFtcReports, setSelectedFtcReports] = useState<string[]>([]);
   const [phase] = useState(1);
+  const dictionary = new Typo(
+    "en_US",
+    "/dictionaries/en_US/en_US.aff",
+    "/dictionaries/en_US/en_US.dic",
+    { asyncLoad: true }
+  );
   const [isSaveDialogOpen, setIsSaveDialogOpen] = useState(false);
+  const [letterContent, setLetterContent] = useState<string>("");
+  const [downloadUrl, setDownloadUrl] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string>("");
+  const [personalInfo, setPersonalInfo] = useState<PersonalInfo | null>(null);
+  const [todayDate, setTodayDate] = useState<string>("");
+  const [isRewriting, setIsRewriting] = useState(false);
+  const [selectedFtcReport, setSelectedFtcReport] = useState<string>("");
+  const [clientId, setClientId] = useState<string>("");
+  const {
+    disputeItems,
+    loadSavedDisputeItems,
+    setSelectedFtcReport: setContextFtcReport,
+  } = useDispute();
+
+  const searchParams = useSearchParams();
+  const category = searchParams.get("category");
+  const letterName = searchParams.get("letter");
+  const email = searchParams.get("email");
+
+  // Fetch client files using the hook - NOW THIS WILL WORK WHEN clientId IS SET
+  const {
+    data: clientFiles,
+    isLoading: filesLoading,
+    error: filesError,
+  } = useGetClientFiles(clientId);
+
+  // Set today's date
+  useEffect(() => {
+    const today = new Date();
+    const formattedDate = `${String(today.getMonth() + 1).padStart(
+      2,
+      "0"
+    )}-${String(today.getDate()).padStart(2, "0")}-${today.getFullYear()}`;
+    setTodayDate(formattedDate);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      loadSavedDisputeItems();
+    }
+  }, [loadSavedDisputeItems]);
+
+  // Load credit report data first
+  useEffect(() => {
+    if (email) {
+      loadCreditReportData(email);
+    }
+  }, [email]);
+
+  // Check for edit letter data
+  useEffect(() => {
+    const editData = localStorage.getItem("editLetterData");
+    if (editData) {
+      const parsedData = JSON.parse(editData);
+      // If editing an existing letter, load its data
+      if (parsedData._id) {
+        // This is a saved letter from backend
+        setClientId(parsedData.clientId);
+        setSelectedFtcReport(parsedData.bureau);
+        setContextFtcReport(parsedData.bureau);
+        // You might want to load the letter content here
+      } else {
+        // This is from localStorage
+        setClientId(parsedData.clientId);
+        setSelectedFtcReport(parsedData.letterDetails?.bureau || "");
+        setContextFtcReport(parsedData.letterDetails?.bureau || "");
+      }
+      // Clear the edit data after using it
+      localStorage.removeItem("editLetterData");
+    }
+  }, []);
+
+  // Then load letter content when personalInfo is available
+  useEffect(() => {
+    if (category && letterName && personalInfo) {
+      loadLetterContent(category, letterName);
+    }
+  }, [category, letterName, personalInfo]);
+
+  // Update context when FTC report is selected
+  useEffect(() => {
+    if (selectedFtcReports.length > 0 && clientFiles?.ftcReport) {
+      const selectedReports = clientFiles.ftcReport.filter(
+        (report: UploadedFile) => selectedFtcReports.includes(report._id)
+      );
+      if (selectedReports.length > 0) {
+        // Update your context to handle multiple reports
+        setContextFtcReport(selectedReports);
+      }
+    }
+  }, [selectedFtcReports, clientFiles, setContextFtcReport]);
+
+  const loadCreditReportData = async (userEmail: string) => {
+    try {
+      const response = await fetchStoredCreditReport(userEmail);
+      if (response.success && response.data) {
+        const creditData: CreditReportData = response.data;
+        const experianInfo = creditData.personalInfo.Experian;
+        const equifaxInfo = creditData.personalInfo.Equifax;
+        const transunionInfo = creditData.personalInfo.TransUnion;
+
+        const primaryInfo =
+          experianInfo.names.length > 0
+            ? experianInfo
+            : equifaxInfo.names.length > 0
+            ? equifaxInfo
+            : transunionInfo;
+
+        setPersonalInfo(primaryInfo);
+
+        // Set clientId if available in credit report data
+        if (creditData.clientId) {
+          setClientId(creditData.clientId);
+          console.log("Client ID from credit report:", creditData.clientId);
+        } else {
+          // Fallback: Try to find client by name and email
+          await findClientByNameAndEmail(primaryInfo, userEmail);
+        }
+      }
+    } catch (err) {
+      console.error("Error loading credit report data:", err);
+    }
+  };
+
+  const findClientByNameAndEmail = async (
+    personalInfo: PersonalInfo,
+    email: string
+  ) => {
+    try {
+      if (!personalInfo.names.length) return;
+
+      const firstName = personalInfo.names[0].first;
+      const lastName = personalInfo.names[0].last;
+
+      // Properly decode the email
+      let decodedEmail = email;
+      try {
+        decodedEmail = decodeURIComponent(decodedEmail);
+        // Handle potential double encoding
+        if (decodedEmail.includes("%25")) {
+          decodedEmail = decodeURIComponent(decodedEmail);
+        }
+      } catch (error) {
+        console.log("Error decoding email:", error);
+      }
+
+      // Search for client by email first
+      const response = await fetch(
+        `/api/clients/search-email?email=${encodeURIComponent(decodedEmail)}`
+      );
+
+      console.log("Client search response:", response);
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Client search data:", data);
+
+        if (data.success && data.data && data.data.length > 0) {
+          const client = data.data[0];
+          console.log("Client found by email:", client._id);
+          setClientId(client._id);
+          return;
+        }
+      }
+
+      // If no client found, don't create one - just log and continue without client
+      console.log("No client found for email:", decodedEmail);
+      console.log("Continuing without client - no FTC reports will be available");
+      setClientId(""); // Set empty string instead of temp-client-id
+    } catch (error) {
+      console.error("Error searching for client:", error);
+    }
+  };
+
+  const formatSSN = (ssn: string) => {
+    if (ssn.length === 9) {
+      return `${ssn.substring(0, 3)}-${ssn.substring(3, 5)}-${ssn.substring(
+        5
+      )}`;
+    }
+    return ssn;
+  };
+
+  const formatDate = (dateString: string) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      return `${String(date.getMonth() + 1).padStart(2, "0")}/${String(
+        date.getDate()
+      ).padStart(2, "0")}/${date.getFullYear()}`;
+    } catch {
+      return dateString;
+    }
+  };
+
+  const getSenderAddress = () => {
+    if (!personalInfo) {
+      return "Michael Yaldo\n4823 Bantry Dr\nWest Bloomfield, Michigan 48322";
+    }
+
+    const name = personalInfo.names[0];
+    const address = personalInfo.addresses[0];
+    const birth = personalInfo.births[0];
+    const ssn = personalInfo.ssns[0];
+
+    const fullName = `${name?.first || ""} ${name?.middle || ""} ${
+      name?.last || ""
+    } ${name?.suffix || ""}`.trim();
+    const addressLine = address
+      ? `${address.street}, ${address.city}, ${address.state} ${address.postalCode}`
+      : "";
+    const dob = birth?.date ? formatDate(birth.date) : "N/A";
+    const ssnFormatted = ssn?.number ? formatSSN(ssn.number) : "N/A";
+
+    return `${fullName}\n${addressLine}\nDate of Birth: ${dob}\nSSN: ${ssnFormatted}\nToday's Date: ${todayDate}`;
+  };
+
+  const getToAddress = () => {
+    if (
+      category?.toUpperCase().includes("EXPERIAN") ||
+      letterName?.toUpperCase().includes("EXPERIAN")
+    ) {
+      return "EXPERIAN\nP.O. BOX 4500\nALLEN, TX 75013";
+    } else if (
+      category?.toUpperCase().includes("TRANSUNION") ||
+      letterName?.toUpperCase().includes("TRANSUNION")
+    ) {
+      return "TRANSUNION\nP.O. BOX 2000\nCHESTER, PA 19016";
+    } else {
+      return "EQUIFAX\nP.O. BOX 740250\nATLANTA, GA 30374";
+    }
+  };
+
+  useEffect(() => {
+    // Check if we're coming from edit mode
+    const editLetterData = localStorage.getItem("editLetterData");
+    if (editLetterData) {
+      const parsedData = JSON.parse(editLetterData);
+
+      // Pre-populate the form with the saved data
+      setSelectedFtcReports(parsedData.selectedFtcReports || []);
+
+      // You might want to set other fields based on the saved data
+      console.log("Editing letter:", parsedData);
+
+      // Clear the edit data after using it
+      localStorage.removeItem("editLetterData");
+    }
+  }, []);
+
+  // Also update the getFtcReportOptions function to show selected reports
+  const getFtcReportOptions = () => {
+    if (
+      !clientFiles?.data?.ftcReport ||
+      clientFiles?.data?.ftcReport.length === 0
+    ) {
+      return [];
+    }
+
+    return clientFiles.data.ftcReport.map((report: UploadedFile) => ({
+      value: report._id,
+      label:
+        report.originalName ||
+        report.fileName ||
+        `FTC Report ${report._id.substring(0, 8)}`,
+      url: report.url,
+      selected: selectedFtcReports.includes(report._id), // Add selected flag
+    }));
+  };
+
+  const handleFtcReportChange = (values: string[]) => {
+    setSelectedFtcReports(values);
+    console.log("Selected FTC Report IDs:", values);
+  };
+
+  // Add debug logging to see when clientId changes
+  useEffect(() => {
+    console.log("Client ID updated:", clientId);
+  }, [clientId]);
+
+  // Add debug logging for client files
+  useEffect(() => {
+    console.log("Client files updated:", clientFiles);
+    console.log("Files loading:", filesLoading);
+    console.log("Files error:", filesError);
+  }, [clientFiles, filesLoading, filesError]);
+
+  const formatLetterContent = (content: string) => {
+    const formattedContent = content
+      .replace(
+        /(Urgent Removal of Fraudulent Information)/g,
+        '<strong class="font-bold">$1</strong>'
+      )
+      .replace(
+        /(15 U.S. Code § 1681c-2)/g,
+        '<strong class="font-bold">$1</strong>'
+      )
+      .replace(/(identity theft)/gi, '<strong class="font-bold">$1</strong>')
+      .replace(
+        /(fraudulent information)/gi,
+        '<strong class="font-bold">$1</strong>'
+      )
+      .replace(/(credit report)/gi, '<strong class="font-bold">$1</strong>')
+      .replace(
+        /(FTC Identity Theft Report)/g,
+        '<strong class="font-bold">$1</strong>'
+      )
+      .replace(/(four business days)/g, '<strong class="font-bold">$1</strong>')
+      .replace(/(block request)/g, '<strong class="font-bold">$1</strong>')
+      .replace(
+        /(material misrepresentation)/g,
+        '<strong class="font-bold">$1</strong>'
+      )
+      .replace(
+        /Subject:/g,
+        '<div style="font-weight: 600; font-size: 14px; margin-bottom: 16px;">Subject:</div>'
+      )
+      .replace(
+        /Dear Equifax,/g,
+        '<div style="margin-bottom: 16px;">Dear Equifax,</div>'
+      )
+      .replace(
+        /Thank you for your immediate attention\./g,
+        '<div style="margin-top: 24px; margin-bottom: 16px;">Thank you for your immediate attention.</div>'
+      )
+      .replace(
+        /Sincerely,/g,
+        '<div style="margin-top: 32px; margin-bottom: 8px;">Sincerely,</div>'
+      )
+      .replace(
+        /Enclosures:/g,
+        '<div style="margin-top: 24px; font-style: italic;">Enclosures:</div>'
+      );
+
+    return formattedContent;
+  };
+
+  const fixGrammarAndEnhanceContent = (content: string) => {
+    const textContent = content.replace(/<[^>]*>/g, "");
+
+    const words = textContent.split(/(\b)/);
+    const correctedWords = words.map((word) => {
+      if (!word || typeof word !== "string" || !/^[a-zA-Z]+$/.test(word)) {
+        return word;
+      }
+
+      try {
+        if (!dictionary.check(word)) {
+          const suggestions = dictionary.suggest(word);
+          if (suggestions && suggestions.length > 0) {
+            return suggestions[0];
+          }
+        }
+      } catch (err) {
+        console.warn("Typo check failed for word:", word, err);
+      }
+
+      return word;
+    });
+
+    return correctedWords.join("");
+  };
+
+  const populateLetterTemplate = (template: string) => {
+    if (!personalInfo) {
+      return template;
+    }
+
+    template = template.replace(
+      /(Creditor:\s*{Creditors Name}[\s\S]*?{Date Opened mm\/yyyy}\s*)+/gi,
+      "{DisputedAccounts}"
+    );
+
+    const name = personalInfo.names[0];
+    const fullName = `${name?.first || ""} ${name?.middle || ""} ${
+      name?.last || ""
+    } ${name?.suffix || ""}`.trim();
+    const address = personalInfo.addresses[0];
+    const birth = personalInfo.births[0];
+    const ssn = personalInfo.ssns[0];
+
+    const addressLine = address
+      ? `${address.street}, ${address.city}, ${address.state} ${address.postalCode}`
+      : "";
+    const dob = birth?.date ? formatDate(birth.date) : "N/A";
+    const ssnFormatted = ssn?.number ? formatSSN(ssn.number) : "N/A";
+
+    let accountDetails = "";
+    if (disputeItems && disputeItems.length > 0) {
+      accountDetails = disputeItems
+        .map((item) => {
+          const dateOpened = item.dateOpened
+            ? new Date(item.dateOpened).toLocaleDateString("en-US", {
+                month: "2-digit",
+                year: "numeric",
+              })
+            : "N/A";
+
+          return `Creditor: ${item.creditor}\nAccount Number: ${item.account}\nDate Opened: ${dateOpened}\n\n`;
+        })
+        .join("\n\n");
+    }
+
+    let populatedTemplate = template
+      .replace(/{First Name}/g, name?.first || "")
+      .replace(/{Middle Name}/g, name?.middle || "")
+      .replace(/{Last Name}/g, name?.last || "")
+      .replace(/{Suffix}/g, name?.suffix || "")
+      .replace(/{First Name} {Middle Name} {Last Name} {Suffix}/g, fullName)
+      .replace(/{Address}/g, address?.street || "")
+      .replace(/{City}/g, address?.city || "")
+      .replace(/{State}/g, address?.state || "")
+      .replace(/{Zip code}/g, address?.postalCode || "")
+      .replace(/{City}, {State} {Zip code}/g, addressLine)
+      .replace(/{Date of Birth mm\/dd\/yyyy}/g, dob)
+      .replace(/{Social Security Number XXX-XX-XXXX}/g, ssnFormatted)
+      .replace(/{Today's Date mm-dd-yyyy}/g, todayDate)
+      .replace(/{SIGNATURE}/g, "")
+      .replace(/{Today's Date mm-dd-yyyy}/g, `: ${todayDate}`);
+
+    populatedTemplate = populatedTemplate.replace(
+      /{DisputedAccounts}/g,
+      accountDetails || "No disputed accounts listed"
+    );
+
+    populatedTemplate = populatedTemplate.replace(
+      /(Date Opened:.*?\n\n)(I expect swift action)/,
+      "$1\n$2"
+    );
+
+    return populatedTemplate;
+  };
+
+  const handleRewriteWithAI = async () => {
+    setIsRewriting(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const enhancedContent = fixGrammarAndEnhanceContent(letterContent);
+      setLetterContent(enhancedContent);
+    } catch (error) {
+      console.error("Error rewriting content:", error);
+    } finally {
+      setIsRewriting(false);
+    }
+  };
+
+  const loadLetterContent = async (cat: string, name: string) => {
+    try {
+      setLoading(true);
+      setError("");
+
+      const response = await fetchLetterContent(cat, name);
+      console.log("Letter content response:", response);
+
+      if (response.success && response.data) {
+        let bodyContent = response.data.html;
+
+        if (personalInfo && bodyContent) {
+          const tempDiv = document.createElement("div");
+          tempDiv.innerHTML = bodyContent;
+          const textContent = tempDiv.textContent || tempDiv.innerText || "";
+          const populatedText = populateLetterTemplate(textContent);
+          bodyContent = populatedText.replace(/\n/g, "<br>");
+        }
+
+        const formattedContent = formatLetterContent(bodyContent);
+        setLetterContent(formattedContent);
+        setDownloadUrl(response.data.downloadUrl);
+      } else {
+        setError(response.message || "Failed to load letter content");
+      }
+    } catch (err) {
+      setError("Error loading letter content");
+      console.error("Error loading letter:", err);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleSaveLetter = (data: SaveLetterData) => {
     console.log("Saving letter with data:", data);
@@ -21,6 +571,53 @@ const GenerateLetterPage = () => {
     setIsSaveDialogOpen(true);
   };
 
+  const handleDownload = () => {
+    const content = generateDocxContent();
+
+    const blob = new Blob([content], {
+      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    });
+
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dispute-letter-${category}-${
+      new Date().toISOString().split("T")[0]
+    }.docx`;
+
+    document.body.appendChild(a);
+    a.click();
+
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const generateDocxContent = () => {
+    const senderAddress = getSenderAddress();
+    const toAddress = getToAddress();
+
+    const tempDiv = document.createElement("div");
+    tempDiv.innerHTML = letterContent;
+    const plainTextContent = tempDiv.textContent || tempDiv.innerText || "";
+
+    const fullContent = `FROM:\n${senderAddress}\n\nTO:\n${toAddress}\n\n${plainTextContent}`;
+
+    return fullContent;
+  };
+
+  // In GenerateLetterPage.tsx - add this helper function
+  const getBureauFromCategory = (category: string | null) => {
+    if (!category) return "Equifax"; // Default to Equifax
+
+    const upperCategory = category.toUpperCase();
+    if (upperCategory.includes("EXPERIAN")) return "Experian";
+    if (upperCategory.includes("EQUIFAX")) return "Equifax";
+    if (upperCategory.includes("TRANSUNION")) return "TransUnion";
+
+    // Default to Equifax if no match found
+    return "Equifax";
+  };
+
   return (
     <div className="sm:p-6">
       {/* Title row with stepper on the right */}
@@ -28,9 +625,12 @@ const GenerateLetterPage = () => {
         <div className="flex items-center gap-3">
           <FileText className="h-5 w-5 text-[#111827]" />
           <h1 className="font-semibold text-[20px] leading-none text-[#111827]">
-            Letter Editor (Michael Yaldo)
+            Letter Editor{" "}
+            {personalInfo
+              ? `(${personalInfo.names[0]?.first} ${personalInfo.names[0]?.last})`
+              : "(Michael Yaldo)"}
           </h1>
-          <div className=" px-2 py-0 text-[11px] ">Group 1</div>
+          <div className="px-2 py-0 text-[11px]">Group 1</div>
         </div>
         <Stepper current={phase} />
       </div>
@@ -65,15 +665,25 @@ const GenerateLetterPage = () => {
               <div className="text-[11px] text-[#6B7280] mb-1">Client Docs</div>
             </div>
             <div className="col-span-2">
-              <Select>
-                <SelectTrigger className="shadow-none w-full h-9 bg-white">
-                  <SelectValue placeholder="Select FTC Report" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="r1">Report #1</SelectItem>
-                  <SelectItem value="r2">Report #2</SelectItem>
-                </SelectContent>
-              </Select>
+              <MultiSelect
+                options={getFtcReportOptions()}
+                value={selectedFtcReports}
+                onValueChange={handleFtcReportChange}
+                placeholder={
+                  !clientId
+                    ? "No FTC Reports Available"
+                    : filesLoading
+                    ? "Loading FTC Reports..."
+                    : getFtcReportOptions().length === 0
+                    ? "No FTC Reports Available"
+                    : "Select FTC Reports"
+                }
+                disabled={
+                  !clientId ||
+                  filesLoading ||
+                  getFtcReportOptions().length === 0
+                }
+              />
             </div>
             <div className="sm:col-span-1 col-span-2">
               <Select>
@@ -88,7 +698,28 @@ const GenerateLetterPage = () => {
             </div>
           </div>
         </div>
-
+        {/* Selected Letter Info */}
+        {category && letterName && (
+          <div className="px-4 py-2 bg-blue-50 border-b">
+            <div className="text-sm font-medium">
+              Selected: {decodeURIComponent(category)} →{" "}
+              {decodeURIComponent(letterName)}
+            </div>
+            {selectedFtcReports.length > 0 && (
+              <div className="text-xs text-green-600 mt-1">
+                Selected {selectedFtcReports.length} FTC Report(s):{" "}
+                {selectedFtcReports
+                  .map((reportId) => {
+                    const report = getFtcReportOptions().find(
+                      (r: { value: string; label: string; url: string; selected: boolean }) => r.value === reportId
+                    );
+                    return report?.label;
+                  })
+                  .join(", ")}
+              </div>
+            )}
+          </div>
+        )}
         {/* Letter Envelope Information */}
         <div className="rounded-xl bg-white py-6 sm:px-12 px-4 mb-4">
           <div className="font-medium text-xs leading-[150%] -tracking-[0.03em] capitalize text-[#292524] mb-2">
@@ -100,61 +731,52 @@ const GenerateLetterPage = () => {
                 <div className="font-medium text-xs leading-[150%] -tracking-[0.03em] capitalize text-[#292524] mb-2">
                   Send From Address:
                 </div>
-                <div className="font-semibold text-xs leading-[150%] -tracking-[0.03em] capitalize text-[#292524]">
-                  Michael Yaldo
-                  <br />
-                  4823 Bantry Dr
-                  <br />
-                  West Bloomfield, Michigan 48322
+                <div className="font-semibold text-xs leading-[150%] -tracking-[0.03em] capitalize text-[#292524] whitespace-pre-line">
+                  {getSenderAddress()}
                 </div>
               </div>
               <div className="rounded-md p-3">
                 <div className="font-medium text-xs leading-[150%] -tracking-[0.03em] capitalize text-[#292524] mb-2">
                   Send To Address:
                 </div>
-                <div className="font-semibold text-xs leading-[150%] -tracking-[0.03em] capitalize text-[#292524]">
-                  Equifax Information Services LLC
-                  <br />
-                  P.O. Box 740256
-                  <br />
-                  Atlanta, GA 30374
+                <div className="font-semibold text-xs leading-[150%] -tracking-[0.03em] capitalize text-[#292524] whitespace-pre-line">
+                  {getToAddress()}
                 </div>
               </div>
             </div>
           </div>
         </div>
         {/* Editor */}
-        <div className="sm:px-12 px-4">
-          <div className="rounded-xl border border-[#E5E7EB] bg-white">
-            <div className="flex items-center gap-2 p-2 border-b border-[#E5E7EB] text-[#6B7280]">
-              <Bold className="h-4 w-4" />
-              <Italic className="h-4 w-4" />
-              <Underline className="h-4 w-4" />
-              <List className="h-4 w-4" />
-              <AlignLeft className="h-4 w-4" />
+        <div className="relative">
+          {loading ? (
+            <div className="min-h-[360px] flex items-center justify-center">
+              <div className="text-gray-500">Loading letter content...</div>
             </div>
-            <div className="relative p-4">
-              <div className="p-4 text-xs text-[#3A3535] min-h-[360px] rounded-md bg-white">
-                Dear Equifax,
-                <br />
-                <br />
-                This is a placeholder for the generated letter content. The real
-                editor will appear here.
-                <br />
-                <br />
-                Sincerely,
-                <br />
-                Michael Ron Yaldo
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                className="absolute border-primary right-4 bottom-4 flex items-center gap-2"
-              >
-                Rewrite with AI <Sparkles className="h-4 w-4 text-primary" />
-              </Button>
+          ) : error ? (
+            <div className="min-h-[360px] flex items-center justify-center">
+              <div className="text-red-500">{error}</div>
             </div>
-          </div>
+          ) : (
+            <RichTextEditor
+              value={letterContent}
+              onChange={setLetterContent}
+              className="sm:px-12 px-4"
+              onDownload={handleDownload}
+              senderAddress={getSenderAddress()}
+              toAddress={getToAddress()}
+            />
+          )}
+
+          <Button
+            size="sm"
+            variant="outline"
+            onClick={handleRewriteWithAI}
+            disabled={isRewriting || !letterContent}
+            className="mr-14 absolute border-primary right-4 bottom-4 flex items-center gap-2"
+          >
+            {isRewriting ? "Rewriting..." : "Rewrite with AI"}
+            <Sparkles className="h-4 w-4 text-primary" />
+          </Button>
         </div>
         {/* Footer actions */}
         <div className="flex flex-col sm:flex-row sm:justify-end my-4 sm:mr-12">
@@ -163,18 +785,28 @@ const GenerateLetterPage = () => {
             <Button
               className="bg-primary hover:bg-primary/90"
               onClick={handleSaveAndContinue}
+              disabled={!letterContent}
             >
               Save & Continue
             </Button>
           </div>
         </div>
       </div>
-
       {/* Save Letter Dialog */}
       <SaveLetterDialog
         isOpen={isSaveDialogOpen}
         onClose={() => setIsSaveDialogOpen(false)}
         onSave={handleSaveLetter}
+        selectedFtcReports={selectedFtcReports} // Change from selectedFtcReport to selectedFtcReports
+        letterData={{
+          category: category || "",
+          letterName: letterName || "",
+          bureau: getBureauFromCategory(category),
+          content: letterContent,
+          personalInfo: personalInfo,
+        }}
+        clientId={clientId}
+        email={email}
       />
     </div>
   );

@@ -32,7 +32,9 @@ interface IntegratedStepperProps {
   onMailMethodChange: (method: string) => void;
   onBack: () => void;
   onNext: () => void;
+  onSendLetters: () => void;
   canNext: boolean;
+  email?: string;
 }
 
 const IntegratedStepper: React.FC<IntegratedStepperProps> = ({
@@ -53,7 +55,9 @@ const IntegratedStepper: React.FC<IntegratedStepperProps> = ({
   onMailMethodChange,
   onBack,
   onNext,
+  onSendLetters,
   canNext,
+  email,
 }) => {
   const router = useRouter();
 
@@ -66,7 +70,8 @@ const IntegratedStepper: React.FC<IntegratedStepperProps> = ({
             selectedLetters={selectedLetters}
             onLetterSelection={onLetterSelection}
             onSelectAll={onSelectAll}
-          />  
+            email={email}
+          />
         );
       case 2:
         return (
@@ -104,7 +109,7 @@ const IntegratedStepper: React.FC<IntegratedStepperProps> = ({
 
   return (
     <div className="space-y-0">
-      {steps.map((step,) => (
+      {steps.map((step) => (
         <div key={step.id} className="relative">
           {/* Step Header */}
           <div className="flex items-start gap-4">
@@ -121,14 +126,12 @@ const IntegratedStepper: React.FC<IntegratedStepperProps> = ({
               >
                 {step.id}
               </div>
-              
+
               {/* Vertical Line - Full height for active step, partial for others */}
               {step.id < steps.length && (
-                <div 
+                <div
                   className={`absolute left-1/2 transform -translate-x-1/2 w-0.5 bg-[#E2E2E2]  ${
-                    currentStep === step.id 
-                      ? "top-8 h-60"
-                      : "top-8 h-6"  
+                    currentStep === step.id ? "top-8 h-60" : "top-8 h-6"
                   }`}
                 />
               )}
@@ -136,12 +139,16 @@ const IntegratedStepper: React.FC<IntegratedStepperProps> = ({
 
             {/* Step Title and Content */}
             <div className="flex-1 min-w-0 pl-8">
-              <div className={`font-semibold text-[28px] leading-[32px] -tracking-[0.04em] mb-4 ${
-                currentStep === step.id ? "text-[#383737]" : "text-[#B8B8B8]"
-              }`}>
+              <div
+                className={`font-semibold text-[28px] leading-[32px] -tracking-[0.04em] mb-4 ${
+                  currentStep === step.id ? "text-[#383737]" : "text-[#B8B8B8]"
+                }`}
+              >
                 {step.title}
                 {step.description && (
-                  <span className="font-medium text-[15px] leading-[32px] -tracking-[0.04em] text-[#71717A] ml-2">({step.description})</span>
+                  <span className="font-medium text-[15px] leading-[32px] -tracking-[0.04em] text-[#71717A] ml-2">
+                    ({step.description})
+                  </span>
                 )}
               </div>
 
@@ -162,9 +169,7 @@ const IntegratedStepper: React.FC<IntegratedStepperProps> = ({
                         Next
                       </Button>
                     ) : (
-                      <Button
-                      onClick={() => router.push("/dashboard")}
-                      >
+                      <Button onClick={onSendLetters} disabled={!canNext}>
                         Send Letters
                       </Button>
                     )}

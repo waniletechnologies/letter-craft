@@ -2,7 +2,7 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect } from "react";
 import { getAccountGroupsByEmail } from "@/lib/accountGroupApi";
-
+import { UploadedFile } from "@/hooks/clients";
 export interface DisputeItem {
   id: string;
   creditor: string;
@@ -35,6 +35,10 @@ interface DisputeContextValue {
     bureau: string
   ) => string | undefined;
   clearDisputeItems: () => void;
+  saveDisputeItems: (items: DisputeItem[]) => void;
+  loadSavedDisputeItems: () => DisputeItem[];
+  selectedFtcReport: UploadedFile[]; // Change from single to array
+  setSelectedFtcReport: (reports: UploadedFile[]) => void;
 }
 
 const DisputeContext = createContext<DisputeContextValue | undefined>(
@@ -49,13 +53,29 @@ export const DisputeProvider: React.FC<{ children: React.ReactNode }> = ({
     groups: new Map(),
     groupOrder: [],
   });
+  const [selectedFtcReport, setSelectedFtcReport] =
+    useState<UploadedFile[]>([]);
+
+  // Load saved dispute items from localStorage on component mount
+  useEffect(() => {
+    const savedItems = loadSavedDisputeItems();
+    if (savedItems.length > 0) {
+      setDisputeItems(savedItems);
+    }
+  }, []);
+
+  // Save dispute items to localStorage whenever they change
+  useEffect(() => {
+    if (disputeItems.length > 0) {
+      localStorage.setItem("disputeItems", JSON.stringify(disputeItems));
+    }
+  }, [disputeItems]);
 
   // Load account groups from API
   const loadAccountGroups = async (email: string) => {
     try {
       const response = await getAccountGroupsByEmail(email);
       if (response.success && response.data) {
-        // Convert the groups object to a Map if it's not already
         let groupsMap: Map<string, any[]>;
         if (response.data.groups instanceof Map) {
           groupsMap = response.data.groups;
@@ -98,7 +118,6 @@ export const DisputeProvider: React.FC<{ children: React.ReactNode }> = ({
   // Add or update dispute item with group name lookup
   const addOrUpdateDisputeItem = (item: DisputeItem) => {
     setDisputeItems((prev) => {
-      // If the item has account number and bureau, try to find its group
       const itemWithGroup = { ...item };
       if (item.account && item.bureau) {
         const groupName = getGroupNameForAccount(item.account, item.bureau);
@@ -138,21 +157,53 @@ export const DisputeProvider: React.FC<{ children: React.ReactNode }> = ({
   // Clear all dispute items
   const clearDisputeItems = () => {
     setDisputeItems([]);
+    localStorage.removeItem("disputeItems");
   };
 
+  // Save dispute items explicitly
+  const saveDisputeItems = (items: DisputeItem[]) => {
+    setDisputeItems(items);
+    localStorage.setItem("disputeItems", JSON.stringify(items));
+  };
+
+  // Load saved dispute items from localStorage
+  const loadSavedDisputeItems = (): DisputeItem[] => {
+    if (typeof window === "undefined") return [];
+
+    try {
+      const saved = localStorage.getItem("disputeItems");
+      return saved ? JSON.parse(saved) : [];
+    } catch (error) {
+      console.error("Error loading saved dispute items:", error);
+      return [];
+    }
+  };
+
+  const contextValue = React.useMemo(
+    () => ({
+      disputeItems,
+      accountGroups,
+      addOrUpdateDisputeItem,
+      addMultipleDisputeItems,
+      removeDisputeItem,
+      loadAccountGroups,
+      getGroupNameForAccount,
+      clearDisputeItems,
+      saveDisputeItems,
+      loadSavedDisputeItems,
+      selectedFtcReport,
+      setSelectedFtcReport,
+    }),
+    [
+      disputeItems,
+      accountGroups,
+      selectedFtcReport,
+      // The functions are stable, but if you ever memoize them, add them here
+    ]
+  );
+
   return (
-    <DisputeContext.Provider
-      value={{
-        disputeItems,
-        accountGroups,
-        addOrUpdateDisputeItem,
-        addMultipleDisputeItems,
-        removeDisputeItem,
-        loadAccountGroups,
-        getGroupNameForAccount,
-        clearDisputeItems,
-      }}
-    >
+    <DisputeContext.Provider value={contextValue}>
       {children}
     </DisputeContext.Provider>
   );

@@ -10,9 +10,9 @@ import {
 const router = express.Router();
 
 router.post("/credit-report", getCreditReport);
-router.get("/credit-report", getAllStoredCreditReports); 
+router.get("/credit-report", getAllStoredCreditReports);
 router.get("/credit-report/stats", getCreditReportStats);
-router.get("/credit-report/:email", getStoredCreditReport);
 router.put("/credit-report/account", updateAccountInfo);
+router.get("/credit-report/:email", getStoredCreditReport);
 
 export default router;

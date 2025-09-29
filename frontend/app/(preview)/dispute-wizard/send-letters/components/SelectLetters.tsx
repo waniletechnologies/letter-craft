@@ -13,6 +13,8 @@ export interface Letter {
   created: string;
   printStatus: string;
   pages: number;
+  onEdit?: (email?: string) => void; // Update to accept email
+  onView?: (email?: string) => void; // Update to accept email
 }
 
 interface SelectLettersProps {
@@ -20,6 +22,7 @@ interface SelectLettersProps {
   selectedLetters: string[];
   onLetterSelection: (letterId: string, checked: boolean) => void;
   onSelectAll: (checked: boolean) => void;
+  email?: string;
 }
 
 const SelectLetters: React.FC<SelectLettersProps> = ({
@@ -27,17 +30,20 @@ const SelectLetters: React.FC<SelectLettersProps> = ({
   selectedLetters,
   onLetterSelection,
   onSelectAll,
+  email,
 }) => {
   const allSelected = selectedLetters.length === letters.length && letters.length > 0;
 
   return (
     <div className="space-y-4">
       <div className="font-medium text-[15px] leading-[32px] -tracking-[0.04em] text-[#71717A] ">
-        This is a list of all unsent and unprinted letters that you have created for this client. 
-        You can make any last minute changes, rename, or remove accidental letters by clicking the &apos;view/edit&apos; button. 
-        All sent or printed letters will be shown in the upcoming &apos;Track&apos; screen.
+        This is a list of all unsent and unprinted letters that you have created
+        for this client. You can make any last minute changes, rename, or remove
+        accidental letters by clicking the &apos;view/edit&apos; button. All
+        sent or printed letters will be shown in the upcoming &apos;Track&apos;
+        screen.
       </div>
-      
+
       <div className="border rounded-lg overflow-hidden bg-white">
         <Table>
           <TableHeader className="bg-gray-50">
@@ -48,11 +54,21 @@ const SelectLetters: React.FC<SelectLettersProps> = ({
                   onCheckedChange={(checked) => onSelectAll(checked === true)}
                 />
               </TableHead>
-              <TableHead className="font-medium text-[12.61px] leading-[18.02px] tracking-normal text-[#292524]">Letter To</TableHead>
-              <TableHead className="font-medium text-[12.61px] leading-[18.02px] tracking-normal text-[#292524]">Created</TableHead>
-              <TableHead className="font-medium text-[12.61px] leading-[18.02px] tracking-normal text-[#292524]">Print Status</TableHead>
-              <TableHead className="font-medium text-[12.61px] leading-[18.02px] tracking-normal text-[#292524]">Pages</TableHead>
-              <TableHead className="font-medium text-[12.61px] leading-[18.02px] tracking-normal text-[#292524]">Actions</TableHead>
+              <TableHead className="font-medium text-[12.61px] leading-[18.02px] tracking-normal text-[#292524]">
+                Letter To
+              </TableHead>
+              <TableHead className="font-medium text-[12.61px] leading-[18.02px] tracking-normal text-[#292524]">
+                Created
+              </TableHead>
+              <TableHead className="font-medium text-[12.61px] leading-[18.02px] tracking-normal text-[#292524]">
+                Print Status
+              </TableHead>
+              <TableHead className="font-medium text-[12.61px] leading-[18.02px] tracking-normal text-[#292524]">
+                Pages
+              </TableHead>
+              <TableHead className="font-medium text-[12.61px] leading-[18.02px] tracking-normal text-[#292524]">
+                Actions
+              </TableHead>
               <TableHead className="text-right pr-6"></TableHead>
             </TableRow>
           </TableHeader>
@@ -62,33 +78,59 @@ const SelectLetters: React.FC<SelectLettersProps> = ({
                 <TableCell className="align-middle">
                   <Checkbox
                     checked={selectedLetters.includes(letter.id)}
-                    onCheckedChange={(checked) => onLetterSelection(letter.id, checked === true)}
+                    onCheckedChange={(checked) =>
+                      onLetterSelection(letter.id, checked === true)
+                    }
                   />
                 </TableCell>
                 <TableCell>
                   <div>
-                    <div className="font-semibold text-[14.37px] leading-[20.52px] tracking-normal text-[#292524]">{letter.name}</div>
-                    <div className="font-normal text-[12.31px] leading-[20.52px] tracking-normal text-[#292524]">{letter.abbreviation}</div>
+                    <div className="font-semibold text-[14.37px] leading-[20.52px] tracking-normal text-[#292524]">
+                      {letter.name}
+                    </div>
+                    <div className="font-normal text-[12.31px] leading-[20.52px] tracking-normal text-[#292524]">
+                      {letter.abbreviation}
+                    </div>
                   </div>
                 </TableCell>
-                <TableCell className="font-medium text-[12.61px] leading-[18.02px] tracking-normal text-[#534F4E]">{letter.created}</TableCell>
-                <TableCell className="font-medium text-[12.61px] leading-[18.02px] tracking-normal text-[#534F4E]">{letter.printStatus}</TableCell>
-                <TableCell className="font-medium text-[12.61px] leading-[18.02px] tracking-normal text-[#534F4E]">{letter.pages}</TableCell>
+                <TableCell className="font-medium text-[12.61px] leading-[18.02px] tracking-normal text-[#534F4E]">
+                  {letter.created}
+                </TableCell>
+                <TableCell className="font-medium text-[12.61px] leading-[18.02px] tracking-normal text-[#534F4E]">
+                  {letter.printStatus}
+                </TableCell>
+                <TableCell className="font-medium text-[12.61px] leading-[18.02px] tracking-normal text-[#534F4E]">
+                  {letter.pages}
+                </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-1">
-                    <Button variant="link" size="sm" className="font-medium text-[14.37px] leading-[18.02px] tracking-normal text-primary p-0 h-auto">
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="font-medium text-[14.37px] leading-[18.02px] tracking-normal text-primary p-0 h-auto"
+                      onClick={() => letter.onView?.(email)} // Pass email
+                    >
                       View
                     </Button>
                     <span className="text-primary">/</span>
-                    <Button variant="link" size="sm" className="font-medium text-[14.37px] leading-[18.02px] tracking-normal text-primary p-0 h-auto">
+                    <Button
+                      variant="link"
+                      size="sm"
+                      className="font-medium text-[14.37px] leading-[18.02px] tracking-normal text-primary p-0 h-auto"
+                      onClick={() => letter.onEdit?.(email)} // Pass email
+                    >
                       Edit
                     </Button>
                   </div>
                 </TableCell>
                 <TableCell>
-                <Button variant="ghost" size="sm" className="text-red-600 p-0 h-auto">
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600 p-0 h-auto"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </TableCell>
               </TableRow>
             ))}

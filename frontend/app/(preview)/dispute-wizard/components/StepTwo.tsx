@@ -1,13 +1,92 @@
-"use client"
+// components/StepTwo.tsx (updated)
+"use client";
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { useRouter } from "next/navigation";
+import { fetchLetters, LetterCategory } from "@/lib/lettersApi";
 
-const StepTwo: React.FC = () => {
+interface StepTwoProps {
+  email?: string | null;
+  selectedAccounts?: Array<{
+    id: string;
+    creditor: string;
+    account: string;
+    dateOpened: string;
+    balance: string;
+    type: string;
+    disputed: boolean;
+    hasExperian: boolean;
+    hasEquifax: boolean;
+    hasTransUnion: boolean;
+  }>;
+}
+
+const StepTwo: React.FC<StepTwoProps> = ({ email, selectedAccounts = [] }) => {
   const router = useRouter();
+  const [categories, setCategories] = useState<LetterCategory[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>("");
+  const [selectedLetter, setSelectedLetter] = useState<string>("");
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    loadLetters();
+  }, []);
+
+  const loadLetters = async () => {
+    try {
+      setLoading(true);
+      const response = await fetchLetters();
+
+      if (response.success && response.data) {
+        setCategories(response.data);
+        // Auto-select first category and first letter if available
+        if (response.data.length > 0) {
+          setSelectedCategory(response.data[0].category);
+          if (response.data[0].letters.length > 0) {
+            setSelectedLetter(response.data[0].letters[0].name);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error loading letters:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleGenerateLetter = () => {
+    if (selectedCategory && selectedLetter) {
+      // Create URL parameters with all necessary data
+      const params = new URLSearchParams({
+        category: selectedCategory,
+        letter: selectedLetter,
+      });
+
+      if (email) {
+        params.append("email", email);
+      }
+
+      // Add selected accounts data as JSON
+      if (selectedAccounts.length > 0) {
+        params.append("accounts", JSON.stringify(selectedAccounts));
+      }
+
+      router.push(`/dispute-wizard/generate-letter?${params.toString()}`);
+    }
+  };
+
+  const selectedCategoryData = categories.find(
+    (cat) => cat.category === selectedCategory
+  );
+  const letters = selectedCategoryData?.letters || [];
 
   return (
     <div className="rounded-lg border border-[#E5E7EB] bg-white">
@@ -16,15 +95,10 @@ const StepTwo: React.FC = () => {
           <span className="font-semibold">Step 2:</span> Choose A Letter
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
-          {/* <button
-            className="text-xs text-[#2563EB]"
-            onClick={() => router.push("/dispute-wizard/generate-letter")}
-          >
-            Generate Unique AI Letter
-          </button> */}
           <Button
             className="bg-primary hover:bg-primary/90"
-            onClick={() => router.push("/dispute-wizard/generate-letter")}
+            onClick={handleGenerateLetter}
+            disabled={!selectedCategory || !selectedLetter || loading}
           >
             Generate Library Letter
           </Button>
@@ -35,33 +109,90 @@ const StepTwo: React.FC = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 max-w-5xl gap-4">
           <div>
             <div className="text-xs text-[#6B7280] mb-1">Letter Category</div>
-            <Select>
+            <Select
+              value={selectedCategory}
+              onValueChange={setSelectedCategory}
+              disabled={loading}
+            >
               <SelectTrigger className="shadow-none w-full">
-                <SelectValue placeholder="Credit Bureau Letters" />
+                <SelectValue
+                  placeholder={loading ? "Loading..." : "Select Category"}
+                />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="cbl">Credit Bureau Letters</SelectItem>
-                <SelectItem value="creditor">Creditor Letters</SelectItem>
+                {categories.map((category) => (
+                  <SelectItem key={category.category} value={category.category}>
+                    {category.category.replace(/%20/g, " ")}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
           <div>
             <div className="text-xs text-[#6B7280] mb-1">Letter Name</div>
-            <Select>
+            <Select
+              value={selectedLetter}
+              onValueChange={setSelectedLetter}
+              disabled={loading || !selectedCategory}
+            >
               <SelectTrigger className="shadow-none w-full">
-                <SelectValue placeholder="Identity Theft Dispute (Round 1)" />
+                <SelectValue
+                  placeholder={
+                    !selectedCategory
+                      ? "Select category first"
+                      : loading
+                      ? "Loading..."
+                      : "Select Letter"
+                  }
+                />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="itd1">
-                  Identity Theft Dispute (Round 1)
-                </SelectItem>
-                <SelectItem value="av1">
-                  Account Verification (Round 1)
-                </SelectItem>
+                {letters.map((letter) => (
+                  <SelectItem key={letter.name} value={letter.name}>
+                    {letter.name.replace(/%20/g, " ")}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
         </div>
+
+        {/* Display selected accounts summary */}
+        {selectedAccounts.length > 0 && (
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+            <div className="text-sm font-medium text-blue-800 mb-2">
+              Selected Accounts ({selectedAccounts.length})
+            </div>
+            <div className="text-xs text-blue-700 space-y-1">
+              {selectedAccounts.slice(0, 3).map((account, index) => (
+                <div key={account.id}>
+                  {index + 1}. {account.creditor} - {account.account} (Opened:{" "}
+                  {account.dateOpened})
+                </div>
+              ))}
+              {selectedAccounts.length > 3 && (
+                <div>... and {selectedAccounts.length - 3} more accounts</div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {loading && (
+          <div className="text-sm text-gray-500">Loading letters...</div>
+        )}
+
+        {!loading && categories.length === 0 && (
+          <div className="text-sm text-yellow-600">
+            No letters found in the library.
+          </div>
+        )}
+
+        {selectedCategory && selectedLetter && (
+          <div className="text-sm text-green-600">
+            Selected: {selectedCategory.replace(/%20/g, " ")} →{" "}
+            {selectedLetter.replace(/%20/g, " ")}
+          </div>
+        )}
       </div>
     </div>
   );

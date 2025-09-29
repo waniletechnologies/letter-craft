@@ -6,7 +6,7 @@ import PersonalInfoTable from "./components/personal-info";
 import CreditSummaryTable from "./components/credit-summary";
 import CreditInquiryTable from "./components/credit-inquiries";
 import PublicRecordTable from "./components/public-record";
-import AccountInfoTable, { AccountInfoRow } from "./components/account-info";
+import AccountInfoTable from "./components/account-info";
 import { Button } from "@/components/ui/button";
 import { useCreditReport } from "@/hooks/useCreditReport";
 import Loader from "@/components/Loader";
@@ -17,8 +17,6 @@ const Page = () => {
   const { data, userName, loading, error } = useCreditReport(email as string);
 
   const decodedEmail = decodeURIComponent(email as string);
-
- 
 
   if (loading) {
     return (

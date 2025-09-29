@@ -45,6 +45,7 @@ const StepOne: React.FC = () => {
     addMultipleDisputeItems,
     removeDisputeItem,
     loadAccountGroups,
+    saveDisputeItems,
   } = useDispute();
 
   useEffect(() => {
@@ -180,6 +181,35 @@ const StepOne: React.FC = () => {
     }
   };
 
+  const handleSaveAndContinue = async () => {
+    if (disputeItems.length === 0) {
+      alert("Please add dispute items before saving.");
+      return;
+    }
+    setIsSaving(true);
+
+    try {
+      // Save dispute items to context and localStorage
+      saveDisputeItems(disputeItems);
+
+      // Navigate to generate letter page with necessary parameters
+      router.push(
+        `/dispute-wizard/generate-letter?email=${encodeURIComponent(
+          email
+        )}&category=dispute&letter=dispute-letter`
+      );
+    } catch (error) {
+      console.error("Failed to save disputes:", error);
+      alert(
+        `Error: ${
+          error instanceof Error ? error.message : "Could not save disputes."
+        }`
+      );
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="rounded-lg border border-[#E5E7EB] bg-white">
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#E5E7EB] bg-[#F9FAFB] rounded-t-lg">
@@ -294,8 +324,12 @@ const StepOne: React.FC = () => {
         {/* Buttons */}
         {disputeItems.length > 0 && (
           <div className="flex justify-end mt-4">
-            <Button className="bg-[#2196F3] hover:bg-[#1976D2]">
-              Save & Continue
+            <Button
+              className="bg-[#2196F3] hover:bg-[#1976D2]"
+              onClick={handleSaveAndContinue}
+              disabled={isSaving}
+            >
+              {isSaving ? "Saving..." : "Save & Continue"}
             </Button>
           </div>
         )}

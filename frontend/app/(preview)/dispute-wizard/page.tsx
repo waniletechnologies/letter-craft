@@ -1,3 +1,4 @@
+// app/dispute-wizard/page.tsx
 "use client";
 
 import React from "react";
@@ -9,6 +10,7 @@ import StepTwo from "./components/StepTwo";
 const DisputeWizardPage = () => {
   const searchParams = useSearchParams();
   const name = searchParams.get("name") || "Client"; // Fallback if no name
+  const email = searchParams.get("email"); // Get email from URL params
 
   return (
     <div className="sm:p-6 p-0">
@@ -24,7 +26,7 @@ const DisputeWizardPage = () => {
       {/* Step panels */}
       <div className="space-y-6">
         <StepOne />
-        <StepTwo />
+        <StepTwo email={email} /> {/* Pass email prop to StepTwo */}
       </div>
     </div>
   );

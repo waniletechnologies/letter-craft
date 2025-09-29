@@ -1,370 +1,29 @@
 "use client";
-import React, { useState, useEffect } from "react";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import Image from "next/image";
-import { Equifax, Experian, TransUnion } from "@/public/images";
-import { useDispute } from "@/context/disputeContext";
-import { Input } from "@/components/ui/input";
-import { Edit, Save, X, CheckSquare, Square, Plus, Trash2 } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { toast } from "sonner";
-import { updateAccountInfo, UpdateAccountRequest } from "@/lib/creditReportApi";
-import {
+  useState,
+  Trash2,
+  Input,
+  Button,
+  toast,
+  updateAccountInfo,
+  UpdateAccountRequest,
   createAccountGroups,
-  moveAccount,
   createCustomGroup,
-} from "@/lib/accountGroupApi";
+} from "@/lib/import";
 
-export type Bureau = "Experian" | "Equifax" | "TransUnion";
-
-export interface AccountInfoRow {
-  id: string;
-  accountName: string;
-  accountNumber: string;
-  highBalance: string;
-  lastVerified: string;
-  status: string;
-  values: Record<
-    Bureau,
-    {
-      accountName: string;
-      accountNumber: string;
-      highBalance: string;
-      lastVerified: string;
-      status: string;
-    }
-  >;
-}
-
-export interface AccountInfoTableProps {
-  rows: AccountInfoRow[];
-  onAccountUpdate?: (
-    accountId: string,
-    updates: Partial<AccountInfoRow>
-  ) => void;
-  email: string;
-}
-
-const BureauHeader: React.FC<{
-  src: string;
-  alt: string;
-  checked: boolean;
-  onToggle: (checked: boolean) => void;
-  disabled?: boolean;
-}> = ({ src, alt, checked, onToggle, disabled = false }) => (
-  <div className="flex items-center justify-center py-3 gap-2">
-    <input
-      type="checkbox"
-      checked={checked}
-      onChange={(e) => onToggle(e.target.checked)}
-      disabled={disabled}
-      className={`h-4 w-4 accent-[#2563EB] border-gray-300 rounded flex-shrink-0 ${
-        disabled ? "opacity-50 cursor-not-allowed" : ""
-      }`}
-    />
-    <Image
-      src={src}
-      alt={alt}
-      width={90}
-      height={24}
-      className={disabled ? "opacity-50" : ""}
-    />
-  </div>
-);
-
-const ValueCell: React.FC<{
-  value?: string;
-  isEditable?: boolean;
-  onEdit?: (newValue: string) => void;
-}> = ({ value, isEditable = false, onEdit }) => {
-  const [isEditing, setIsEditing] = useState(false);
-  const [editValue, setEditValue] = useState(value || "");
-
-  const handleSave = () => {
-    if (onEdit && editValue !== value) {
-      onEdit(editValue);
-    }
-    setIsEditing(false);
-  };
-
-  const handleCancel = () => {
-    setEditValue(value || "");
-    setIsEditing(false);
-  };
-
-  if (isEditable && isEditing) {
-    return (
-      <div className="flex items-center gap-1 py-2">
-        <Input
-          value={editValue}
-          onChange={(e) => setEditValue(e.target.value)}
-          className="h-8 text-xs"
-          autoFocus
-        />
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={handleSave}
-          className="h-6 w-6 p-0"
-        >
-          <Save className="h-3 w-3 text-green-600" />
-        </Button>
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={handleCancel}
-          className="h-6 w-6 p-0"
-        >
-          <X className="h-3 w-3 text-red-600" />
-        </Button>
-      </div>
-    );
-  }
-
-  return (
-    <div className="py-2 flex items-center justify-between">
-      <div className="font-medium text-xs leading-[150%] -tracking-[0.03em] text-[#292524] flex-1">
-        {value ?? ""}
-      </div>
-      {isEditable && (
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => setIsEditing(true)}
-          className="h-6 w-6 p-0 ml-1"
-        >
-          <Edit className="h-3 w-3 text-gray-500" />
-        </Button>
-      )}
-    </div>
-  );
-};
-
-
-const AccountTable: React.FC<{
-  account: AccountInfoRow;
-  onAccountUpdate: (updates: Partial<AccountInfoRow>) => void;
-  onSelectAccount: (
-    accountId: string,
-    bureau: Bureau,
-    selected: boolean,
-    bureauData: unknown
-  ) => void;
-  selectedBureaus: Record<string, boolean>;
-}> = ({ account, onAccountUpdate, onSelectAccount, selectedBureaus }) => {
-  const [editableAccount, setEditableAccount] = useState(account);
-  const isAccountField = (field: string): field is keyof AccountInfoRow => {
-    return [
-      "accountName",
-      "accountNumber",
-      "highBalance",
-      "lastVerified",
-      "status",
-    ].includes(field);
-  };
-
-  const { addOrUpdateDisputeItem, removeDisputeItem, disputeItems } =
-    useDispute();
-
-  // Check if a bureau has data for this account
-  const hasBureauData = (bureau: Bureau): boolean => {
-    const bureauData = editableAccount.values[bureau];
-    return (
-      !!bureauData &&
-      !!bureauData.accountName &&
-      bureauData.accountName.trim() !== "" &&
-      bureauData.accountName !== "N/A"
-    );
-  };
-
-  // In your AccountTable component, update the handleBureauToggle function
-  const handleBureauToggle = (bureau: Bureau, checked: boolean) => {
-    if (!hasBureauData(bureau)) return;
-
-    const bureauData = editableAccount.values[bureau];
-    const disputeId = `${editableAccount.id}-${bureau}`;
-
-    if (checked) {
-      addOrUpdateDisputeItem({
-        id: disputeId,
-        creditor: bureauData.accountName,
-        account: bureauData.accountNumber,
-        dateOpened: bureauData.lastVerified,
-        balance: bureauData.highBalance,
-        type: editableAccount.status,
-        disputed: false,
-        hasExperian: bureau === "Experian",
-        hasEquifax: bureau === "Equifax",
-        hasTransUnion: bureau === "TransUnion",
-        bureau: bureau, // Add bureau information for group lookup
-      });
-    } else {
-      removeDisputeItem(disputeId);
-    }
-
-    onSelectAccount(account.id, bureau, checked, {
-      ...bureauData,
-      bureau,
-      accountId: account.id,
-    });
-  };
-
-  const handleBureauDataUpdate = (
-    bureau: Bureau,
-    field: string,
-    value: string
-  ) => {
-    const updatedAccount = {
-      ...editableAccount,
-      values: {
-        ...editableAccount.values,
-        [bureau]: {
-          ...editableAccount.values[bureau],
-          [field]: value,
-        },
-      },
-    };
-    setEditableAccount(updatedAccount);
-    onAccountUpdate({ values: updatedAccount.values });
-  };
-
-  const handleAccountUpdate = (field: keyof AccountInfoRow, value: string) => {
-    const updatedAccount = {
-      ...editableAccount,
-      [field]: value,
-    };
-    setEditableAccount(updatedAccount);
-    onAccountUpdate({ [field]: value });
-  };
-
-  const isNegative = editableAccount.status === "Negative";
-
-  return (
-    <div className="rounded-xl border-2 border-[#E5E7EB] bg-white overflow-hidden mb-6">
-      <Table>
-        <TableHeader>
-          <TableRow className="bg-[#FAFAFA] border-b-2 border-[#00000014]">
-            <TableHead className="w-[22%] items-start p-0" />
-            <TableHead className="w-[26%] p-0">
-              <BureauHeader
-                src={Experian}
-                alt="Experian"
-                checked={selectedBureaus[`${account.id}-Experian`] || false}
-                onToggle={(c) => handleBureauToggle("Experian", c)}
-                disabled={!hasBureauData("Experian")}
-              />
-            </TableHead>
-            <TableHead className="w-[26%] p-0">
-              <BureauHeader
-                src={Equifax}
-                alt="Equifax"
-                checked={selectedBureaus[`${account.id}-Equifax`] || false}
-                onToggle={(c) => handleBureauToggle("Equifax", c)}
-                disabled={!hasBureauData("Equifax")}
-              />
-            </TableHead>
-            <TableHead className="w-[26%] p-0">
-              <BureauHeader
-                src={TransUnion}
-                alt="TransUnion"
-                checked={selectedBureaus[`${account.id}-TransUnion`] || false}
-                onToggle={(c) => handleBureauToggle("TransUnion", c)}
-                disabled={!hasBureauData("TransUnion")}
-              />
-            </TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {[
-            ["ACCOUNT NAME:", "accountName", true],
-            ["ACCOUNT #:", "accountNumber", true],
-            ["HIGH BALANCE:", "highBalance", false],
-            ["LAST VERIFIED", "lastVerified", false],
-          ].map(([label, key, isEditable]) => (
-            <TableRow key={label} className="border-b border-[#00000014]">
-              <TableCell className="font-medium text-xs leading-[1.5] -tracking-[0.03em] text-right w-[22%] text-[#292524] border-r border-[#00000014] p-3">
-                {label}
-              </TableCell>
-              {(["Experian", "Equifax", "TransUnion"] as Bureau[]).map(
-                (bureau, i) => (
-                  <TableCell
-                    key={i}
-                    className={`px-2 w-[26%] ${
-                      i < 2 ? "border-r" : ""
-                    } border-[#00000014] py-2 ${
-                      isNegative ? "bg-[#FFE2E2]" : ""
-                    } ${!hasBureauData(bureau) ? "bg-gray-100" : ""}`}
-                  >
-                    <ValueCell
-                      value={
-                        editableAccount.values[bureau][
-                          key as keyof (typeof editableAccount.values)[Bureau]
-                        ]
-                      }
-                      isEditable={
-                        (isEditable as boolean) && hasBureauData(bureau)
-                      }
-                      onEdit={(newValue) =>
-                        handleBureauDataUpdate(bureau, key as string, newValue)
-                      }
-                    />
-                  </TableCell>
-                )
-              )}
-            </TableRow>
-          ))}
-          <TableRow className="border-b border-[#00000014]">
-            <TableCell className="font-medium text-xs leading-[1.5] -tracking-[0.03em] text-right w-[22%] text-[#292524] bg-[#F6F6F6] border-r border-[#00000014] p-3">
-              STATUS
-            </TableCell>
-            {(["Experian", "Equifax", "TransUnion"] as Bureau[]).map(
-              (bureau, i) => (
-                <TableCell
-                  key={i}
-                  className={`px-2 w-[26%] border-r border-[#00000014] py-2 bg-[#F6F6F6] ${
-                    !hasBureauData(bureau) ? "bg-gray-100" : ""
-                  }`}
-                >
-                  <ValueCell value={editableAccount.values[bureau].status} />
-                </TableCell>
-              )
-            )}
-          </TableRow>
-        </TableBody>
-      </Table>
-    </div>
-  );
-};
+import { Bureau, AccountInfoRow, AccountInfoTableProps } from "@/lib/interface";
+import { AccountTable } from "@/constants/account-info";
 
 export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
   rows,
   onAccountUpdate,
   email,
 }) => {
-  const [selectedAccounts, setSelectedAccounts] = useState<Set<string>>(
-    new Set()
-  );
   const [isCreatingGroups, setIsCreatingGroups] = useState(false);
   const [customGroupName, setCustomGroupName] = useState("");
   const [selectedBureaus, setSelectedBureaus] = useState<
     Record<string, boolean>
   >({});
-  const isAccountField = (field: string): field is keyof AccountInfoRow => {
-    return [
-      "accountName",
-      "accountNumber",
-      "highBalance",
-      "lastVerified",
-      "status",
-    ].includes(field);
-  };
 
   const handleAccountUpdate = async (
     accountId: string,
@@ -603,7 +262,20 @@ export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
     setIsCreatingGroups(true);
     try {
       // Get selected account data
-      const selectedAccountData: { accountName: string; accountNumber: string; highBalance: string; currentBalance: string; lastVerified: string; status: string; payStatus: string; worstPayStatus: string; dateOpened: string; dateClosed: string; remarks: never[]; bureau: Bureau; }[] = [];
+      const selectedAccountData: {
+        accountName: string;
+        accountNumber: string;
+        highBalance: string;
+        currentBalance: string;
+        lastVerified: string;
+        status: string;
+        payStatus: string;
+        worstPayStatus: string;
+        dateOpened: string;
+        dateClosed: string;
+        remarks: never[];
+        bureau: Bureau;
+      }[] = [];
 
       rows.forEach((row) => {
         (["Experian", "Equifax", "TransUnion"] as Bureau[]).forEach(

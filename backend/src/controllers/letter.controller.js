@@ -6,6 +6,7 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import mammoth from "mammoth";
 import Letter from "../models/Letter.js";
 import Client from "../models/Client.js";
+import { openai, LETTER_REWRITE_SYSTEM_PROMPT } from "../config/openai.js";
 
 const BUCKET = process.env.AWS_S3_BUCKET_NAME;
 
@@ -282,9 +283,11 @@ export async function saveLetter(req, res) {
       console.log("No client ID provided - saving letter with email:", email);
     }
 
+    // Normalize clientId: if empty string or falsy, omit it so mongoose doesn't cast "" to ObjectId
+    const normalizedClientId = clientId && String(clientId).trim() !== "" ? clientId : null;
+
     // Create new letter
     const letterData = {
-      clientId,
       letterName,
       abbreviation,
       round: round || 1,
@@ -297,6 +300,10 @@ export async function saveLetter(req, res) {
       createFollowUpTask: createFollowUpTask !== false,
       createdBy: req.user?.id,
     };
+
+    if (normalizedClientId) {
+      letterData.clientId = normalizedClientId;
+    }
 
     // Add email only if no clientId (or add it always for consistency)
     if (email) {
@@ -470,5 +477,76 @@ export async function deleteLetter(req, res) {
       success: false,
       message: "Failed to delete letter",
     });
+  }
+}
+
+/**
+ * Rewrite a letter's body using OpenAI without changing content semantics
+ */
+export async function rewriteLetter(req, res) {
+  try {
+    const { body } = req.body || {};
+
+    if (!body || typeof body !== "string" || body.trim().length === 0) {
+      return res.status(400).json({
+        success: false,
+        message: "'body' is required as non-empty string",
+      });
+    }
+
+    let aiText = "";
+    try {
+      // Preferred: Responses API with 'instructions'
+      const response = await openai.responses.create({
+        model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+        instructions: LETTER_REWRITE_SYSTEM_PROMPT,
+        input: [
+          {
+            role: "user",
+            content: `Return ONLY the improved letter in the same format as the input (HTML-in -> HTML-out, text-in -> text-out). Do not add wrappers.\n\n----- BEGIN LETTER -----\n${body}\n----- END LETTER -----`,
+          },
+        ],
+        temperature: 0.2,
+        max_output_tokens: 1200,
+      });
+      aiText = response.output_text?.trim() || "";
+    } catch (err) {
+      // Fallback: Chat Completions if Responses not available
+      const chat = await openai.chat.completions.create({
+        model: process.env.OPENAI_MODEL || "gpt-4o-mini",
+        temperature: 0.2,
+        messages: [
+          { role: "system", content: LETTER_REWRITE_SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: `Return ONLY the improved letter in the same format as the input (HTML-in -> HTML-out, text-in -> text-out). Do not add wrappers.\n\n----- BEGIN LETTER -----\n${body}\n----- END LETTER -----`,
+          },
+        ],
+        max_tokens: 1200,
+      });
+      aiText = chat.choices?.[0]?.message?.content?.trim() || "";
+    }
+
+    if (!aiText) {
+      return res.status(502).json({
+        success: false,
+        message: "AI did not return content",
+      });
+    }
+
+    // Sanitize common wrappers accidentally returned by models
+    let sanitized = aiText
+      // strip markdown code fences, with or without language
+      .replace(/^```[a-zA-Z]*\n?/i, "")
+      .replace(/\n?```\s*$/i, "")
+      // strip accidental <html>/<body> wrappers
+      .replace(/<\/?html[^>]*>/gi, "")
+      .replace(/<\/?body[^>]*>/gi, "")
+      .trim();
+
+    return res.json({ success: true, data: { body: sanitized } });
+  } catch (error) {
+    console.error("Error rewriting letter:", error);
+    return res.status(500).json({ success: false, message: "Failed to rewrite letter" });
   }
 }

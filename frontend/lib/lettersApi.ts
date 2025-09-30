@@ -206,3 +206,24 @@ export async function deleteLetter(letterId: string): Promise<{
     };
   }
 }
+
+// Rewrite letter using AI
+export async function rewriteLetter(body: string): Promise<{
+  success: boolean;
+  data?: { body: string };
+  message?: string;
+}> {
+  try {
+    const data = await apiFetch(`/letters/rewrite`, {
+      method: "POST",
+      body: JSON.stringify({ body }),
+    });
+    return data;
+  } catch (error) {
+    console.error("Error rewriting letter:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error occurred",
+    };
+  }
+}

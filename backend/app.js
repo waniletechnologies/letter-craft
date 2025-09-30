@@ -18,12 +18,24 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 // Middleware
+
+const allowedOrigins = [
+  "http://localhost:3000",
+  "https://lettercraft.wanile.dev",
+];
+
+
 app.set("trust proxy", true);
 app.use(
   cors({
-    origin: ["http://localhost:3000", "https://lettercraft.wanile.dev"],
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, origin); // allow request
+      } else {
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
     credentials: true,
-    optionsSuccessStatus: 204,
   })
 );
 app.use(express.json());

@@ -22,7 +22,20 @@ export interface LetterPreviewProps {
   round: number;
   status: PreviewStatus;
   content: string;
-  personalInfo?: any;
+  personalInfo?: {
+    names?: Array<{
+      first?: string;
+      middle?: string;
+      last?: string;
+    }>;
+    addresses?: Array<{
+      street?: string;
+      city?: string;
+      state?: string;
+      postalCode?: string;
+    }>;
+    [key: string]: unknown;
+  };
 }
 
 const statusStyles: Record<PreviewStatus, string> = {
@@ -34,7 +47,6 @@ const statusStyles: Record<PreviewStatus, string> = {
 const LetterPreview: React.FC<LetterPreviewProps> = ({
   open,
   onOpenChange,
-  letterId,
   clientName,
   bureau,
   round,
@@ -122,7 +134,6 @@ const LetterPreview: React.FC<LetterPreviewProps> = ({
     // Colors
     const primaryColor = [88, 129, 240]; // #5881F0
     const textColor = [41, 37, 36]; // #292524
-    const lightGray = [243, 244, 246]; // #F3F4F6
     const borderColor = [229, 231, 235]; // #E5E7EB
 
     let currentY = 20;

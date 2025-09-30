@@ -22,6 +22,29 @@ export interface LetterContent {
   name: string;
 }
 
+export interface BackendLetter {
+  _id: string;
+  clientId: string | null;
+  email: string;
+  letterName: string;
+  abbreviation: string;
+  round: number;
+  category: string;
+  bureau: "Experian" | "Equifax" | "TransUnion";
+  content: string;
+  personalInfo: {
+    names: { first: string; last: string }[];
+    [key: string]: unknown;
+  };
+  selectedFtcReports: string[];
+  status: "draft" | "sent" | "delivered" | "failed";
+  sendMethod?: string;
+  trackingNumber?: string;
+  dateSent?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export async function fetchLetters(): Promise<{
   success: boolean;
   data?: LetterCategory[];
@@ -210,7 +233,7 @@ export async function deleteLetter(letterId: string): Promise<{
 // Get all letters (dashboard)
 export async function getAllLetters(): Promise<{
   success: boolean;
-  data?: Letter[];
+  data?: BackendLetter[];
   message?: string;
 }> {
   try {

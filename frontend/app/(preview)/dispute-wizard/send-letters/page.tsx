@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
 import React, { useEffect, useState } from "react";
@@ -425,7 +426,7 @@ const SendLettersPage = () => {
         }
 
         // After save, update status to sent
-        const newLetterId = (saveRes.data as any)?._id;
+        const newLetterId = (saveRes.data as { _id?: string })?._id;
         if (newLetterId) {
           await updateLetterStatus(newLetterId, {
             status: "sent",

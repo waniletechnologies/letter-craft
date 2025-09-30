@@ -406,6 +406,20 @@ const GenerateLetterPage = () => {
         /Dear Equifax,/g,
         '<div style="margin-bottom: 16px;">Dear Equifax,</div>'
       )
+      .replace(/Dear Experian,/g, '<div class="font-bold">Dear Experian,</div>')
+      .replace(
+        /Dear Transunion,/g,
+        '<div class="font-bold">Dear Transunion,</div>'
+      )
+      .replace(
+        /Hello Experian,/g,
+        '<div class="font-bold">Hello Experian,</div>'
+      )
+      .replace(/Hello Equifax,/g, '<div class="font-bold">Hello Equifax,</div>')
+      .replace(
+        /Hello Transunion,/g,
+        '<div class="font-bold">Hello Transunion,</div>'
+      )
       .replace(
         /Thank you for your immediate attention\./g,
         '<div style="margin-top: 24px; margin-bottom: 16px;">Thank you for your immediate attention.</div>'
@@ -453,8 +467,26 @@ const GenerateLetterPage = () => {
       return template;
     }
 
-    template = template.replace(
+    // First, clean the template of any address sections for ALL bureaus
+    let cleanedTemplate = template
+      .replace(/FROM:[\s\S]*?TO:[\s\S]*?(?=Subject:)/i, "")
+      .replace(/^\s*\S+[\s\S]*?ATLANTA, GA 30374\s*/i, "")
+      .replace(/^\s*\S+[\s\S]*?CHESTER, PA 19016\s*/i, "")
+      .replace(/^\s*\S+[\s\S]*?ALLEN, TX 75013\s*/i, "")
+      // Remove personal info patterns that appear before the actual letter content
+      .replace(/^\s*{[^}]*}[\s\S]*?{Today[''`'´'′'']?s Date[^}]*}\s*/i, "")
+      .replace(/^\s*\S+[\s\S]*?\d{2}\/\d{2}\/\d{4}\s*\d{3}-\d{2}-\d{4}\s*/i, "")
+      .replace(/^\s*\S+[\s\S]*?{Today[''`'´'′'']?s Date[^}]*}\s*/i, "");
+
+    // Handle the creditor/account replacement pattern
+    cleanedTemplate = cleanedTemplate.replace(
       /(Creditor:\s*{Creditors Name}[\s\S]*?{Date Opened mm\/yyyy}\s*)+/gi,
+      "{DisputedAccounts}"
+    );
+
+    // Handle the pattern without "Creditor:" label (like in TransUnion example)
+    cleanedTemplate = cleanedTemplate.replace(
+      /({Creditors Name}Account Number: {Account Number}Date Opened: {Date Opened mm\/yyyy}\s*)+/gi,
       "{DisputedAccounts}"
     );
 
@@ -483,14 +515,18 @@ const GenerateLetterPage = () => {
               })
             : "N/A";
 
-          return `Creditor: ${item.creditor}\nAccount Number: ${item.account}\nDate Opened: ${dateOpened}\n\n`;
+          // Check if the template uses the format with "Creditor:" label or without
+          if (template.includes("Creditor: {Creditors Name}")) {
+            return `\n\nCreditor: ${item.creditor}\nAccount Number: ${item.account}\nDate Opened: ${dateOpened}\n\n`;
+          } else {
+            // For templates like TransUnion that don't have "Creditor:" label
+            return `${item.creditor}\nAccount Number: ${item.account}\nDate Opened: ${dateOpened}\n\n`;
+          }
         })
         .join("\n\n");
     }
 
-    console.log("Date: ", todayDate);
-
-    let populatedTemplate = template
+    let populatedTemplate = cleanedTemplate
       .replace(/{First Name}/g, name?.first || "")
       .replace(/{Middle Name}/g, name?.middle || "")
       .replace(/{Last Name}/g, name?.last || "")
@@ -505,18 +541,25 @@ const GenerateLetterPage = () => {
       .replace(/{Social Security Number XXX-XX-XXXX}/g, ssnFormatted)
       .replace(/{Today's Date mm-dd-yyyy}/g, todayDate)
       .replace(/{SIGNATURE}/g, "\n")
-      .replace(/{Today’s Date mm-dd-yyyy}/g, `: ${todayDate}`);
-      
+      .replace(/{Today[''`'´'′'']?s Date mm-dd-yyyy}/gi, `: ${todayDate}`)
+      .replace(/{Today[''`'´'′'']?s Date[^}]*}/gi, todayDate)
+      .replace(/{Experian Report Number}/gi, "")
+      .replace(/{Transunion File Number}/gi, "")
+      .replace(
+        /{FTC Report Number}/gi,
+        selectedFtcReports.length > 0
+          ? `FTC Report: ${selectedFtcReports.join(", ")}`
+          : "FTC Report Number"
+      );
 
+    // Replace the disputed accounts placeholder
     populatedTemplate = populatedTemplate.replace(
       /{DisputedAccounts}/g,
       accountDetails || "No disputed accounts listed"
     );
 
-    populatedTemplate = populatedTemplate.replace(
-      /(Date Opened:.*?\n\n)(I expect swift action)/,
-      "$1\n$2"
-    );
+    // Clean up any double line breaks
+    populatedTemplate = populatedTemplate.replace(/\n\n\n+/g, "\n\n");
 
     return populatedTemplate;
   };
@@ -567,12 +610,38 @@ const GenerateLetterPage = () => {
           const tempDiv = document.createElement("div");
           tempDiv.innerHTML = bodyContent;
           const textContent = tempDiv.textContent || tempDiv.innerText || "";
-          const populatedText = populateLetterTemplate(textContent);
+
+          // Remove address sections and personal info headers from ALL bureau templates
+          const cleanedText = textContent
+            // Remove FROM/TO sections
+            .replace(/FROM:[\s\S]*?TO:[\s\S]*?(?=Subject:)/i, "")
+            // Remove Experian pattern: {Report Number} + personal info
+            .replace(/^{[^}]*}[\s\S]*?{Today[''`'´'′'']?s Date[^}]*}\s*/i, "")
+            // Remove TransUnion pattern: {File Number} + personal info
+            .replace(/^{[^}]*}[\s\S]*?{Today[''`'´'′'']?s Date[^}]*}\s*/i, "")
+            // Remove generic personal info patterns at start
+            .replace(
+              /^\s*\S+[\s\S]*?\d{2}\/\d{2}\/\d{4}\s*\d{3}-\d{2}-\d{4}\s*/i,
+              ""
+            )
+            // Remove any text before "Dear" or "Hello" (the actual letter start)
+            .replace(/^[\s\S]*?(?=Dear|Hello|Subject:)/i, (match) => {
+              // Only remove if it looks like address/personal info, not actual content
+              return match.includes("{") ||
+                match.includes("}") ||
+                /\d{3}-\d{2}-\d{4}/.test(match) ||
+                /\d{2}\/\d{2}\/\d{4}/.test(match)
+                ? ""
+                : match;
+            });
+
+          const populatedText = populateLetterTemplate(cleanedText);
           bodyContent = populatedText.replace(/\n/g, "<br>");
         }
 
         const formattedContent = formatLetterContent(bodyContent);
         setLetterContent(formattedContent);
+        console.log("Formatted letter content:", formattedContent);
         setDownloadUrl(response.data.downloadUrl);
       } else {
         setError(response.message || "Failed to load letter content");
@@ -620,8 +689,20 @@ const GenerateLetterPage = () => {
 
     const tempDiv = document.createElement("div");
     tempDiv.innerHTML = letterContent;
-    const plainTextContent = tempDiv.textContent || tempDiv.innerText || "";
 
+    // Extract just the body content without any address headers
+    let plainTextContent = tempDiv.textContent || tempDiv.innerText || "";
+
+    // Remove any remaining address patterns from the content for ALL bureaus
+    plainTextContent = plainTextContent
+      .replace(/FROM:[\s\S]*?TO:[\s\S]*?(?=Subject:)/i, "")
+      .replace(/^\s*{[^}]*}[\s\S]*?{Today[''`'´'′'']?s Date[^}]*}\s*/i, "")
+      .replace(
+        /^\s*\S+[\s\S]*?\d{2}\/\d{2}\/\d{4}\s*\d{3}-\d{2}-\d{4}\s*/i,
+        ""
+      );
+
+    // For DOCX export, we want the addresses at the top, then the clean content
     const fullContent = `FROM:\n${senderAddress}\n\nTO:\n${toAddress}\n\n${plainTextContent}`;
 
     return fullContent;

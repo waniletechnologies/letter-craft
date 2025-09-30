@@ -6,7 +6,7 @@ import Stepper from "../components/Stepper";
 import IntegratedStepper from "./components/IntegratedStepper";
 import { License, Proof, Address } from "@/public/images";
 import { Pdf } from "@/public/images";
-import { getClientLetters, updateLetterStatus } from "@/lib/lettersApi";
+import { getClientLetters, updateLetterStatus, saveLetter, sendLetterEmail } from "@/lib/lettersApi";
 const SendLettersPage = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -35,7 +35,8 @@ const SendLettersPage = () => {
   }
 
   // Add state for saved letter data
-  const [savedLetterData, setSavedLetterData] = useState<SavedLetterData | null>(null);
+  const [savedLetterData, setSavedLetterData] =
+    useState<SavedLetterData | null>(null);
   interface FtcReport {
     _id: string;
     originalName?: string;
@@ -283,7 +284,6 @@ const SendLettersPage = () => {
   };
 
   // Update the letters mapping to include email in the callbacks
-  
 
   // If no letters from backend, show saved letter data
   if (letters.length === 0 && savedLetterData) {
@@ -313,7 +313,7 @@ const SendLettersPage = () => {
     })),
     // Show message if no FTC reports are available
     ...(ftcReports.length === 0 &&
-    ((savedLetterData?.selectedFtcReports?.length ?? 0) > 0)
+    (savedLetterData?.selectedFtcReports?.length ?? 0) > 0
       ? [
           {
             name: "No FTC Reports Available",
@@ -373,19 +373,89 @@ const SendLettersPage = () => {
     }
   };
 
+  // In SendLettersPage, update the handleSendLetters function
+
   const handleSendLetters = async () => {
     try {
-      // Update status for selected letters
+      // If we have locally saved letter data (not persisted yet), save it now with mail method and attachments
+      const saved = localStorage.getItem("savedLetterData");
+      if (saved) {
+        const parsed = JSON.parse(saved);
+
+        // Handle clientId - convert empty string to null
+        let processedClientId = parsed.clientId;
+        if (
+          parsed.clientId === "" ||
+          parsed.clientId === null ||
+          parsed.clientId === undefined
+        ) {
+          processedClientId = null;
+        }
+
+        // Build attachments list from documents that are FTC reports
+        const selectedAttachments = ftcReports.map((r) => ({
+          fileName: r.originalName || r.fileName || "FTC Report",
+          s3Key: undefined,
+          originalName: r.originalName || r.fileName,
+        }));
+
+        // Persist the letter now
+        const payload = {
+          clientId: processedClientId, // Use processed clientId
+          letterName:
+            parsed.letterName || parsed.letterDetails?.letterName || "",
+          abbreviation: parsed.abbreviation || "",
+          round: parseInt(parsed.round || "2"),
+          category: parsed.letterDetails?.category || "ROUND",
+          bureau: parsed.letterDetails?.bureau || "Equifax",
+          content: parsed.letterDetails?.content || "",
+          personalInfo: parsed.letterDetails?.personalInfo || {},
+          selectedFtcReports: parsed.selectedFtcReports || [],
+          followUpDays: parsed.followUpDays || 2,
+          createFollowUpTask: parsed.createFollowUpTask !== false,
+          email: parsed.email,
+          // Extra metadata
+          sendMethod: mailMethod,
+          attachments: selectedAttachments,
+        } as any;
+
+        const saveRes = await saveLetter(payload);
+        if (!saveRes.success) {
+          throw new Error(saveRes.message || "Failed to save letter");
+        }
+
+        // After save, update status to sent
+        const newLetterId = (saveRes.data as any)?._id;
+        if (newLetterId) {
+          await updateLetterStatus(newLetterId, {
+            status: "sent",
+            sendMethod: mailMethod,
+            trackingNumber: `TRK${Date.now()}`,
+          });
+
+          // Send email via selected provider
+          const provider = mailMethod === 'certified' ? 'localmail' : 'cloudmail';
+          await sendLetterEmail(newLetterId, provider as 'localmail' | 'cloudmail');
+        }
+      }
+
+      // Update status for any already-persisted selected letters
       for (const letterId of selectedLetters) {
         if (letterId !== "saved-letter") {
-          // This is a real letter from backend
           await updateLetterStatus(letterId, {
             status: "sent",
             sendMethod: mailMethod,
-            trackingNumber: `TRK${Date.now()}`, // Generate a tracking number
+            trackingNumber: `TRK${Date.now()}`,
           });
+
+          // Also send emails for these selected letters
+          const provider = mailMethod === 'certified' ? 'localmail' : 'cloudmail';
+          await sendLetterEmail(letterId, provider as 'localmail' | 'cloudmail');
         }
       }
+
+      // Clear the saved data from localStorage after successful send
+      localStorage.removeItem("savedLetterData");
 
       // Show success message
       alert("Letters sent successfully!");

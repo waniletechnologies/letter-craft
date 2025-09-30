@@ -6,6 +6,9 @@ import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import mammoth from "mammoth";
 import Letter from "../models/Letter.js";
 import Client from "../models/Client.js";
+import nodemailer from "nodemailer";
+import fetch from "node-fetch";
+import mongoose from "mongoose";
 import { openai, LETTER_REWRITE_SYSTEM_PROMPT } from "../config/openai.js";
 
 const BUCKET = process.env.AWS_S3_BUCKET_NAME;
@@ -203,6 +206,8 @@ export async function getLetter(req, res) {
  */
 // In controllers/letters.controller.js, update the saveLetter function
 
+// In controllers/letters.controller.js, update the saveLetter function
+
 export async function saveLetter(req, res) {
   try {
     console.log("Received letter data:", req.body);
@@ -220,7 +225,9 @@ export async function saveLetter(req, res) {
       selectedFtcReports,
       followUpDays,
       createFollowUpTask,
-      email
+      email,
+      sendMethod,
+      attachments
     } = req.body;
 
     // Validate required fields
@@ -251,21 +258,27 @@ export async function saveLetter(req, res) {
       });
     }
 
+    // Handle clientId - convert empty string to null
+    let processedClientId = clientId;
+    if (clientId === "" || clientId === null || clientId === undefined) {
+      processedClientId = null;
+    }
+
     // Validate email: required only if no clientId
-    if (!clientId && (!email || email.trim() === "")) {
+    if (!processedClientId && (!email || email.trim() === "")) {
       return res.status(400).json({
         success: false,
         message: "Email is required when no client is associated",
       });
     }
 
-    // Check if client exists (only if clientId is provided)
+    // Check if client exists (only if clientId is provided and valid)
     let client = null;
-    if (clientId) {
+    if (processedClientId && mongoose.Types.ObjectId.isValid(processedClientId)) {
       try {
-        client = await Client.findById(clientId);
+        client = await Client.findById(processedClientId);
         if (!client) {
-          console.log("Client not found with ID:", clientId);
+          console.log("Client not found with ID:", processedClientId);
           return res.status(404).json({
             success: false,
             message: "Client not found",
@@ -280,7 +293,7 @@ export async function saveLetter(req, res) {
         });
       }
     } else {
-      console.log("No client ID provided - saving letter with email:", email);
+      console.log("No valid client ID provided - saving letter with email:", email);
     }
 
     // Normalize clientId: if empty string or falsy, omit it so mongoose doesn't cast "" to ObjectId
@@ -288,6 +301,7 @@ export async function saveLetter(req, res) {
 
     // Create new letter
     const letterData = {
+      clientId: processedClientId,
       letterName,
       abbreviation,
       round: round || 1,
@@ -313,6 +327,14 @@ export async function saveLetter(req, res) {
       letterData.email = client.email;
     }
     
+    // Optional send metadata and attachments
+    if (sendMethod) {
+      letterData.sendMethod = sendMethod;
+    }
+    if (attachments && Array.isArray(attachments)) {
+      letterData.attachments = attachments;
+    }
+
     console.log("Creating letter with data:", letterData);
     
     const letter = new Letter(letterData);
@@ -481,7 +503,104 @@ export async function deleteLetter(req, res) {
 }
 
 /**
- * Rewrite a letter's body using OpenAI without changing content semantics
+ * Send a letter via email (local or cloud provider) with FTC attachments
+ */
+export async function sendLetterEmail(req, res) {
+  try {
+    const { letterId } = req.params;
+    const { provider = "localmail" } = req.body;
+
+    const letter = await Letter.findById(letterId).populate("clientId", "email firstName lastName");
+    if (!letter) {
+      return res.status(404).json({ success: false, message: "Letter not found" });
+    }
+
+    const recipientEmail = (letter.clientId && letter.clientId.email) || letter.email;
+    if (!recipientEmail) {
+      return res.status(400).json({ success: false, message: "No recipient email available" });
+    }
+
+    // Extract subject from HTML content: look for 'Subject:' then following text until a break
+    const extractSubjectFromHtml = (html) => {
+      try {
+        const withoutTags = html
+          .replace(/<br\s*\/?>(?=\s*\n?)/gi, "\n")
+          .replace(/<[^>]*>/g, " ")
+          .replace(/\s+/g, " ")
+          .trim();
+        const idx = withoutTags.toLowerCase().indexOf("subject:");
+        if (idx >= 0) {
+          const after = withoutTags.slice(idx + 8).trim();
+          // Subject ends at first double space or 'Dear'
+          const dearIdx = after.toLowerCase().indexOf("dear ");
+          const endIdx = dearIdx >= 0 ? dearIdx : after.indexOf("  ");
+          const subject = (endIdx >= 0 ? after.slice(0, endIdx) : after).trim();
+          return subject || "Credit Dispute Letter";
+        }
+      } catch {}
+      return "Credit Dispute Letter";
+    };
+
+    const subject = extractSubjectFromHtml(letter.content);
+
+    // Build plain text from HTML for email body
+    const textBody = letter.content
+      .replace(/<br\s*\/?>(?=\s*\n?)/gi, "\n")
+      .replace(/<[^>]*>/g, "")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+
+    // Prepare attachments from selected FTC reports by trying to download their URLs if present
+    const attachments = [];
+    try {
+      if (Array.isArray(letter.selectedFtcReports) && letter.selectedFtcReports.length > 0) {
+        // Optionally you may need to look up client files to map IDs -> URLs; for now, if content included links, skip
+        // This placeholder does not resolve file IDs to URLs; extend here if you have a mapping
+      }
+    } catch {}
+
+    // Configure transporter based on provider
+    let transporter;
+    if (provider === "cloudmail") {
+      // Cloud: Use SMTP creds from env (e.g., SendGrid/SES SMTP)
+      transporter = nodemailer.createTransport({
+        host: process.env.CLOUD_SMTP_HOST,
+        port: Number(process.env.CLOUD_SMTP_PORT || 587),
+        secure: false,
+        auth: {
+          user: process.env.CLOUD_SMTP_USER,
+          pass: process.env.CLOUD_SMTP_PASS,
+        },
+      });
+    } else {
+      // Local: Use local SMTP/dev mailbox
+      transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST || "localhost",
+        port: Number(process.env.SMTP_PORT || 1025),
+        secure: false,
+        ignoreTLS: true,
+      });
+    }
+
+    const fromAddress = process.env.MAIL_FROM || "no-reply@lettercraft.local";
+
+    const info = await transporter.sendMail({
+      from: fromAddress,
+      to: recipientEmail,
+      subject,
+      text: textBody,
+      html: letter.content,
+      attachments,
+    });
+
+    return res.json({ success: true, message: "Email sent", data: { messageId: info.messageId } });
+  } catch (error) {
+    console.error("Error sending letter email:", error);
+    return res.status(500).json({ success: false, message: "Failed to send email" });
+  }
+}
+
+/* Rewrite a letter's body using OpenAI without changing content semantics
  */
 export async function rewriteLetter(req, res) {
   try {

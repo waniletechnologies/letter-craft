@@ -13,7 +13,6 @@ import { getCurrentUser } from "@/lib/auth";
 import Image from "next/image";
 import Link from "next/link";
 import { Logo } from "@/public/images";
-import { FiBell } from "react-icons/fi";
 import { LogOut } from "lucide-react";
 import Loader from "@/components/Loader";
 
@@ -96,7 +95,6 @@ const PreviewLayout: React.FC<{ children: React.ReactNode }> = ({
 
         {/* User Info & Notifications */}
         <div className="flex items-center gap-3">
-          <FiBell className="w-4 h-4" />
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <div className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 rounded-lg p-1 transition-colors duration-200">

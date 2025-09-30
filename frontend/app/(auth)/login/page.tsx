@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { FaEye, FaEyeSlash } from "react-icons/fa";
-import { Mail, LockIcon } from "lucide-react";
+import { Mail, LockIcon, Loader2 } from "lucide-react";
 import AuthLeftSection from "../components/AuthLeftSection";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { loginUser } from "@/lib/auth";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -17,6 +18,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleForgotPassword = () => {
     router.replace("/forgot-password");
@@ -24,13 +26,45 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Basic validation
+    if (!email || !password) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+
+    setIsLoading(true);
+
     try {
+      // Show loading toast
+      const loadingToast = toast.loading("Signing you in...");
+
       const data = await loginUser(email, password);
+
+      // Dismiss loading toast and show success
+      toast.dismiss(loadingToast);
+      toast.success("Login successful! Redirecting...");
+
       console.log("✅ Login success:", data);
-      router.replace("/dashboard");
-    } catch (err) {
+
+      // Small delay to show success message before redirect
+      setTimeout(() => {
+        router.replace("/dashboard");
+      }, 1000);
+    } catch (err: unknown) {
+      // Dismiss any loading toasts
+      toast.dismiss();
+
+      // Show error message
+      let errorMessage = "Login failed. Please try again.";
+      if (err && typeof err === "object" && "message" in err && typeof (err as { message?: string }).message === "string") {
+        errorMessage = (err as { message: string }).message;
+      }
+      toast.error("Credentials are incorrect. Please try again.");
+
       console.error("❌ Login failed:", err);
-      alert(err);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -85,6 +119,7 @@ export default function LoginPage() {
                       onChange={(e) => setEmail(e.target.value)}
                       className="pl-10 pr-3 py-3 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-[#71717A] placeholder-[#71717A] text-sm sm:text-base"
                       required
+                      disabled={isLoading}
                     />
                   </div>
                 </div>
@@ -109,6 +144,7 @@ export default function LoginPage() {
                       onChange={(e) => setPassword(e.target.value)}
                       className="pl-10 pr-10 py-3 border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 text-[#71717A] placeholder-[#71717A] text-sm sm:text-base"
                       required
+                      disabled={isLoading}
                     />
                     <Button
                       type="button"
@@ -116,6 +152,7 @@ export default function LoginPage() {
                       size="icon"
                       className="absolute inset-y-0 right-0 pr-3 h-full text-[#71717A] hover:text-gray-600"
                       onClick={() => setShowPassword(!showPassword)}
+                      disabled={isLoading}
                     >
                       {showPassword ? (
                         <FaEyeSlash className="h-5 w-5" />
@@ -136,6 +173,7 @@ export default function LoginPage() {
                         setRememberMe(checked === true)
                       }
                       className="border-gray-300 data-[state=checked]:primary data-[state=checked]:border-blue-600"
+                      disabled={isLoading}
                     />
                     <Label
                       htmlFor="remember-me"
@@ -149,6 +187,7 @@ export default function LoginPage() {
                     variant="link"
                     onClick={handleForgotPassword}
                     className="text-sm text-blue-600 primary hover:text-blue-700 font-medium p-0 h-auto"
+                    disabled={isLoading}
                   >
                     Forgot Password?
                   </Button>
@@ -158,8 +197,16 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   className="w-full --primary text-white font-semibold py-3 px-4 rounded-lg transition duration-200 focus:ring-4 focus:ring-blue-200 mt-6 text-sm sm:text-base"
+                  disabled={isLoading}
                 >
-                  Login
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      Signing in...
+                    </>
+                  ) : (
+                    "Login"
+                  )}
                 </Button>
               </form>
             </CardContent>

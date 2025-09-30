@@ -38,8 +38,8 @@ export default function AuthLeftSection() {
             </CardHeader>
             <CardContent className="p-0">
               <p className="text-white/90 text-base leading-relaxed">
-                Lorem ipsum dolor sit amet, consectetur <br />
-                adipiscing elit. Pellentesque at.
+                Professional credit management made simple <br />
+                Join us and take control of your financial future.
               </p>
             </CardContent>
           </Card>

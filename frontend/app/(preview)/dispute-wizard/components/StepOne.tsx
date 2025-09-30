@@ -192,12 +192,6 @@ const StepOne: React.FC = () => {
       // Save dispute items to context and localStorage
       saveDisputeItems(disputeItems);
 
-      // Navigate to generate letter page with necessary parameters
-      router.push(
-        `/dispute-wizard/generate-letter?email=${encodeURIComponent(
-          email
-        )}&category=dispute&letter=dispute-letter`
-      );
     } catch (error) {
       console.error("Failed to save disputes:", error);
       alert(

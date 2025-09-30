@@ -221,8 +221,10 @@ const GenerateLetterPage = () => {
 
       // Properly decode the email
       let decodedEmail = email;
+      console.log("Mail: ", email)
       try {
         decodedEmail = decodeURIComponent(decodedEmail);
+        console.log("Decoded Mail: ", decodedEmail)
         // Handle potential double encoding
         if (decodedEmail.includes("%25")) {
           decodedEmail = decodeURIComponent(decodedEmail);
@@ -233,8 +235,12 @@ const GenerateLetterPage = () => {
 
       // Search for client by email first
       const response = await fetch(
-        `/api/clients/search-email?email=${encodeURIComponent(decodedEmail)}`
+        `${
+          process.env.NEXT_PUBLIC_BACKEND_URL
+        }/api/clients/search-email?email=${decodeURIComponent(decodedEmail)}`
       );
+
+      console.log("Client search request:", decodeURIComponent(decodedEmail));
 
       console.log("Client search response:", response);
 
@@ -601,7 +607,6 @@ const GenerateLetterPage = () => {
       setError("");
 
       const response = await fetchLetterContent(cat, name);
-      console.log("Letter content response:", response);
 
       if (response.success && response.data) {
         let bodyContent = response.data.html;
@@ -641,7 +646,6 @@ const GenerateLetterPage = () => {
 
         const formattedContent = formatLetterContent(bodyContent);
         setLetterContent(formattedContent);
-        console.log("Formatted letter content:", formattedContent);
         setDownloadUrl(response.data.downloadUrl);
       } else {
         setError(response.message || "Failed to load letter content");
@@ -884,7 +888,6 @@ const GenerateLetterPage = () => {
         {/* Footer actions */}
         <div className="flex flex-col sm:flex-row sm:justify-end my-4 sm:mr-12">
           <div className="flex flex-col sm:flex-row px-4 sm:px-0 gap-2">
-            <Button variant="outline">Save For Later</Button>
             <Button
               className="bg-primary hover:bg-primary/90"
               onClick={handleSaveAndContinue}

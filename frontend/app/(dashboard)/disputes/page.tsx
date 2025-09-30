@@ -15,6 +15,7 @@ import { Plus } from "lucide-react";
 import { fetchDisputes, updateDispute } from "@/lib/disputeAPI";
 import ImportCreditReport from "../credit-reports/components/import-credit-report";
 import Loader from "@/components/Loader";
+import { toast } from "@/lib/import";
 
 type Bureau = "Experian" | "Equifax" | "TransUnion";
 type DisputeStatus = "in-progress" | "completed" | "pending" | "failed";
@@ -142,7 +143,7 @@ const DisputesPage = () => {
         )
       );
     } else {
-      alert(`Failed to update dispute: ${res.message}`);
+      toast.error(`Failed to update dispute: ${res.message}`);
     }
   };
 

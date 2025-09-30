@@ -198,10 +198,6 @@ const LettersPage = () => {
           <p className="text-[#606060] font-medium text-base leading-[100%] -tracking-[0.07em]">
             View, preview and download generated letters
           </p>
-          <Button>
-            <SendHorizonal className="h-4 w-4" />
-            Send Letters
-          </Button>
         </div>
       </div>
 

@@ -564,17 +564,23 @@ export async function sendLetterEmail(req, res) {
     // Configure transporter based on provider
     let transporter;
     if (provider === "cloudmail") {
+      console.log("Using cloud SMTP configuration");
       // Cloud: Use SMTP creds from env (e.g., SendGrid/SES SMTP)
       transporter = nodemailer.createTransport({
-        host: process.env.CLOUD_SMTP_HOST,
-        port: Number(process.env.CLOUD_SMTP_PORT || 587),
-        secure: false,
+        host: process.env.SMTP_HOST || "smtp.office365.com",
+        port: Number(process.env.SMTP_PORT || 587), // 587 supports STARTTLS
+        secure: false, // false because STARTTLS is used on port 587
         auth: {
-          user: process.env.CLOUD_SMTP_USER,
-          pass: process.env.CLOUD_SMTP_PASS,
+          user: process.env.SMTP_MAIL, // your Outlook email
+          pass: process.env.SMTP_PASS, // your Outlook app password
+        },
+        tls: {
+          ciphers: "SSLv3",
+          rejectUnauthorized: false, // optional, set true in production
         },
       });
     } else {
+      console.log("Using local SMTP configuration");
       // Local: Use local SMTP/dev mailbox
       transporter = nodemailer.createTransport({
         host: process.env.SMTP_HOST || "smtp.office365.com",

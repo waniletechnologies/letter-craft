@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import jsPDF from "jspdf";
+import { toast } from "@/lib/import";
 
 export type PreviewStatus = "Sent" | "Draft" | "Delivered";
 
@@ -522,7 +523,7 @@ const LetterPreview: React.FC<LetterPreviewProps> = ({
 
     const printWindow = window.open("", "_blank");
     if (!printWindow) {
-      alert("Please allow popups to print the letter.");
+      toast.message("Unable to open print window. Please check your popup settings.");
       return;
     }
 

@@ -12,6 +12,7 @@ import { DisputePayload, DisputedItemPayload } from "@/types/dispute";
 import {  PersonalInfo } from "@/types/creditReport";
 import { useDispute, DisputeItem } from "@/context/disputeContext";
 import { Trash2 } from "lucide-react";
+import { toast } from "sonner";
 // The shape of personalInfo in CreditReportData
 type PersonalInfoByBureau = {
   Experian: PersonalInfo;
@@ -85,7 +86,7 @@ const StepOne: React.FC = () => {
 
   const handleSaveDisputes = async () => {
     if (disputeItems.length === 0) {
-      alert("Please add dispute items before saving.");
+      toast.message("Please add dispute items before saving.");
       return;
     }
     setIsSaving(true);
@@ -166,15 +167,13 @@ const StepOne: React.FC = () => {
         }
       }
 
-      alert("Disputes saved successfully!");
+      toast.success("Disputes saved successfully!");
       addMultipleDisputeItems([]); // Clear items after saving
       router.push("/disputes");
     } catch (error) {
       console.error("Failed to save disputes:", error);
-      alert(
-        `Error: ${
-          error instanceof Error ? error.message : "Could not save disputes."
-        }`
+      toast.error(
+        "Dispute not saved. "
       );
     } finally {
       setIsSaving(false);
@@ -183,7 +182,7 @@ const StepOne: React.FC = () => {
 
   const handleSaveAndContinue = async () => {
     if (disputeItems.length === 0) {
-      alert("Please add dispute items before saving.");
+      toast.message("Please add dispute items before saving.");
       return;
     }
     setIsSaving(true);
@@ -194,10 +193,8 @@ const StepOne: React.FC = () => {
 
     } catch (error) {
       console.error("Failed to save disputes:", error);
-      alert(
-        `Error: ${
-          error instanceof Error ? error.message : "Could not save disputes."
-        }`
+      toast.error(
+        "Dispute not saved. Please try again later."
       );
     } finally {
       setIsSaving(false);

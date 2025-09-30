@@ -8,6 +8,7 @@ import IntegratedStepper from "./components/IntegratedStepper";
 import { License, Proof, Address } from "@/public/images";
 import { Pdf } from "@/public/images";
 import { getClientLetters, updateLetterStatus, saveLetter, sendLetterEmail } from "@/lib/lettersApi";
+import { toast } from "sonner";
 const SendLettersPage = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
@@ -280,7 +281,7 @@ const SendLettersPage = () => {
         letterData.letterName ||
         letterData.letterDetails?.letterName ||
         "Unknown";
-      alert(`Viewing letter: ${letterName} for email: ${email}`);
+      toast.message(`Viewing letter: ${letterName} for email: ${email}`);
     }
   };
 
@@ -302,19 +303,17 @@ const SendLettersPage = () => {
     });
   }
 
-  // Update the documents array to include FTC reports
-  const documents = [
-    // FTC Reports from the selected reports
-    ...ftcReports.map((report) => ({
-      name: report.originalName || report.fileName || `FTC Report`,
-      type: "document",
-      image: Pdf, // Use PDF icon for FTC reports
-      isFtcReport: true,
-      url: report.url,
-    })),
-    // Show message if no FTC reports are available
-    ...(ftcReports.length === 0 &&
-    (savedLetterData?.selectedFtcReports?.length ?? 0) > 0
+  // Build documents strictly from selected FTC reports
+  const documents = (
+    ftcReports.length > 0
+      ? ftcReports.map((report) => ({
+          name: report.originalName || report.fileName || `FTC Report`,
+          type: "document",
+          image: Pdf,
+          isFtcReport: true,
+          url: report.url,
+        }))
+      : (savedLetterData?.selectedFtcReports?.length ?? 0) > 0
       ? [
           {
             name: "No FTC Reports Available",
@@ -324,12 +323,8 @@ const SendLettersPage = () => {
             url: undefined,
           },
         ]
-      : []),
-    // Other ID documents (these would come from the client's uploaded files)
-    { name: "Driver's License.jpg", type: "image", image: License },
-    { name: "Proof of SS.jpg", type: "image", image: Proof },
-    { name: "Proof of Address.jpg", type: "image", image: Address },
-  ];
+      : []
+  );
 
   const handleLetterSelection = (letterId: string, checked: boolean) => {
     if (checked) {
@@ -474,8 +469,13 @@ const SendLettersPage = () => {
           });
 
           // Also send emails for these selected letters
-          const provider = mailMethod === 'certified' ? 'localmail' : 'cloudmail';
-          await sendLetterEmail(letterId, provider as 'localmail' | 'cloudmail');
+          const provider =
+            mailMethod === "certified" ? "localmail" : "localmail";
+          console.log("Sending email for letter:", letterId, "via", provider);
+          await sendLetterEmail(
+            letterId,
+            provider as "localmail" | "localmail"
+          );
         }
       }
 
@@ -483,13 +483,13 @@ const SendLettersPage = () => {
       localStorage.removeItem("savedLetterData");
 
       // Show success message
-      alert("Letters sent successfully!");
-
+      toast.success("Letters sent successfully!");
+      
       // Navigate to dashboard or letters page
       router.push("/letters");
     } catch (error) {
       console.error("Error sending letters:", error);
-      alert("Failed to send letters. Please try again.");
+      toast.error("Failed to send letters. Please try again.");
     }
   };
 

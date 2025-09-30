@@ -9,6 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
+import {toast} from "sonner";
 // NOTE: Saving now happens on the final step (Confirm Options)
 // import { saveLetter } from "@/lib/lettersApi";
 
@@ -117,12 +118,12 @@ const SaveLetterDialog: React.FC<SaveLetterDialogProps> = ({
       }
 
       if (!letterData.content || letterData.content.trim() === "") {
-        alert("Letter content is missing. Please generate the letter first.");
+        toast.error("Letter content is missing. Please generate the letter first.");
         return;
       }
 
       if (!letterData.category || !letterData.bureau) {
-        alert("Letter category or bureau information is missing.");
+        toast.error("Letter category or bureau information is missing.");
         return;
       }
 
@@ -159,7 +160,7 @@ const SaveLetterDialog: React.FC<SaveLetterDialogProps> = ({
       router.push("/dispute-wizard/send-letters");
     } catch (error) {
       console.error("Error saving letter:", error);
-      alert("An error occurred while saving the letter. Please try again.");
+      toast.error("An error occurred while saving the letter. Please try again.");
     }
   };
 

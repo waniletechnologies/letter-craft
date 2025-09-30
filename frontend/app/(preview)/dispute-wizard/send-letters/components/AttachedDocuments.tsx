@@ -123,16 +123,6 @@ const AttachedDocuments: React.FC<AttachedDocumentsProps> = ({
                   {doc.isFtcReport ? "FTC Report" : "Document Found"}
                 </span>
               </div>
-              <Button
-                variant="link"
-                size="sm"
-                className="text-primary p-0 h-auto ml-auto font-medium text-xs leading-[18.02px] tracking-normal"
-                onClick={() =>
-                  doc.url ? window.open(doc.url, "_blank") : () => {}
-                }
-              >
-                {doc.isFtcReport ? "Download" : "View / Edit"}
-              </Button>
             </div>
           ))}
         </div>

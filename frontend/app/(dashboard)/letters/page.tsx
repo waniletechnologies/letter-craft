@@ -3,9 +3,48 @@
 import React, { useState, useEffect } from "react";
 import LetterCard from "./components/letter-card";
 import LetterPreview from "./components/letter-preview";
-import { Mail, PhoneCall, Printer, SendHorizonal } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Mail, PhoneCall, Printer } from "lucide-react";
 import { getAllLetters, BackendLetter } from "@/lib/lettersApi";
+import Loader from "@/components/Loader";
+import jsPDF from "jspdf";
+
+interface PersonalInfo {
+  names?: Array<{
+    first: string;
+    middle?: string;
+    last: string;
+    suffix?: string;
+    type?: string;
+  }>;
+  addresses?: Array<{
+    street: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    dateReported?: string;
+    dateUpdated?: string;
+  }>;
+  births?: Array<{
+    date: string;
+    year: string;
+    month: string;
+    day: string;
+  }>;
+  ssns?: Array<{ number: string }>;
+  employers?: Array<{ name: string }>;
+  previousAddresses?: Array<{
+    street: string;
+    city: string;
+    state: string;
+    postalCode: string;
+    dateReported?: string;
+    dateUpdated?: string;
+  }>;
+  creditScore?: string;
+  creditReportDate?: string;
+}
+
+
 
 const sampleLetters = [
   {
@@ -104,6 +143,261 @@ const LettersPage = () => {
     return fullName || letter.email || "Unknown Client";
   };
 
+  // Get sender address from personalInfo
+  const getSenderAddress = (personalInfo?: PersonalInfo): string => {
+    if (!personalInfo || !personalInfo.names || !personalInfo.addresses) {
+      return "Unknown Client\n[Address Not Available]";
+    }
+
+    const name = personalInfo.names[0];
+    const address = personalInfo.addresses[0];
+
+    const fullName = `${name?.first || ""} ${name?.middle || ""} ${
+      name?.last || ""
+    }`.trim();
+    const addressLine = address
+      ? `${address.street}, ${address.city}, ${address.state} ${address.postalCode}`
+      : "";
+
+    return `${fullName}\n${addressLine}`;
+  };
+
+  // Get bureau address
+  const getBureauAddress = (
+    bureau: "Experian" | "Equifax" | "TransUnion"
+  ): string => {
+    switch (bureau) {
+      case "Experian":
+        return "EXPERIAN\nP.O. BOX 4500\nALLEN, TX 75013";
+      case "TransUnion":
+        return "TRANSUNION\nP.O. BOX 2000\nCHESTER, PA 19016";
+      case "Equifax":
+      default:
+        return "EQUIFAX\nP.O. BOX 740250\nATLANTA, GA 30374";
+    }
+  };
+
+  // Format date for letter
+  const getCurrentDate = (): string => {
+    const today = new Date();
+    return today.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+  };
+
+  // Clean HTML content for PDF
+  const cleanHtmlContent = (html: string): string => {
+    return html
+      .replace(/<br\s*\/?>/gi, "\n")
+      .replace(/<p[^>]*>/gi, "\n")
+      .replace(/<\/p>/gi, "\n")
+      .replace(/<div[^>]*>/gi, "\n")
+      .replace(/<\/div>/gi, "\n")
+      .replace(/<strong[^>]*>/gi, "")
+      .replace(/<\/strong>/gi, "")
+      .replace(/<b[^>]*>/gi, "")
+      .replace(/<\/b>/gi, "")
+      .replace(/<em[^>]*>/gi, "")
+      .replace(/<\/em>/gi, "")
+      .replace(/<i[^>]*>/gi, "")
+      .replace(/<\/i>/gi, "")
+      .replace(/<u[^>]*>/gi, "")
+      .replace(/<\/u>/gi, "")
+      .replace(/<span[^>]*>/gi, "")
+      .replace(/<\/span>/gi, "")
+      .replace(/<[^>]*>/g, "") // Remove any remaining tags
+      .replace(/\n\s*\n/g, "\n\n") // Clean up multiple newlines
+      .trim();
+  };
+
+  // PDF generation function
+  const handleDownloadPDF = (letter: Letter) => {
+    const pdf = new jsPDF({
+      orientation: "portrait",
+      unit: "mm",
+      format: "a4",
+    });
+
+    // Colors
+    const primaryColor = [88, 129, 240]; // #5881F0
+    const textColor = [41, 37, 36]; // #292524
+    const borderColor = [229, 231, 235]; // #E5E7EB
+
+    let currentY = 20;
+
+    // Header with client and bureau info
+    pdf.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+    pdf.rect(0, 0, pdf.internal.pageSize.getWidth(), 25, "F");
+
+    // Header text
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(14);
+    pdf.setTextColor(255, 255, 255);
+    pdf.text("DISPUTE LETTER", 20, 15);
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(10);
+    pdf.text(
+      `Client: ${letter.clientName}`,
+      pdf.internal.pageSize.getWidth() - 20,
+      10,
+      { align: "right" }
+    );
+    pdf.text(
+      `Bureau: ${letter.bureau} - Round ${letter.round}`,
+      pdf.internal.pageSize.getWidth() - 20,
+      17,
+      { align: "right" }
+    );
+
+    currentY = 40;
+
+    // FROM and TO addresses
+    const senderAddress = getSenderAddress(letter.personalInfo as PersonalInfo);
+    const bureauAddress = getBureauAddress(letter.bureau);
+
+    // FROM address
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(11);
+    pdf.setTextColor(textColor[0], textColor[1], textColor[2]);
+    pdf.text("FROM:", 20, currentY);
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(10);
+    const senderLines = senderAddress.split("\n");
+    senderLines.forEach((line, index) => {
+      pdf.text(line, 20, currentY + 8 + index * 5);
+    });
+
+    // TO address
+    pdf.setFont("helvetica", "bold");
+    pdf.setTextColor(textColor[0], textColor[1], textColor[2]);
+    pdf.text("TO:", pdf.internal.pageSize.getWidth() - 80, currentY);
+
+    pdf.setFont("helvetica", "normal");
+    const bureauLines = bureauAddress.split("\n");
+    bureauLines.forEach((line, index) => {
+      pdf.text(
+        line,
+        pdf.internal.pageSize.getWidth() - 80,
+        currentY + 8 + index * 5
+      );
+    });
+
+    currentY += Math.max(senderLines.length, bureauLines.length) * 5 + 20;
+
+    // Date
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(10);
+    pdf.text(getCurrentDate(), 20, currentY);
+    currentY += 15;
+
+    // Separator line
+    pdf.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+    pdf.setLineWidth(0.5);
+    pdf.line(20, currentY, pdf.internal.pageSize.getWidth() - 20, currentY);
+    currentY += 20;
+
+    // Letter content
+    const cleanContent = cleanHtmlContent(letter.content);
+    const contentLines = pdf.splitTextToSize(
+      cleanContent,
+      pdf.internal.pageSize.getWidth() - 40
+    );
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(11);
+    pdf.setTextColor(textColor[0], textColor[1], textColor[2]);
+
+    contentLines.forEach((line: string) => {
+      // Check if we need a new page
+      if (currentY > pdf.internal.pageSize.getHeight() - 40) {
+        pdf.addPage();
+        currentY = 20;
+      }
+      pdf.text(line, 20, currentY);
+      currentY += 6;
+    });
+
+    currentY += 20;
+
+    // Signature section
+    if (currentY > pdf.internal.pageSize.getHeight() - 60) {
+      pdf.addPage();
+      currentY = 20;
+    }
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(11);
+    pdf.text("Sincerely,", 20, currentY);
+    currentY += 10;
+    pdf.text(letter.clientName, 20, currentY);
+    currentY += 20;
+
+    // Enclosures section
+    if (currentY > pdf.internal.pageSize.getHeight() - 40) {
+      pdf.addPage();
+      currentY = 20;
+    }
+
+    pdf.setFont("helvetica", "bold");
+    pdf.setFontSize(10);
+    pdf.text("Enclosures:", 20, currentY);
+    currentY += 8;
+
+    pdf.setFont("helvetica", "normal");
+    pdf.setFontSize(9);
+    const enclosures = [
+      "Copy of Government Issued ID",
+      "Proof of Address",
+      "FTC Identity Theft Report (if applicable)",
+      "Supporting Documentation",
+    ];
+
+    enclosures.forEach((item, index) => {
+      if (currentY > pdf.internal.pageSize.getHeight() - 20) {
+        pdf.addPage();
+        currentY = 20;
+      }
+      pdf.text(`• ${item}`, 25, currentY + index * 5);
+    });
+
+    // Footer on each page
+    const pageCount = pdf.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      pdf.setPage(i);
+
+      // Page number
+      pdf.setFontSize(8);
+      pdf.setTextColor(150, 150, 150);
+      pdf.text(
+        `Page ${i} of ${pageCount}`,
+        pdf.internal.pageSize.getWidth() / 2,
+        pdf.internal.pageSize.getHeight() - 10,
+        { align: "center" }
+      );
+
+      // Footer separator
+      pdf.setDrawColor(borderColor[0], borderColor[1], borderColor[2]);
+      pdf.setLineWidth(0.3);
+      pdf.line(
+        20,
+        pdf.internal.pageSize.getHeight() - 15,
+        pdf.internal.pageSize.getWidth() - 20,
+        pdf.internal.pageSize.getHeight() - 15
+      );
+    }
+
+    // Save the PDF
+    pdf.save(
+      `Dispute_Letter_${letter.clientName.replace(/\s+/g, "_")}_${
+        letter.bureau
+      }_Round_${letter.round}.pdf`
+    );
+  };
+
   const loadLetters = async () => {
     try {
       setLoading(true);
@@ -185,7 +479,7 @@ const LettersPage = () => {
 
   const handleDownload = (letter: Letter) => {
     console.log("Download letter for", letter.clientName);
-    // This will be handled by the LetterPreview component
+    handleDownloadPDF(letter);
   };
 
   return (
@@ -204,7 +498,7 @@ const LettersPage = () => {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {loading ? (
           <div className="col-span-2 text-center py-8">
-            <p>Loading letters...</p>
+            <Loader />
           </div>
         ) : letters.length === 0 ? (
           <div className="col-span-2 text-center py-8">

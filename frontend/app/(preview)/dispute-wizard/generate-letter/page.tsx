@@ -91,6 +91,7 @@ const GenerateLetterPage = () => {
   const [personalInfo, setPersonalInfo] = useState<PersonalInfo | null>(null);
   const [todayDate, setTodayDate] = useState<string>("");
   const [isRewriting, setIsRewriting] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
   const [selectedFtcReport, setSelectedFtcReport] = useState<string>("");
   const [clientId, setClientId] = useState<string>("");
   const {
@@ -663,6 +664,7 @@ const GenerateLetterPage = () => {
   };
 
   const handleSaveAndContinue = () => {
+    setIsSaving(true);
     setIsSaveDialogOpen(true);
   };
 
@@ -818,7 +820,12 @@ const GenerateLetterPage = () => {
                 {selectedFtcReports
                   .map((reportId) => {
                     const report = getFtcReportOptions().find(
-                      (r: { value: string; label: string; url: string; selected: boolean }) => r.value === reportId
+                      (r: {
+                        value: string;
+                        label: string;
+                        url: string;
+                        selected: boolean;
+                      }) => r.value === reportId
                     );
                     return report?.label;
                   })
@@ -891,9 +898,9 @@ const GenerateLetterPage = () => {
             <Button
               className="bg-primary hover:bg-primary/90"
               onClick={handleSaveAndContinue}
-              disabled={!letterContent}
+              disabled={!letterContent || isSaving}
             >
-              Save & Continue
+              {isSaving ? "Saving..." : "Save & Continue"}
             </Button>
           </div>
         </div>
@@ -907,7 +914,7 @@ const GenerateLetterPage = () => {
         letterData={{
           category: category || "",
           letterName: letterName || "",
-          bureau: getBureauFromCategory(category),
+          bureau: getBureauFromCategory(letterName),
           content: letterContent,
           personalInfo: personalInfo,
         }}

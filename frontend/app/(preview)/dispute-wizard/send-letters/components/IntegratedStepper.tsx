@@ -35,6 +35,8 @@ interface IntegratedStepperProps {
   onSendLetters: () => void;
   canNext: boolean;
   email?: string;
+  selectedFtcDocCount?: number;
+  isSending: boolean;
 }
 
 const IntegratedStepper: React.FC<IntegratedStepperProps> = ({
@@ -58,6 +60,8 @@ const IntegratedStepper: React.FC<IntegratedStepperProps> = ({
   onSendLetters,
   canNext,
   email,
+  selectedFtcDocCount = 0,
+  isSending,  
 }) => {
   const router = useRouter();
 
@@ -100,6 +104,7 @@ const IntegratedStepper: React.FC<IntegratedStepperProps> = ({
             includeIdAttachments={includeIdAttachments}
             idAttachmentScope={idAttachmentScope}
             includeReturnAddress={includeReturnAddress}
+            selectedFtcDocCount={selectedFtcDocCount}
           />
         );
       default:
@@ -169,8 +174,8 @@ const IntegratedStepper: React.FC<IntegratedStepperProps> = ({
                         Next
                       </Button>
                     ) : (
-                      <Button onClick={onSendLetters} disabled={!canNext}>
-                        Send Letters
+                      <Button onClick={onSendLetters} disabled={!canNext || isSending}>
+                        {isSending ? "Sending..." : "Send Letters"}
                       </Button>
                     )}
                   </div>

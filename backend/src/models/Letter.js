@@ -89,7 +89,7 @@ const LetterSchema = new mongoose.Schema(
     // Sending information
     sendMethod: {
       type: String,
-      enum: ["CloudMail", "local", "email"],
+      enum: ["CloudMail", "local", "email", "certified"],
     },
 
     trackingNumber: {

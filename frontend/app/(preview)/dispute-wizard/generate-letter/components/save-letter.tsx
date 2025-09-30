@@ -95,10 +95,12 @@ const SaveLetterDialog: React.FC<SaveLetterDialogProps> = ({
   });
 
   const router = useRouter();
+  const [isSaving, setIsSaving] = useState(false);
 
   // In SaveLetterDialog component, update the handleSave function
 
   const handleSave = async () => {
+    setIsSaving(true);
     try {
       // Debug logging
       console.log("Save letter data:", {
@@ -310,7 +312,7 @@ const SaveLetterDialog: React.FC<SaveLetterDialogProps> = ({
           </p>
           {/* Save Button */}
           <div className="flex sm:justify-end justify-center w-full sm:w-auto pt-2">
-            <Button onClick={handleSave}>Save & Continue</Button>
+            <Button onClick={handleSave} disabled={isSaving}>{isSaving ? "Saving..." : "Save & Continue"}</Button>
           </div>
         </div>
       </DialogContent>

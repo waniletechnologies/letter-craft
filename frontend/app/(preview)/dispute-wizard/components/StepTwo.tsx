@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/select";
 import { useRouter } from "next/navigation";
 import { fetchLetters, LetterCategory } from "@/lib/lettersApi";
+import Loader from "@/components/Loader";
+import {toast} from "sonner";
 
 interface StepTwoProps {
   email?: string | null;
@@ -62,8 +64,12 @@ const StepTwo: React.FC<StepTwoProps> = ({ email, selectedAccounts = [] }) => {
     }
   };
 
+  const [generating, setGenerating] = useState(false);
+
   const handleGenerateLetter = () => {
     if (selectedCategory && selectedLetter) {
+      setGenerating(true); // start loading
+
       // Create URL parameters with all necessary data
       const params = new URLSearchParams({
         category: selectedCategory,
@@ -74,14 +80,18 @@ const StepTwo: React.FC<StepTwoProps> = ({ email, selectedAccounts = [] }) => {
         params.append("email", email);
       }
 
-      // Add selected accounts data as JSON
       if (selectedAccounts.length > 0) {
         params.append("accounts", JSON.stringify(selectedAccounts));
       }
 
-      router.push(`/dispute-wizard/generate-letter?${params.toString()}`);
+      // Use setTimeout so the button shows spinner before route change
+      setTimeout(() => {
+        toast.message("Generating letter...");
+        router.push(`/dispute-wizard/generate-letter?${params.toString()}`);
+      }, 300);
     }
   };
+
 
   const selectedCategoryData = categories.find(
     (cat) => cat.category === selectedCategory
@@ -96,11 +106,13 @@ const StepTwo: React.FC<StepTwoProps> = ({ email, selectedAccounts = [] }) => {
         </div>
         <div className="flex flex-col sm:flex-row sm:items-center gap-3">
           <Button
-            className="bg-primary hover:bg-primary/90"
+            className="bg-primary hover:bg-primary/90 flex items-center gap-2"
             onClick={handleGenerateLetter}
-            disabled={!selectedCategory || !selectedLetter || loading}
+            disabled={
+              !selectedCategory || !selectedLetter || loading || generating
+            }
           >
-            Generate Library Letter
+            {generating ? "Generating..." : "Generate Library Letter"}
           </Button>
         </div>
       </div>
@@ -177,9 +189,7 @@ const StepTwo: React.FC<StepTwoProps> = ({ email, selectedAccounts = [] }) => {
           </div>
         )}
 
-        {loading && (
-          <div className="text-sm text-gray-500">Loading letters...</div>
-        )}
+        {loading && <Loader />}
 
         {!loading && categories.length === 0 && (
           <div className="text-sm text-yellow-600">

@@ -12,11 +12,7 @@ import { toast } from "sonner";
 const SendLettersPage = () => {
   const router = useRouter();
   const [currentStep, setCurrentStep] = useState(1);
-  const [selectedLetters, setSelectedLetters] = useState<string[]>([
-    "equifax",
-    "experian",
-    "transunion",
-  ]);
+  const [selectedLetters, setSelectedLetters] = useState<string[]>([]);
   const [includeIdAttachments, setIncludeIdAttachments] = useState(true);
   const [idAttachmentScope, setIdAttachmentScope] = useState("round1");
   const [includeReturnAddress, setIncludeReturnAddress] = useState(false);
@@ -47,6 +43,7 @@ const SendLettersPage = () => {
     // add other fields as needed
   }
   const [ftcReports, setFtcReports] = useState<FtcReport[]>([]);
+  const [selectedFtcDocIds, setSelectedFtcDocIds] = useState<string[]>([]);
   interface ClientLetter {
     _id: string;
     bureau: string;
@@ -60,6 +57,7 @@ const SendLettersPage = () => {
   }
   const [clientLetters, setClientLetters] = useState<ClientLetter[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSending, setIsSending] = useState(false);
 
   // Load saved data on component mount
   useEffect(() => {
@@ -83,7 +81,11 @@ const SendLettersPage = () => {
       setLoading(true);
       const response = await getClientLetters(clientId);
       if (response.success && response.data) {
-        setClientLetters(response.data as ClientLetter[]);
+        const backendLetters = response.data as ClientLetter[];
+        setClientLetters(backendLetters);
+        // Preselect all backend letters by ID
+        const ids = backendLetters.map((l) => l._id);
+        setSelectedLetters(ids);
       }
     } catch (error) {
       console.error("Error loading client letters:", error);
@@ -109,15 +111,29 @@ const SendLettersPage = () => {
         return;
       }
 
-      console.log(
-        "Loading FTC reports for client:",
-        clientId,
-        "with reports:",
-        selectedReportIds
-      );
+      console.log("Loading FTC reports for client:", clientId, "with reports:", selectedReportIds);
 
-      // Fetch client files to get FTC reports
-      const response = await fetch(`/api/clients/${clientId}/files`);
+      // Get the auth token from localStorage or your auth context
+      const token =
+        localStorage.getItem("authToken") || localStorage.getItem("token");
+
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+
+      // Add authorization header if token exists
+      if (token) {
+        headers["Authorization"] = `Bearer ${token}`;
+      }
+
+      // Fetch client files to get FTC reports with auth headers
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_BACKEND_URL}/api/clients/${clientId}/files`,
+        {
+          headers,
+          credentials: "include", // Include cookies if using session-based auth
+        }
+      );
 
       if (response.ok) {
         const data = await response.json();
@@ -132,21 +148,21 @@ const SendLettersPage = () => {
           originalName?: string;
           fileName?: string;
           url?: string;
-          // add other fields as needed
         }
-        const selectedReports = ftcReportData.filter((report: FtcReport) =>
-          selectedReportIds.includes(report._id)
-        );
+        const selectedReports = ftcReportData.filter((report: FtcReport) => selectedReportIds.includes(report._id));
 
         console.log("Selected FTC reports:", selectedReports);
         setFtcReports(selectedReports);
+        setSelectedFtcDocIds(selectedReports.map((r: { _id: any; }) => r._id));
       } else {
         console.log("Failed to fetch client files, status:", response.status);
         setFtcReports([]);
+        setSelectedFtcDocIds([]);
       }
     } catch (error) {
       console.error("Error loading FTC reports:", error);
       setFtcReports([]);
+      setSelectedFtcDocIds([]);
     }
   };
 
@@ -301,12 +317,17 @@ const SendLettersPage = () => {
       onEdit: (email?: string) => handleEditLetter(savedLetterData, email),
       onView: (email?: string) => handleViewLetter(savedLetterData, email),
     });
+    // Ensure the locally saved letter is selected
+    if (!selectedLetters.includes("saved-letter")) {
+      setSelectedLetters(["saved-letter"]);
+    }
   }
 
   // Build documents strictly from selected FTC reports
   const documents = (
     ftcReports.length > 0
       ? ftcReports.map((report) => ({
+          id: report._id,
           name: report.originalName || report.fileName || `FTC Report`,
           type: "document",
           image: Pdf,
@@ -332,6 +353,15 @@ const SendLettersPage = () => {
     } else {
       setSelectedLetters((prev) => prev.filter((id) => id !== letterId));
     }
+  };
+
+  const handleToggleDocument = (docId: string, checked: boolean) => {
+    setSelectedFtcDocIds(prev => {
+      if (checked) {
+        return Array.from(new Set([...prev, docId]));
+      }
+      return prev.filter(id => id !== docId);
+    });
   };
 
   const handleSelectAll = (checked: boolean) => {
@@ -372,6 +402,7 @@ const SendLettersPage = () => {
   // In SendLettersPage, update the handleSendLetters function
 
   const handleSendLetters = async () => {
+    setIsSending(true);
     try {
       // If we have locally saved letter data (not persisted yet), save it now with mail method and attachments
       const saved = localStorage.getItem("savedLetterData");
@@ -389,7 +420,7 @@ const SendLettersPage = () => {
         }
 
         // Build attachments list from documents that are FTC reports
-        const selectedAttachments = ftcReports.map((r) => ({
+        const selectedAttachments = ftcReports.filter(r => selectedFtcDocIds.includes(r._id)).map((r) => ({
           fileName: r.originalName || r.fileName || "FTC Report",
           s3Key: undefined,
           originalName: r.originalName || r.fileName,
@@ -406,7 +437,7 @@ const SendLettersPage = () => {
           bureau: parsed.letterDetails?.bureau || "Equifax",
           content: parsed.letterDetails?.content || "",
           personalInfo: parsed.letterDetails?.personalInfo || {},
-          selectedFtcReports: parsed.selectedFtcReports || [],
+          selectedFtcReports: selectedFtcDocIds,
           followUpDays: parsed.followUpDays || 2,
           createFollowUpTask: parsed.createFollowUpTask !== false,
           email: parsed.email,
@@ -527,6 +558,8 @@ const SendLettersPage = () => {
           onSendLetters={handleSendLetters}
           canNext={canGoNext()}
           email={savedLetterData?.email}
+          selectedFtcDocCount={selectedFtcDocIds.length}
+          isSending={isSending}
         />
       </div>
     </div>

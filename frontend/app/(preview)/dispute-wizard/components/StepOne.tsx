@@ -41,6 +41,7 @@ const StepOne: React.FC = () => {
   const email = searchParams.get("email") || "";
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [saveAndContinue, setSaveAndContinue] = useState(false);
   const {
     disputeItems,
     addMultipleDisputeItems,
@@ -181,15 +182,20 @@ const StepOne: React.FC = () => {
   };
 
   const handleSaveAndContinue = async () => {
+    console.log("Saving and continuing...");
     if (disputeItems.length === 0) {
+      console.log("Please add dispute items before saving.");
       toast.message("Please add dispute items before saving.");
       return;
     }
-    setIsSaving(true);
-
+    setSaveAndContinue(true);
+    
     try {
+      console.log("Saving disputes...");
+      setSaveAndContinue(true);
       // Save dispute items to context and localStorage
       saveDisputeItems(disputeItems);
+      toast.success("Disputes saved successfully!");
 
     } catch (error) {
       console.error("Failed to save disputes:", error);
@@ -197,7 +203,7 @@ const StepOne: React.FC = () => {
         "Dispute not saved. Please try again later."
       );
     } finally {
-      setIsSaving(false);
+      setSaveAndContinue(false);
     }
   };
 
@@ -318,9 +324,9 @@ const StepOne: React.FC = () => {
             <Button
               className="bg-[#2196F3] hover:bg-[#1976D2]"
               onClick={handleSaveAndContinue}
-              disabled={isSaving}
+              disabled={saveAndContinue}
             >
-              {isSaving ? "Saving..." : "Save & Continue"}
+              {saveAndContinue ? "Saving..." : "Save & Continue"}
             </Button>
           </div>
         )}

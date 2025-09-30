@@ -8,6 +8,7 @@ interface ConfirmOptionsProps {
   includeIdAttachments: boolean;
   idAttachmentScope: string;
   includeReturnAddress: boolean;
+  selectedFtcDocCount?: number;
 }
 
 const ConfirmOptions: React.FC<ConfirmOptionsProps> = ({
@@ -16,6 +17,7 @@ const ConfirmOptions: React.FC<ConfirmOptionsProps> = ({
   includeIdAttachments,
   idAttachmentScope,
   includeReturnAddress,
+  selectedFtcDocCount = 0,
 }) => {
   return (
     <div className="space-y-4">
@@ -31,6 +33,7 @@ const ConfirmOptions: React.FC<ConfirmOptionsProps> = ({
             <div>• Mail method: {mailMethod === 'certified' ? 'Certified Mail via CloudMail' : 'Print and mail locally'}</div>
             <div>• ID attachments: {includeIdAttachments ? `Included on ${idAttachmentScope === 'round1' ? 'round 1 letters' : 'all letters'}` : 'Not included'}</div>
             <div>• Return address: {includeReturnAddress ? 'Included' : 'Not included'}</div>
+            <div>• FTC reports attached: {selectedFtcDocCount}</div>
           </div>
         </div>
       </div>

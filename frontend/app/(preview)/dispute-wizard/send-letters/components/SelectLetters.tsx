@@ -108,7 +108,7 @@ const SelectLetters: React.FC<SelectLettersProps> = ({
                       variant="link"
                       size="sm"
                       className="font-medium text-[14.37px] leading-[18.02px] tracking-normal text-primary p-0 h-auto"
-                      onClick={() => letter.onView?.(email)} // Pass email
+                      onClick={() => letter.onEdit?.(email)} // Pass email
                     >
                       View
                     </Button>
@@ -122,15 +122,6 @@ const SelectLetters: React.FC<SelectLettersProps> = ({
                       Edit
                     </Button>
                   </div>
-                </TableCell>
-                <TableCell>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-red-600 p-0 h-auto"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
                 </TableCell>
               </TableRow>
             ))}

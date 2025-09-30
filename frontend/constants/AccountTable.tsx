@@ -143,8 +143,8 @@ export const AccountTable: React.FC<{
             ["ACCOUNT #:", "accountNumber", true],
             ["HIGH BALANCE:", "highBalance", false],
             ["LAST VERIFIED", "lastVerified", false],
-          ].map(([label, key, isEditable]) => (
-            <TableRow key={label} className="border-b border-[#00000014]">
+          ].map(([label, key, isEditable], index) => (
+            <TableRow key={`${label}-${index}`} className="border-b border-[#00000014]">
               <TableCell className="font-medium text-xs leading-[1.5] -tracking-[0.03em] text-right w-[22%] text-[#292524] border-r border-[#00000014] p-3">
                 {label}
               </TableCell>

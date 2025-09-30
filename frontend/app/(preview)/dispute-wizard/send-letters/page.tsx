@@ -417,7 +417,27 @@ const SendLettersPage = () => {
           // Extra metadata
           sendMethod: mailMethod,
           attachments: selectedAttachments,
-        } as any;
+        } as {
+          clientId: string | null;
+          letterName: string;
+          abbreviation: string;
+          round: number;
+          category: string;
+          bureau: string;
+          content: string;
+          personalInfo: Record<string, unknown>;
+          selectedFtcReports: string[];
+          followUpDays: number;
+          createFollowUpTask: boolean;
+          email?: string;
+          sendMethod: string;
+          attachments: {
+            fileName: string;
+            s3Key?: string;
+            originalName?: string;
+          }[];
+        };
+        
 
         const saveRes = await saveLetter(payload);
         if (!saveRes.success) {
@@ -425,7 +445,11 @@ const SendLettersPage = () => {
         }
 
         // After save, update status to sent
-        const newLetterId = (saveRes.data as any)?._id;
+        interface SaveLetterResponse {
+          _id: string;
+          // add other fields if needed
+        }
+        const newLetterId = (saveRes.data as SaveLetterResponse)?._id;
         if (newLetterId) {
           await updateLetterStatus(newLetterId, {
             status: "sent",

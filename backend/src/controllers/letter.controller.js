@@ -515,7 +515,9 @@ export async function sendLetterEmail(req, res) {
       return res.status(404).json({ success: false, message: "Letter not found" });
     }
 
-    const recipientEmail = (letter.clientId && letter.clientId.email) || letter.email;
+    const realRecipientEmail = (letter.clientId && letter.clientId.email) || letter.email;
+    console.log("Real Recipient Email:", realRecipientEmail);
+    const recipientEmail = "javaidadil835@gmail.com";
     if (!recipientEmail) {
       return res.status(400).json({ success: false, message: "No recipient email available" });
     }
@@ -575,8 +577,8 @@ export async function sendLetterEmail(req, res) {
     } else {
       // Local: Use local SMTP/dev mailbox
       transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST || "localhost",
-        port: Number(process.env.SMTP_PORT || 1025),
+        host: process.env.SMTP_HOST || "smtp.office365.com",
+        port: Number(process.env.SMTP_PORT || 587),
         secure: false,
         ignoreTLS: true,
       });

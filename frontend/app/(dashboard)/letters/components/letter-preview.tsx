@@ -13,6 +13,25 @@ import jsPDF from "jspdf";
 
 export type PreviewStatus = "Sent" | "Draft" | "Delivered";
 
+// Define expected types for personalInfo
+interface PersonalInfoName {
+  first?: string;
+  middle?: string;
+  last?: string;
+}
+
+interface PersonalInfoAddress {
+  street?: string;
+  city?: string;
+  state?: string;
+  postalCode?: string;
+}
+
+interface PersonalInfo {
+  names?: PersonalInfoName[];
+  addresses?: PersonalInfoAddress[];
+}
+
 export interface LetterPreviewProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -22,8 +41,9 @@ export interface LetterPreviewProps {
   round: number;
   status: PreviewStatus;
   content: string;
-  personalInfo?: any;
+  personalInfo?: PersonalInfo; // ✅ typed instead of `any`
 }
+
 
 const statusStyles: Record<PreviewStatus, string> = {
   Sent: "bg-[#5881F0] text-[#FFFFFF]",

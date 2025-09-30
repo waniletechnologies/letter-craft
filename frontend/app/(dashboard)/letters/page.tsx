@@ -132,7 +132,8 @@ const LettersPage = () => {
       setLoading(true);
       const res = await getAllLetters();
       if (res.success && Array.isArray(res.data)) {
-        const mapped = res.data.map((l: BackendLetter) => ({
+        const backendLetters = res.data as unknown as BackendLetter[];
+        const mapped: Letter[] = backendLetters.map((l) => ({
           id: l._id,
           clientName: getClientName(l),
           bureau: l.bureau,

@@ -18,7 +18,7 @@ import Image from "next/image";
 import { Experian, Equifax, TransUnion } from "@/public/images";
 import SaveLetterDialog, { SaveLetterData } from "./components/save-letter";
 import { useSearchParams } from "next/navigation";
-import { fetchLetterContent } from "@/lib/lettersApi";
+import { fetchLetterContent, rewriteLetter } from "@/lib/lettersApi";
 import { fetchStoredCreditReport } from "@/lib/creditReportApi";
 import { useDispute } from "@/context/disputeContext";
 import { useGetClientFiles, UploadedFile } from "@/hooks/clients";
@@ -524,9 +524,27 @@ const GenerateLetterPage = () => {
   const handleRewriteWithAI = async () => {
     setIsRewriting(true);
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      const enhancedContent = fixGrammarAndEnhanceContent(letterContent);
-      setLetterContent(enhancedContent);
+      // Convert current editor HTML to plain text for the model
+      const tempDiv = document.createElement("div");
+      tempDiv.innerHTML = letterContent;
+      const plainText = tempDiv.textContent || tempDiv.innerText || "";
+
+      // Send raw HTML if the editor has tags; otherwise send text
+      const hasHtml = /<[^>]+>/.test(letterContent);
+      const payload = hasHtml ? letterContent : plainText;
+      const resp = await rewriteLetter(payload);
+      if (resp.success && resp.data?.body) {
+        // strip accidental fences on client too (belt-and-suspenders)
+        const ai = resp.data.body
+          .replace(/^```[a-zA-Z]*\n?/i, "")
+          .replace(/\n?```\s*$/i, "")
+          .replace(/<\/?html[^>]*>/gi, "")
+          .replace(/<\/?body[^>]*>/gi, "")
+          .trim();
+        const nextHtml = /<[^>]+>/.test(ai) ? ai : ai.replace(/\n/g, "<br>");
+        const formatted = formatLetterContent(nextHtml);
+        setLetterContent(formatted);
+      }
     } catch (error) {
       console.error("Error rewriting content:", error);
     } finally {

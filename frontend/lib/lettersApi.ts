@@ -210,7 +210,7 @@ export async function deleteLetter(letterId: string): Promise<{
 // Get all letters (dashboard)
 export async function getAllLetters(): Promise<{
   success: boolean;
-  data?: any[];
+  data?: Letter[];
   message?: string;
 }> {
   try {
@@ -227,7 +227,7 @@ export async function getAllLetters(): Promise<{
 // Send letter email (provider: 'localmail' | 'cloudmail')
 export async function sendLetterEmail(letterId: string, provider: 'localmail' | 'cloudmail'): Promise<{
   success: boolean;
-  data?: any;
+  data?: unknown;
   message?: string;
 }> {
   try {
@@ -239,5 +239,25 @@ export async function sendLetterEmail(letterId: string, provider: 'localmail' | 
   } catch (error) {
     console.error('Error sending letter email:', error);
     return { success: false, message: error instanceof Error ? error.message : 'Unknown error' };
+  }
+}
+// Rewrite letter using AI
+export async function rewriteLetter(body: string): Promise<{
+  success: boolean;
+  data?: { body: string };
+  message?: string;
+}> {
+  try {
+    const data = await apiFetch(`/letters/rewrite`, {
+      method: "POST",
+      body: JSON.stringify({ body }),
+    });
+    return data;
+  } catch (error) {
+    console.error("Error rewriting letter:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error occurred",
+    };
   }
 }

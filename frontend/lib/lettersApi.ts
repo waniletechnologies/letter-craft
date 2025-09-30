@@ -92,7 +92,7 @@ export async function fetchLetterContent(
 
 // Save a generated letter
 export async function saveLetter(letterData: {
-  clientId: string;
+  clientId: string | null;
   letterName: string;
   abbreviation?: string;
   round: number;

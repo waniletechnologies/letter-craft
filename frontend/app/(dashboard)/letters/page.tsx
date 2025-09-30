@@ -5,7 +5,7 @@ import LetterCard from "./components/letter-card";
 import LetterPreview from "./components/letter-preview";
 import { Mail, PhoneCall, Printer, SendHorizonal } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { getAllLetters } from "@/lib/lettersApi";
+import { getAllLetters, BackendLetter } from "@/lib/lettersApi";
 
 const sampleLetters = [
   {
@@ -39,29 +39,6 @@ const sampleLetters = [
     tracking: "Confirmation: 2024061012345",
   },
 ];
-
-interface BackendLetter {
-  _id: string;
-  clientId: string | null;
-  email: string;
-  letterName: string;
-  abbreviation: string;
-  round: number;
-  category: string;
-  bureau: "Experian" | "Equifax" | "TransUnion";
-  content: string;
-  personalInfo: {
-    names: { first: string; last: string }[];
-    [key: string]: unknown;
-  };
-  selectedFtcReports: string[];
-  status: "draft" | "sent" | "delivered" | "failed";
-  sendMethod?: string;
-  trackingNumber?: string;
-  dateSent?: string;
-  createdAt: string;
-  updatedAt: string;
-}
 
 const LettersPage = () => {
   const [previewOpen, setPreviewOpen] = useState(false);

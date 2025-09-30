@@ -21,6 +21,7 @@ import {
   NormalizedCreditReport,
   fetchStoredCreditReport,
 } from "@/lib/creditReportApi";
+import Loader from '@/components/Loader'
 
 // This interface is no longer needed for selectedReport state but kept for context.
 interface CreditReport {
@@ -52,7 +53,7 @@ const Page = () => {
   ]);
   const [reports, setReports] = useState<NormalizedCreditReport[]>([]);
   const [loading, setLoading] = useState(true);
-  const reportsPerPage = 10;
+  const reportsPerPage = 9;
   const totalPages = Math.ceil(reports.length / reportsPerPage);
 
   const startIndex = (currentPage - 1) * reportsPerPage;
@@ -210,13 +211,6 @@ const Page = () => {
         </div>
         <div className="flex flex-col md:flex-row gap-4 md:gap-0 space-x-4">
           <Button
-            variant="outline"
-            className="bg-[#EFEFEF] text-[#3E3E3E] !hover:[#EFEFEF]/90 px-4 py-2 rounded transition"
-          >
-            <FaRegFile className="h-4 w-4 mr-0" />
-            View Groups
-          </Button>
-          <Button
             onClick={() => setImportDialogOpen(true)}
             className="bg-primary text-white px-4 py-2 rounded hover:bg-primary/90 transition"
           >
@@ -227,7 +221,7 @@ const Page = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {loading ? (
-          <p className="text-gray-500">Loading reports...</p>
+          <Loader />
         ) : reports.length === 0 ? (
           <p className="text-gray-500">No credit reports found.</p>
         ) : (

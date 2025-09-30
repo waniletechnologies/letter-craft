@@ -22,6 +22,7 @@ import { fetchLetterContent } from "@/lib/lettersApi";
 import { fetchStoredCreditReport } from "@/lib/creditReportApi";
 import { useDispute } from "@/context/disputeContext";
 import { useGetClientFiles, UploadedFile } from "@/hooks/clients";
+import Loader from '@/components/Loader';
 
 interface PersonalInfo {
   names: Array<{
@@ -399,7 +400,7 @@ const GenerateLetterPage = () => {
       )
       .replace(
         /Subject:/g,
-        '<div style="font-weight: 600; font-size: 14px; margin-bottom: 16px;">Subject:</div>'
+        '<h2 style="font-weight: 600; font-size: 14px; margin-bottom: 16px;">Subject:<h2/>'
       )
       .replace(
         /Dear Equifax,/g,
@@ -487,6 +488,8 @@ const GenerateLetterPage = () => {
         .join("\n\n");
     }
 
+    console.log("Date: ", todayDate);
+
     let populatedTemplate = template
       .replace(/{First Name}/g, name?.first || "")
       .replace(/{Middle Name}/g, name?.middle || "")
@@ -501,8 +504,9 @@ const GenerateLetterPage = () => {
       .replace(/{Date of Birth mm\/dd\/yyyy}/g, dob)
       .replace(/{Social Security Number XXX-XX-XXXX}/g, ssnFormatted)
       .replace(/{Today's Date mm-dd-yyyy}/g, todayDate)
-      .replace(/{SIGNATURE}/g, "")
-      .replace(/{Today's Date mm-dd-yyyy}/g, `: ${todayDate}`);
+      .replace(/{SIGNATURE}/g, "\n")
+      .replace(/{Today’s Date mm-dd-yyyy}/g, `: ${todayDate}`);
+      
 
     populatedTemplate = populatedTemplate.replace(
       /{DisputedAccounts}/g,
@@ -750,7 +754,7 @@ const GenerateLetterPage = () => {
         <div className="relative">
           {loading ? (
             <div className="min-h-[360px] flex items-center justify-center">
-              <div className="text-gray-500">Loading letter content...</div>
+              <Loader />
             </div>
           ) : error ? (
             <div className="min-h-[360px] flex items-center justify-center">

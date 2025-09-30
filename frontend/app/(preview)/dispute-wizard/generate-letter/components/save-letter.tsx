@@ -9,7 +9,8 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { saveLetter } from "@/lib/lettersApi";
+// NOTE: Saving now happens on the final step (Confirm Options)
+// import { saveLetter } from "@/lib/lettersApi";
 
 interface PersonalInfo {
   names: Array<{
@@ -140,55 +141,22 @@ const SaveLetterDialog: React.FC<SaveLetterDialogProps> = ({
         }
       }
 
-      // Prepare letter data for backend
-      const letterDataToSave = {
-        clientId: clientId || "", // Always pass a string, empty string if no client
-        letterName: formData.letterName,
-        abbreviation: formData.abbreviation || "",
-        round: parseInt(formData.round),
-        category: letterData.category,
-        bureau: letterData.bureau,
-        content: letterData.content,
-        personalInfo: letterData.personalInfo || {},
-        selectedFtcReports: selectedFtcReports || [],
-        followUpDays: formData.followUpDays,
-        createFollowUpTask: formData.createFollowUpTask,
-        email: decodedEmail, // Use the decoded email
+      // Persist locally only; actual save happens in final step
+      const savedLetterData = {
+        ...formData,
+        letterDetails: letterData,
+        selectedFtcReports,
+        clientId,
+        email: decodedEmail,
+        savedLetterId: undefined,
+        savedAt: new Date().toISOString(),
       };
 
-      console.log("Saving letter with data:", letterDataToSave);
+      localStorage.setItem("savedLetterData", JSON.stringify(savedLetterData));
 
-      // Save to backend
-      const response = await saveLetter(letterDataToSave);
-
-      if (response.success) {
-        // Save the letter data to localStorage for the SendLetters page
-        const savedLetterData = {
-          ...formData,
-          letterDetails: letterData,
-          selectedFtcReports,
-          clientId,
-          email: decodedEmail, // Save decoded email for later use
-          savedLetterId: (response.data as { _id: string })._id,
-          savedAt: new Date().toISOString(),
-        };
-
-        // Save to localStorage for persistence
-        localStorage.setItem(
-          "savedLetterData",
-          JSON.stringify(savedLetterData)
-        );
-
-        // Also save to context if you have one
-        onSave(formData);
-        onClose();
-
-        router.push("/dispute-wizard/send-letters");
-      } else {
-        console.error("Failed to save letter:", response.message);
-        // You might want to show an error message to the user
-        alert("Failed to save letter. Please try again.");
-      }
+      onSave(formData);
+      onClose();
+      router.push("/dispute-wizard/send-letters");
     } catch (error) {
       console.error("Error saving letter:", error);
       alert("An error occurred while saving the letter. Please try again.");
@@ -294,14 +262,6 @@ const SaveLetterDialog: React.FC<SaveLetterDialogProps> = ({
               <Plus className="h-4 w-4" />
               Add Abbreviation to Master List
             </Button>
-            <Button
-              type="button"
-              variant="link"
-              size="sm"
-              className="font-medium text-sm leading-[20px] tracking-normal text-[#A6A6A9] hover:text-primary p-0 h-auto"
-            >
-              Manage Setting
-            </Button>
           </div>
 
           {/* Follow-up Task */}
@@ -344,12 +304,12 @@ const SaveLetterDialog: React.FC<SaveLetterDialogProps> = ({
           {/* Save Note */}
           <p className="font-medium text-[13px] leading-[20px] tracking-normal text-[#71717A]">
             <span className="font-bold text-[#0A090B]">Note:</span> Only save
-            once. This button saves all letters for all bureau tabs with 1
+            once. This button saves all the letters for all bureau tabs with 1
             click.
           </p>
           {/* Save Button */}
           <div className="flex sm:justify-end justify-center w-full sm:w-auto pt-2">
-            <Button onClick={handleSave}>Save All 3 Letters</Button>
+            <Button onClick={handleSave}>Save & Continue</Button>
           </div>
         </div>
       </DialogContent>

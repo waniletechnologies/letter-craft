@@ -47,7 +47,7 @@ export const LetterCard: React.FC<LetterCardProps> = ({
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
             <Mail className="h-5 w-5 text-[#000000]" />
-            <h3 className="font-semibold text-[24px] leading-[17.84px] -tracking-[0.03em] text-[#3D3D3D]">
+            <h3 className="font-semibold text-[20px] leading-[17.84px] -tracking-[0.03em] text-[#3D3D3D]">
               {clientName} - {bureau}
             </h3>
           </div>

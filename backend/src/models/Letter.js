@@ -7,6 +7,16 @@ const LetterSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Client",
       default: null,
+      // Add custom validation to handle empty strings
+      validate: {
+        validator: function (v) {
+          // Allow null, undefined, or valid ObjectId
+          return (
+            v === null || v === undefined || mongoose.Types.ObjectId.isValid(v)
+          );
+        },
+        message: "clientId must be a valid ObjectId or null",
+      },
     },
 
     email: {
@@ -79,7 +89,7 @@ const LetterSchema = new mongoose.Schema(
     // Sending information
     sendMethod: {
       type: String,
-      enum: ["mail", "fax", "email"],
+      enum: ["CloudMail", "local", "email"],
     },
 
     trackingNumber: {

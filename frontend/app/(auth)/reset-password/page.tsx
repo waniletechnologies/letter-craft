@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { resetPassword } from "@/lib/auth";
+import { toast } from "sonner";
 
 function ResetPasswordForm() {
   const router = useRouter();
@@ -88,14 +89,16 @@ function ResetPasswordForm() {
       const res = await resetPassword(email, code, formData.newPassword);
 
       if (res.ok) {
-        alert("Password reset successful!");
+        toast.success("Password reset successful!");
         router.push("/successful");
       } else {
         setErrors((prev) => ({ ...prev, api: res.message || "Reset failed" }));
+        toast.error("Password reset failed. Please try again.");
       }
     } catch (err) {
       console.error(err);
       setErrors((prev) => ({ ...prev, api: "Something went wrong" }));
+      toast.error("Something went wrong. Please try again.");
     } finally {
       setLoading(false);
     }

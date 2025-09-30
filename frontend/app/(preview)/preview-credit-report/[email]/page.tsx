@@ -10,17 +10,108 @@ import AccountInfoTable from "./components/account-info";
 import { Button } from "@/components/ui/button";
 import { useCreditReport } from "@/hooks/useCreditReport";
 import Loader from "@/components/Loader";
+import { useDispute, DisputeItem } from "@/context/disputeContext";
+import { Loader2 } from "lucide-react";
+import { toast } from "sonner";
+import AddDisputeItemsDialog from "../../dispute-wizard/components/AddDisputeItemsDialog";
 
 const Page = () => {
   const router = useRouter();
   const { email } = useParams();
   const { data, userName, loading, error } = useCreditReport(email as string);
+  const [dialogOpen, setDialogOpen] = useState(false);
+  const [isSavingToWizard, setIsSavingToWizard] = useState(false);
+  const [isSavingToShowItems, setIsSavingToShowItems] = useState(false);
 
   const decodedEmail = decodeURIComponent(email as string);
 
+  const {
+    disputeItems,
+    addMultipleDisputeItems,
+    removeDisputeItem,
+    loadAccountGroups,
+    saveDisputeItems,
+  } = useDispute();
+
+  const handleAddDisputeItems = async (ids: string[]) => {
+    try {
+      setIsSavingToShowItems(true);
+
+      // This function remains for adding items to the list before saving
+      const newItems: DisputeItem[] = ids.map((id) => ({
+        id,
+        creditor: "Creditor " + id.slice(-4),
+        account: "5555" + id.slice(-4),
+        dateOpened: "01/01/2023",
+        balance: "$1,000",
+        type: "Type",
+        disputed: false,
+        hasExperian: true,
+        hasEquifax: true,
+        hasTransUnion: false,
+      }));
+
+      const currentIds = new Set(disputeItems.map((item) => item.id));
+      const uniqueNewItems = newItems.filter(
+        (item) => !currentIds.has(item.id)
+      );
+
+      await addMultipleDisputeItems([...disputeItems, ...uniqueNewItems]);
+
+      toast.success("Dispute items saved successfully!");
+    } catch (error) {
+      console.error("Failed to add dispute items:", error);
+      toast.error("Failed to save dispute items. Please try again.");
+    } finally {
+      setIsSavingToShowItems(false);
+    }
+  };
+
+  const handleSaveAndContinueToWizard = async () => {
+    try {
+      setIsSavingToWizard(true);
+
+      // Simulate saving work
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+
+      toast.success("Your work has been saved successfully!");
+
+      // Navigate to dispute wizard
+      router.push(
+        `/dispute-wizard?email=${encodeURIComponent(
+          email as string
+        )}&name=${encodeURIComponent(userName)}`
+      );
+    } catch (error) {
+      console.error("Failed to save work:", error);
+      toast.error("Failed to save your work. Please try again.");
+    } finally {
+      setIsSavingToWizard(false);
+    }
+  };
+
+  const handleSaveAndShowItems = async () => {
+    try {
+      setIsSavingToShowItems(true);
+
+      // Simulate saving work
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+
+
+      toast.success("Your work has been saved successfully!");
+      setDialogOpen(true);
+    } catch (error) {
+      console.error("Failed to save work:", error);
+      toast.error("Failed to save your work. Please try again.");
+    } finally {
+      setIsSavingToShowItems(false);
+    }
+  };
+
   if (loading) {
     return (
-      <div className="flex justify-center items-center h-64">
+      <div className="flex justify-center items-center h-full">
         <Loader />
       </div>
     );
@@ -108,6 +199,7 @@ const Page = () => {
           onAccountUpdate={(accountId, updates) => {
             // This will now trigger the API call to update the database
             console.log("Account updated:", decodedEmail);
+            toast.success("Account information updated successfully!");
           }}
         />
       </section>
@@ -123,24 +215,42 @@ const Page = () => {
       <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
         <Button
           className="bg-primary text-white w-full sm:w-auto"
-          onClick={() =>
-            router.push(
-              `/dispute-wizard?email=${encodeURIComponent(
-                email as string
-              )}&name=${encodeURIComponent(userName)}`
-            )
-          }
+          onClick={handleSaveAndContinueToWizard}
+          disabled={isSavingToWizard || isSavingToShowItems}
         >
-          Save my work and continue to Wizard
+          {isSavingToWizard ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            "Save my work and continue to Wizard"
+          )}
         </Button>
 
         <Button
           variant="outline"
           className="border-primary text-primary w-full sm:w-auto"
+          onClick={handleSaveAndShowItems}
+          disabled={isSavingToShowItems || isSavingToWizard}
         >
-          Save my work and show all Dispute Items
+          {isSavingToShowItems ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Saving...
+            </>
+          ) : (
+            "Save my work and show all Dispute Items"
+          )}
         </Button>
       </div>
+
+      <AddDisputeItemsDialog
+        open={dialogOpen}
+        onOpenChange={setDialogOpen}
+        onAdd={handleAddDisputeItems}
+        email={(email as string) ?? ""}
+      />
     </div>
   );
 };

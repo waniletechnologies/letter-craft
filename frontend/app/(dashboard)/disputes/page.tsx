@@ -12,7 +12,7 @@ import ViewDisputeDetails, {
   DisputedItem,
 } from "./components/view-dispute-details";
 import { Plus } from "lucide-react";
-import { fetchDisputes, updateDispute } from "@/lib/disputeAPI";
+import { fetchDisputes, updateDispute, fetchAvailableLetters, fetchSelectedLetterDownloads } from "@/lib/disputeAPI";
 import ImportCreditReport from "../credit-reports/components/import-credit-report";
 import Loader from "@/components/Loader";
 import { toast } from "@/lib/import";
@@ -33,6 +33,21 @@ interface DisputeRecord {
   items: DisputedItem[];
 }
 
+export interface DisputePayload {
+  clientName: string;
+  bureau: Bureau;
+  round: number;
+  status: DisputeStatus;
+  notes?: string;
+  selectedLetters?: SelectedLetter[]; // ✅ Add this line
+}
+
+interface SelectedLetter {
+  category: string;
+  name: string;
+}
+
+
 const DisputesPage = () => {
   const [disputes, setDisputes] = useState<DisputeRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -45,6 +60,8 @@ const DisputesPage = () => {
     bureau: Bureau;
     round: number;
   } | null>(null);
+  const [availableLetters, setAvailableLetters] = useState<Awaited<ReturnType<typeof fetchAvailableLetters>>>([]);
+  const [selectedDisputeId, setSelectedDisputeId] = useState<string | null>(null);
 
   const [editOpen, setEditOpen] = useState(false);
   const [editInitial, setEditInitial] = useState<EditDisputePayload | null>(
@@ -86,7 +103,17 @@ const DisputesPage = () => {
       }
     };
 
+    const loadLetters = async () => {
+      try {
+        const cats = await fetchAvailableLetters();
+        setAvailableLetters(cats);
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
     loadDisputes();
+    loadLetters();
   }, []);
 
   const handleViewDetails = (id: string) => {
@@ -155,7 +182,31 @@ const DisputesPage = () => {
         bureau: d.bureau,
         round: d.round,
       });
+      setSelectedDisputeId(id);
       setDownloadOpen(true);
+    }
+  };
+
+  const handleSaveSelectedLetters = async (selections: { category: string; name: string }[]) => {
+    if (!selectedDisputeId) return;
+    // persist to dispute
+    const payload: { selectedLetters: SelectedLetter[] } = {
+      selectedLetters: selections.map((s) => ({
+        category: s.category,
+        name: s.name,
+      })),
+    };
+
+    await updateDispute(selectedDisputeId, payload);
+
+    // fetch presigned URLs and trigger downloads (open in new tabs)
+    try {
+      const urls = await fetchSelectedLetterDownloads(selectedDisputeId);
+      urls.forEach(u => {
+        window.open(u.downloadUrl, "_blank");
+      });
+    } catch (e) {
+      console.error(e);
     }
   };
 
@@ -230,7 +281,8 @@ const DisputesPage = () => {
           clientName={selectedDispute.clientName}
           bureau={selectedDispute.bureau}
           round={selectedDispute.round}
-          onDownload={(payload) => console.log("Downloading", payload)}
+          letters={availableLetters}
+          onDownload={({ selections }) => handleSaveSelectedLetters(selections)}
         />
       )}
 

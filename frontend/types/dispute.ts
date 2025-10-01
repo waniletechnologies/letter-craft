@@ -17,8 +17,13 @@ export interface DisputePayload {
   accountsCount: number;
   items: DisputedItemPayload[];
   groupName?: string; // Optional group name at dispute level
+  selectedLetters?: SelectedLetter[]; // ✅ Add this line
 }
 
+interface SelectedLetter {
+  category: string;
+  name: string;
+}
 export interface RawDispute {
   _id: string;
   clientName: string;

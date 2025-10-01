@@ -7,7 +7,6 @@ export {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import Image from "next/image";
 export { Equifax, Experian, TransUnion } from "@/public/images";
 export { useDispute } from "@/context/disputeContext";
 export { Input } from "@/components/ui/input";

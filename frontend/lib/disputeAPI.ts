@@ -80,3 +80,32 @@ export async function fetchDisputeStats(): Promise<{
   }
 }
 
+export interface DisputeLetterDownloadInfo {
+  title: string;
+  category: string;
+  name: string;
+  bureau?: string;
+  round?: number;
+  key: string;
+  downloadUrl: string;
+}
+
+export async function fetchSelectedLetterDownloads(disputeId: string) {
+  const res = await apiFetch(`/disputes/${disputeId}/letters/downloads`, {
+    method: "GET",
+  });
+  if (!res.success) throw new Error(res.message || "Failed to get download URLs");
+  return res.data as DisputeLetterDownloadInfo[];
+}
+
+export interface LetterCategory {
+  category: string;
+  letters: { name: string; key: string; lastModified?: string }[];
+}
+
+export async function fetchAvailableLetters() {
+  const res = await apiFetch(`/letters`, { method: "GET" });
+  if (!res.success) throw new Error(res.message || "Failed to fetch letters");
+  return res.data as LetterCategory[];
+}
+

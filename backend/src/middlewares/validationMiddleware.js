@@ -200,6 +200,24 @@ export const createClientSchema = Joi.object({
     .optional()
     .messages({
       'string.max': 'TransUnion file number cannot exceed 50 characters'
+    }),
+
+  // Dispute schedule
+  disputeScheduleDate: Joi.string()
+    .pattern(/^\d{4}-\d{2}-\d{2}$/)
+    .trim()
+    .allow('')
+    .optional()
+    .messages({
+      'string.pattern.base': 'Dispute schedule date must be in YYYY-MM-DD format'
+    }),
+  disputeScheduleTime: Joi.string()
+    .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
+    .trim()
+    .allow('')
+    .optional()
+    .messages({
+      'string.pattern.base': 'Dispute schedule time must be in HH:mm (24h) format'
     })
 });
 
@@ -370,7 +388,25 @@ export const updateClientSchema = Joi.object({
   
   status: Joi.string()
     .valid('active', 'inactive', 'pending', 'archived')
+    .optional(),
+
+  // Dispute schedule
+  disputeScheduleDate: Joi.string()
+    .pattern(/^\d{4}-\d{2}-\d{2}$/)
+    .trim()
+    .allow('')
     .optional()
+    .messages({
+      'string.pattern.base': 'Dispute schedule date must be in YYYY-MM-DD format'
+    }),
+  disputeScheduleTime: Joi.string()
+    .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
+    .trim()
+    .allow('')
+    .optional()
+    .messages({
+      'string.pattern.base': 'Dispute schedule time must be in HH:mm (24h) format'
+    })
 });
 
 // Query parameters schema for listing clients

@@ -669,22 +669,25 @@ const GenerateLetterPage = () => {
   };
 
   const handleDownload = () => {
-    const content = generateDocxContent();
+    // Prefer downloading the original DOCX from S3 if available
+    if (downloadUrl) {
+      window.open(downloadUrl, "_blank");
+      return;
+    }
 
+    // Fallback: generate a simple DOCX-like file from current content
+    const content = generateDocxContent();
     const blob = new Blob([content], {
       type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     });
-
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `dispute-letter-${category}-${
+    a.download = `dispute-letter-${category || "letter"}-${
       new Date().toISOString().split("T")[0]
     }.docx`;
-
     document.body.appendChild(a);
     a.click();
-
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
   };
@@ -914,7 +917,7 @@ const GenerateLetterPage = () => {
         letterData={{
           category: category || "",
           letterName: letterName || "",
-          bureau: getBureauFromCategory(letterName),
+          bureau: getBureauFromCategory(category),
           content: letterContent,
           personalInfo: personalInfo,
         }}

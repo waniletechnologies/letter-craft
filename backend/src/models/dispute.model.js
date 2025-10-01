@@ -32,6 +32,24 @@ const disputeSchema = new mongoose.Schema(
     accountsCount: { type: Number, default: 0 },
     items: [disputedItemSchema],
     groupName: { type: String }, // Optional group name at dispute level
+
+    // Selected letters metadata to persist choices for downloads
+    selectedLetters: [
+      new mongoose.Schema(
+        {
+          category: { type: String, required: true },
+          name: { type: String, required: true },
+          bureau: {
+            type: String,
+            enum: ["Experian", "Equifax", "TransUnion"],
+          },
+          round: { type: Number, min: 1 },
+          s3Key: { type: String }, // optional direct key like letters/<category>/<name>.docx
+          title: { type: String }, // display title if different from name
+        },
+        { _id: false }
+      ),
+    ],
   },
   { timestamps: true }
 );

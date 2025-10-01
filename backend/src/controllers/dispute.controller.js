@@ -5,6 +5,10 @@ import {
   updateDispute,
   deleteDispute,
 } from "../services/dispute.service.js";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import { GetObjectCommand } from "@aws-sdk/client-s3";
+import { s3 } from "../config/s3.js";
+import Dispute from "../models/dispute.model.js";
 
 // Create
 export const createDisputeController = async (req, res) => {
@@ -104,5 +108,42 @@ export const getDisputeStatsController = async (req, res) => {
   } catch (err) {
     console.error("🔥 Error fetching dispute stats:", err.message);
     res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// Generate presigned download URLs for a dispute's selected letters
+export const getDisputeLetterDownloadsController = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const dispute = await Dispute.findById(id);
+    if (!dispute) {
+      return res.status(404).json({ success: false, message: "Dispute not found" });
+    }
+
+    const selectedLetters = Array.isArray(dispute.selectedLetters)
+      ? dispute.selectedLetters
+      : [];
+
+    // Map to presigned URLs
+    const results = [];
+    for (const letter of selectedLetters) {
+      const key = letter.s3Key || `letters/${letter.category}/${letter.name}.docx`;
+      const cmd = new GetObjectCommand({ Bucket: process.env.AWS_S3_BUCKET_NAME, Key: key });
+      const url = await getSignedUrl(s3, cmd, { expiresIn: 3600 });
+      results.push({
+        title: letter.title || letter.name,
+        category: letter.category,
+        name: letter.name,
+        bureau: letter.bureau,
+        round: letter.round,
+        key,
+        downloadUrl: url,
+      });
+    }
+
+    return res.json({ success: true, data: results });
+  } catch (err) {
+    console.error("Error generating letter download URLs:", err);
+    return res.status(500).json({ success: false, message: "Failed to generate download URLs" });
   }
 };

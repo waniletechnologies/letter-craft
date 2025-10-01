@@ -2,38 +2,22 @@
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import React, { useState, useEffect } from 'react'
-import { FaRegFile } from 'react-icons/fa'
 import { LuListFilter, LuSearch } from 'react-icons/lu'
 import ReportCard from './components/report-card'
 import ImportCreditReport from './components/import-credit-report'
 import AutoImportOverlay, { ImportStepStatus } from './components/auto-import-overlay'
 import ViewCreditReport from './components/view-credit-report'
 import ExportCreditReport from './components/export-credit-report'
-import { creditReports } from '@/lib/data'
 import CustomPagination from '@/components/Pagination'
 import { useRouter } from 'next/navigation'
 import { GoCreditCard } from 'react-icons/go'
-import { RiHome2Line } from "react-icons/ri";
-import { Car } from 'lucide-react'
-import { SlGraduation } from 'react-icons/sl'
 import {
   fetchAllReports,
   NormalizedCreditReport,
-  fetchStoredCreditReport,
 } from "@/lib/creditReportApi";
 import Loader from '@/components/Loader'
 
-// This interface is no longer needed for selectedReport state but kept for context.
-interface CreditReport {
-  id: number;
-  name: string;
-  status: string;
-  imported_on: string;
-  source: string;
-  credit_bureaus: string[];
-  accounts: number;
-  negative_items: number;
-}
+
 
 const Page = () => {
   const router = useRouter();
@@ -99,19 +83,6 @@ const Page = () => {
     return Math.round(avg);
   };
 
-  async function waitForReport(email: string, tries = 10) {
-    console.log("Wait function...")
-    for (let i = 0; i < tries; i++) {
-      const res = await fetchStoredCreditReport(email);
-      console.log("Response: ", res)
-       if (res.success && res.data) {
-         return true;
-       }
-       // Wait for 1 second before trying again
-       await new Promise((resolve) => setTimeout(resolve, 10000));
-     }
-     throw new Error("Report not available yet.");
-   }
   
   // Build negative items array from accountInfo payStatus or worstPayStatus
   const getNegativeItems = (report: NormalizedCreditReport) => {

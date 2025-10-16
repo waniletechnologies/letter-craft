@@ -372,6 +372,118 @@ const SendLettersPage = () => {
     }
   };
 
+  const handlePrintLocal = async () => {
+    try {
+      // Get the actual letter content from your data
+      const lettersToPrint = clientLetters.filter((letter) =>
+        selectedLetters.includes(letter._id)
+      );
+
+      // Also include the saved letter if selected
+      if (selectedLetters.includes("saved-letter") && savedLetterData) {
+        lettersToPrint.push({
+          _id: "saved-letter",
+          bureau: savedLetterData.letterDetails.bureau,
+          letterName: savedLetterData.letterDetails.letterName,
+          content: savedLetterData.letterDetails.content || "",
+          abbreviation: savedLetterData.abbreviation || "RD2",
+          createdAt: savedLetterData.savedAt || new Date().toISOString(),
+          round: 2,
+          status: "draft",
+        } as ClientLetter);
+      }
+
+      if (lettersToPrint.length === 0) {
+        toast.error("No letters selected to print");
+        return;
+      }
+
+      // Create print content with actual letter data
+      const printContent = lettersToPrint
+        .map(
+          (letter) => `
+      <div style="page-break-after: always; padding: 40px; font-family: 'Times New Roman', serif; line-height: 1.6;">
+        <div style="text-align: right; margin-bottom: 30px; font-size: 12px;">
+          ${new Date().toLocaleDateString()}
+        </div>
+        
+        <div style="margin-bottom: 40px;">
+          <h2 style="text-align: center; margin-bottom: 20px;">${
+            letter.letterName
+          }</h2>
+          <p><strong>Bureau:</strong> ${letter.bureau}</p>
+          <p><strong>Reference:</strong> ${letter.abbreviation}</p>
+        </div>
+        
+        <div style="margin-top: 40px; white-space: pre-wrap;">
+          ${letter.content || "Letter content not available"}
+        </div>
+        
+        <div style="margin-top: 60px;">
+          <p>Sincerely,</p>
+          <br /><br />
+          <p>${
+            savedLetterData?.letterDetails?.personalInfo?.fullName ||
+            "Client Name"
+          }</p>
+        </div>
+      </div>
+    `
+        )
+        .join("");
+
+      // Create and open print window
+      const printWindow = window.open("", "_blank");
+      if (printWindow) {
+        printWindow.document.write(`
+        <!DOCTYPE html>
+        <html>
+          <head>
+            <title>Print Letters - ${lettersToPrint.length} Letter(s)</title>
+            <style>
+              body { 
+                margin: 0; 
+                padding: 0; 
+                font-family: 'Times New Roman', serif;
+                line-height: 1.6;
+                color: #000;
+              }
+              @media print {
+                body { margin: 0; }
+                @page { margin: 1cm; }
+              }
+              h2 { color: #000; }
+              hr { border: 1px solid #ccc; }
+            </style>
+          </head>
+          <body>
+            ${printContent}
+            <script>
+              window.onload = function() {
+                window.print();
+                // Optional: close window after printing
+                setTimeout(function() {
+                  window.close();
+                }, 1000);
+              }
+            </script>
+          </body>
+        </html>
+      `);
+        printWindow.document.close();
+
+        toast.success(
+          `Preparing ${lettersToPrint.length} letter(s) for printing`
+        );
+      } else {
+        toast.error("Please allow popups to print letters");
+      }
+    } catch (error) {
+      console.error("Error printing letters:", error);
+      toast.error("Failed to prepare letters for printing");
+    }
+  };
+
   const canGoNext = () => {
     switch (currentStep) {
       case 1:
@@ -556,6 +668,7 @@ const SendLettersPage = () => {
           onBack={handleBack}
           onNext={handleNext}
           onSendLetters={handleSendLetters}
+          onPrintLocal={handlePrintLocal} // Add this line
           canNext={canGoNext()}
           email={savedLetterData?.email}
           selectedFtcDocCount={selectedFtcDocIds.length}

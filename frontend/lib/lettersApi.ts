@@ -284,3 +284,18 @@ export async function rewriteLetter(body: string): Promise<{
     };
   }
 }
+
+export async function  fetchLettersStats(): Promise<{
+  success: boolean;
+  total: number;
+  monthlyCounts: {month: string, letters: number}[]
+}> {
+  try{
+    const res = await apiFetch("/letters/stats", {method: "GET"});
+    return res
+  }
+  catch (err) {
+    console.error("Error fetching dispute stats:", err);
+    return { success: false, total: 0, monthlyCounts: [] };
+  }
+}

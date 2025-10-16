@@ -20,6 +20,8 @@ interface StatsCardsProps {
   totalClients: number;
   growthData: GrowthStat[];
   disputesCount: number;
+  letterCount: number;
+  letterGrowth: number;
   disputeGrowth: number;
   reportCount: number;
   reportGrowth: number;
@@ -31,6 +33,8 @@ export const StatsCards = ({
   totalClients,
   growthData,
   disputesCount,
+  letterCount,
+  letterGrowth,
   disputeGrowth,
   reportCount,
   reportGrowth,
@@ -59,7 +63,7 @@ export const StatsCards = ({
                 Total Clients
               </p>
               <p className="text-[24px] font-bold mt-3">
-                {isLoading ? "Loading..." : isError ? "Error" : totalClients}
+                {totalClients}
               </p>
               {!isLoading && !isError && growthData && (
                 <p
@@ -110,11 +114,20 @@ export const StatsCards = ({
               <p className="text-[14px] font-medium text-[#171744]">
                 Letters Sent
               </p>
-              <p className="text-[24px] font-bold mt-3">57</p>
-              <p className="text-[12px] text-[#22C55E] mt-3 flex items-center">
+              <p className="text-[24px] font-bold mt-3">{letterCount}</p>
+              <p
+                className={`text-[12px] mt-3 flex items-center ${getGrowthColor(
+                  letterGrowth
+                )}`}
+              >
+                {renderGrowthIcon(letterGrowth)}
+                {letterGrowth > 0 ? "+" : ""}
+                {letterGrowth}% from last month
+              </p>
+              {/* <p className="text-[12px] text-[#22C55E] mt-3 flex items-center">
                 <FiTrendingUp className="w-3 h-3 mr-1" />
                 +16% from last month
-              </p>
+              </p> */}
             </div>
             <FiSend className="w-5 h-5" />
           </div>

@@ -260,12 +260,12 @@ const SaveLetterDialog: React.FC<SaveLetterDialogProps> = ({
               </Select>
             </div>
           </div>
-          <div className="flex flex-col sm:flex-row justify-between gap-2">
+          {/* <div className="flex flex-col sm:flex-row justify-between gap-2">
             <Button type="button" size="sm" className="flex items-center gap-2">
               <Plus className="h-4 w-4" />
               Add Abbreviation to Master List
             </Button>
-          </div>
+          </div> */}
 
           {/* Follow-up Task */}
           <div className="space-y-2 flex flex-col sm:flex-row justify-between items-center">

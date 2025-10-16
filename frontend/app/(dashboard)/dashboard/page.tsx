@@ -11,10 +11,13 @@ import { WelcomeHeader } from "./components/WelcomeHeader";
 import { StatsCards } from "./components/StatsCards";
 import { RecentActivity } from "./components/RecentActivity";
 import { ClientGrowthChart } from "./components/ClientGrowthChart";
+import { fetchLettersStats } from "@/lib/lettersApi";
 
 const DashboardPage = () => {
   const { data, isLoading, isError } = useClientStats();
   const [userName, setUserName] = useState<string>("");
+  const [letterCount, setLetterCount] = useState(0);
+  const [letterGrowth, setLetterGrowth] = useState(0)
   const [reportCount, setReportCount] = useState(0);
   const [reportGrowth, setReportGrowth] = useState(0);
   const [disputesCount, setDisputesCount] = useState<number>(0);
@@ -24,19 +27,53 @@ const DashboardPage = () => {
     fetchDisputeData();
     fetchCreditReportData();
     fetchUserData();
+    fetchLettersData();
   }, []);
 
   const fetchDisputeData = async () => {
     try {
       const stats = await fetchDisputeStats();
-      setDisputesCount(stats.total);
+      
 
       const countsByMonth = stats.monthlyCounts;
-      const sorted = countsByMonth.filter(
-        (m: { disputes: number }) => m.disputes >= 0
+      console.log("Counts By Month:", countsByMonth);
+
+      const monthNames = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+
+      const currentMonthIndex = new Date().getMonth(); // 0-based index
+      const prevMonthIndex =
+        currentMonthIndex === 0 ? 11 : currentMonthIndex - 1;
+
+      const currentMonthName = monthNames[currentMonthIndex];
+      const prevMonthName = monthNames[prevMonthIndex];
+
+      console.log("Current Month Name:", currentMonthName);
+      console.log("Previous Month Name:", prevMonthName);
+
+      // ✅ Find those months in the response
+      const currentMonthData = countsByMonth.find(
+        (m: { month: string }) => m.month === currentMonthName
       );
-      const current = sorted[sorted.length - 1]?.disputes || 0;
-      const prev = sorted[sorted.length - 2]?.disputes || 0;
+      const prevMonthData = countsByMonth.find(
+        (m: { month: string }) => m.month === prevMonthName
+      );
+
+      const current = currentMonthData?.disputes || 0;
+      setDisputesCount(current);
+      const prev = prevMonthData?.disputes || 0;
       const growth =
         prev > 0 ? ((current - prev) / prev) * 100 : current > 0 ? 100 : 0;
 
@@ -48,22 +85,117 @@ const DashboardPage = () => {
     }
   };
 
+  const fetchLettersData = async () => {
+    try {
+      const stats = await fetchLettersStats();
+      
+
+      const countsByMonth = stats.monthlyCounts;
+      console.log("Counts By Month:", countsByMonth);
+
+      // Log each month’s count clearly
+      countsByMonth.forEach((m: { month: string; letters: number }) => {
+        console.log(`${m.month}: ${m.letters} letters`);
+      });
+
+      // ✅ Get current and previous month names dynamically
+      const monthNames = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
+
+      const currentMonthIndex = new Date().getMonth(); // 0-based index
+      const prevMonthIndex =
+        currentMonthIndex === 0 ? 11 : currentMonthIndex - 1;
+
+      const currentMonthName = monthNames[currentMonthIndex];
+      const prevMonthName = monthNames[prevMonthIndex];
+
+      console.log("Current Month Name:", currentMonthName);
+      console.log("Previous Month Name:", prevMonthName);
+
+      // ✅ Find those months in the response
+      const currentMonthData = countsByMonth.find(
+        (m: { month: string }) => m.month === currentMonthName
+      );
+      const prevMonthData = countsByMonth.find(
+        (m: { month: string }) => m.month === prevMonthName
+      );
+
+      const current = currentMonthData?.letters || 0;
+      
+      setLetterCount(current);
+      const prev = prevMonthData?.letters || 0;
+
+      console.log(`${currentMonthName}: ${current} letters`);
+      console.log(`${prevMonthName}: ${prev} letters`);
+
+      // ✅ Compute growth correctly
+      const growth =
+        prev > 0 ? ((current - prev) / prev) * 100 : current > 0 ? 100 : 0;
+
+      console.log("Growth (%):", growth);
+      setLetterGrowth(Math.round(growth * 10) / 10);
+    } catch (err) {
+      console.log("Failed to fetch letters: ", err);
+    }
+  };
+
   const fetchCreditReportData = async () => {
     try {
       const stats = await fetchCreditReportStats();
       if (stats.success) {
-        setReportCount(stats.total);
+        
 
-        const months = stats.monthlyCounts.filter(
-          (m: { reports: number }) => m.reports > 0 || true
-        );
+        const countsByMonth = stats.monthlyCounts;
+        console.log("Counts By Month:", countsByMonth);
 
-        const sorted = [...months].sort(
-          (a: { month: string }, b: { month: string }) =>
-            ALL_MONTHS.indexOf(a.month) - ALL_MONTHS.indexOf(b.month)
+        const monthNames = [
+          "Jan",
+          "Feb",
+          "Mar",
+          "Apr",
+          "May",
+          "Jun",
+          "Jul",
+          "Aug",
+          "Sep",
+          "Oct",
+          "Nov",
+          "Dec",
+        ];
+
+        const currentMonthIndex = new Date().getMonth(); // 0-based index
+        const prevMonthIndex =
+          currentMonthIndex === 0 ? 11 : currentMonthIndex - 1;
+
+        const currentMonthName = monthNames[currentMonthIndex];
+        const prevMonthName = monthNames[prevMonthIndex];
+
+        console.log("Current Month Name:", currentMonthName);
+        console.log("Previous Month Name:", prevMonthName);
+
+        // ✅ Find those months in the response
+        const currentMonthData = countsByMonth.find(
+          (m: { month: string }) => m.month === currentMonthName
         );
-        const current = sorted[sorted.length - 1]?.reports || 0;
-        const prev = sorted[sorted.length - 2]?.reports || 0;
+        const prevMonthData = countsByMonth.find(
+          (m: { month: string }) => m.month === prevMonthName
+        );
+        
+        const current = currentMonthData?.reports || 0;
+        setReportCount(current);
+        const prev = prevMonthData?.reports || 0;
         const growth =
           prev > 0 ? ((current - prev) / prev) * 100 : current > 0 ? 100 : 0;
         setReportGrowth(Math.round(growth * 10) / 10);
@@ -107,6 +239,8 @@ const DashboardPage = () => {
         totalClients={totalClients}
         growthData={growthData}
         disputesCount={disputesCount}
+        letterCount={letterCount}
+        letterGrowth={letterGrowth}
         disputeGrowth={disputeGrowth}
         reportCount={reportCount}
         reportGrowth={reportGrowth}

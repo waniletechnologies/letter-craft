@@ -33,6 +33,7 @@ interface IntegratedStepperProps {
   onBack: () => void;
   onNext: () => void;
   onSendLetters: () => void;
+  onPrintLocal?: () => void; // Add this line
   canNext: boolean;
   email?: string;
   selectedFtcDocCount?: number;
@@ -58,6 +59,7 @@ const IntegratedStepper: React.FC<IntegratedStepperProps> = ({
   onBack,
   onNext,
   onSendLetters,
+  onPrintLocal,
   canNext,
   email,
   selectedFtcDocCount = 0,
@@ -94,6 +96,7 @@ const IntegratedStepper: React.FC<IntegratedStepperProps> = ({
           <PrintMailMethods
             mailMethod={mailMethod}
             onMailMethodChange={onMailMethodChange}
+            onPrintLocal={onPrintLocal} // Pass the handler
           />
         );
       case 4:

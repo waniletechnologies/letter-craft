@@ -624,9 +624,6 @@ const LetterPreview: React.FC<LetterPreviewProps> = ({
             <Button variant="outline" onClick={handlePrint}>
               Print
             </Button>
-            <Button className="bg-primary hover:bg-primary/90">
-              Send Letters
-            </Button>
           </div>
         </div>
       </DialogContent>

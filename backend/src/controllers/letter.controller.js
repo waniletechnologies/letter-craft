@@ -99,7 +99,7 @@ function parseLetterSections(text) {
   if (toAddressStartIndex !== -1) {
     // Skip the bureau name and address lines (usually 3 lines: name, address line 1, address line 2)
     bodyStartIndex = toAddressStartIndex + 3;
-    
+
     // Look for the actual body content (skip empty lines after address)
     for (let i = bodyStartIndex; i < lines.length; i++) {
       if (lines[i] && lines[i].length > 0) {
@@ -164,7 +164,7 @@ export async function getLetter(req, res) {
     const { fromAddress, toAddress, body } = parseLetterSections(plainText);
 
     // Convert ONLY the body to HTML (not the entire document)
-    const bodyHtml = await mammoth.convertToHtml({ 
+    const bodyHtml = await mammoth.convertToHtml({
       buffer,
       // Optional: Add transform to process only the body content if needed
     });
@@ -212,7 +212,7 @@ export async function saveLetter(req, res) {
   try {
     console.log("Received letter data:", req.body);
     console.log("User ID:", req.user?.id);
-    
+
     const {
       clientId,
       letterName,
@@ -227,7 +227,7 @@ export async function saveLetter(req, res) {
       createFollowUpTask,
       email,
       sendMethod,
-      attachments
+      attachments,
     } = req.body;
 
     // Validate required fields
@@ -274,7 +274,10 @@ export async function saveLetter(req, res) {
 
     // Check if client exists (only if clientId is provided and valid)
     let client = null;
-    if (processedClientId && mongoose.Types.ObjectId.isValid(processedClientId)) {
+    if (
+      processedClientId &&
+      mongoose.Types.ObjectId.isValid(processedClientId)
+    ) {
       try {
         client = await Client.findById(processedClientId);
         if (!client) {
@@ -293,11 +296,15 @@ export async function saveLetter(req, res) {
         });
       }
     } else {
-      console.log("No valid client ID provided - saving letter with email:", email);
+      console.log(
+        "No valid client ID provided - saving letter with email:",
+        email
+      );
     }
 
     // Normalize clientId: if empty string or falsy, omit it so mongoose doesn't cast "" to ObjectId
-    const normalizedClientId = clientId && String(clientId).trim() !== "" ? clientId : null;
+    const normalizedClientId =
+      clientId && String(clientId).trim() !== "" ? clientId : null;
 
     // Create new letter
     const letterData = {
@@ -326,7 +333,7 @@ export async function saveLetter(req, res) {
       // If we have a client but no email, use client's email
       letterData.email = client.email;
     }
-    
+
     // Optional send metadata and attachments
     if (sendMethod) {
       letterData.sendMethod = sendMethod;
@@ -336,10 +343,10 @@ export async function saveLetter(req, res) {
     }
 
     console.log("Creating letter with data:", letterData);
-    
+
     const letter = new Letter(letterData);
     await letter.save();
-    
+
     console.log("Letter saved successfully:", letter._id);
 
     res.status(201).json({
@@ -349,17 +356,17 @@ export async function saveLetter(req, res) {
     });
   } catch (error) {
     console.error("Error saving letter:", error);
-    
+
     // Handle validation errors specifically
-    if (error.name === 'ValidationError') {
-      const errors = Object.values(error.errors).map(err => err.message);
+    if (error.name === "ValidationError") {
+      const errors = Object.values(error.errors).map((err) => err.message);
       return res.status(400).json({
         success: false,
         message: "Validation failed",
         errors: errors,
       });
     }
-    
+
     res.status(500).json({
       success: false,
       message: "Failed to save letter",
@@ -381,7 +388,7 @@ export async function getClientLetters(req, res) {
     if (bureau) query.bureau = bureau;
 
     const letters = await Letter.find(query)
-      .populate('clientId', 'firstName lastName email')
+      .populate("clientId", "firstName lastName email")
       .sort({ createdAt: -1 });
 
     res.json({
@@ -405,8 +412,8 @@ export async function getLetterById(req, res) {
     const { letterId } = req.params;
 
     const letter = await Letter.findById(letterId)
-      .populate('clientId', 'firstName lastName email')
-      .populate('createdBy', 'firstName lastName email');
+      .populate("clientId", "firstName lastName email")
+      .populate("createdBy", "firstName lastName email");
 
     if (!letter) {
       return res.status(404).json({
@@ -448,10 +455,10 @@ export async function updateLetterStatus(req, res) {
     letter.status = status;
     if (trackingNumber) letter.trackingNumber = trackingNumber;
     if (sendMethod) letter.sendMethod = sendMethod;
-    
-    if (status === 'sent') {
+
+    if (status === "sent") {
       letter.dateSent = new Date();
-    } else if (status === 'delivered') {
+    } else if (status === "delivered") {
       letter.dateDelivered = new Date();
     }
 
@@ -510,16 +517,64 @@ export async function sendLetterEmail(req, res) {
     const { letterId } = req.params;
     const { provider = "localmail" } = req.body;
 
-    const letter = await Letter.findById(letterId).populate("clientId", "email firstName lastName");
+    const letter = await Letter.findById(letterId).populate(
+      "clientId",
+      "email firstName lastName"
+    );
     if (!letter) {
-      return res.status(404).json({ success: false, message: "Letter not found" });
+      return res
+        .status(404)
+        .json({ success: false, message: "Letter not found" });
     }
 
-    const realRecipientEmail = (letter.clientId && letter.clientId.email) || letter.email;
+    // If local print flow is requested, return printable HTML instead of sending via SMTP
+    if (provider === "cloudmail") {
+      const printableHtml = `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset=\"utf-8\" />
+    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\" />
+    <title>${letter.letterName || "Dispute Letter"}</title>
+    <style>
+      @page { margin: 1in; }
+      body { font-family: Arial, Helvetica, sans-serif; color: #111827; line-height: 1.5; }
+      .container { max-width: 800px; margin: 0 auto; }
+      .meta { font-size: 12px; color: #6b7280; margin-bottom: 16px; }
+    </style>
+  </head>
+  <body>
+    <div class=\"container\">
+      <div class=\"meta\">
+        <div>Bureau: ${letter.bureau}</div>
+        <div>Round: ${letter.round || 1}</div>
+        <div>Client: ${
+          letter.clientId
+            ? `${letter.clientId.firstName || ""} ${
+                letter.clientId.lastName || ""
+              }`.trim()
+            : letter.email || "N/A"
+        }</div>
+      </div>
+      ${letter.content}
+    </div>
+    <script>
+      window.onload = function() { window.print(); };
+    </script>
+  </body>
+  </html>`;
+
+      res.setHeader("Content-Type", "text/html; charset=utf-8");
+      return res.status(200).send(printableHtml);
+    }
+
+    const realRecipientEmail =
+      (letter.clientId && letter.clientId.email) || letter.email;
     console.log("Real Recipient Email:", realRecipientEmail);
     const recipientEmail = "javaidadil835@gmail.com";
     if (!recipientEmail) {
-      return res.status(400).json({ success: false, message: "No recipient email available" });
+      return res
+        .status(400)
+        .json({ success: false, message: "No recipient email available" });
     }
 
     // Extract subject from HTML content: look for 'Subject:' then following text until a break
@@ -555,7 +610,10 @@ export async function sendLetterEmail(req, res) {
     // Prepare attachments from selected FTC reports by trying to download their URLs if present
     const attachments = [];
     try {
-      if (Array.isArray(letter.selectedFtcReports) && letter.selectedFtcReports.length > 0) {
+      if (
+        Array.isArray(letter.selectedFtcReports) &&
+        letter.selectedFtcReports.length > 0
+      ) {
         // Optionally you may need to look up client files to map IDs -> URLs; for now, if content included links, skip
         // This placeholder does not resolve file IDs to URLs; extend here if you have a mapping
       }
@@ -601,10 +659,78 @@ export async function sendLetterEmail(req, res) {
       attachments,
     });
 
-    return res.json({ success: true, message: "Email sent", data: { messageId: info.messageId } });
+    return res.json({
+      success: true,
+      message: "Email sent",
+      data: { messageId: info.messageId },
+    });
   } catch (error) {
     console.error("Error sending letter email:", error);
-    return res.status(500).json({ success: false, message: "Failed to send email" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to send email" });
+  }
+}
+
+/**
+ * Generate printable HTML for local mailing (no email send)
+ * Returns a minimal HTML document embedding the saved letter content and simple styles
+ */
+export async function getPrintableLetter(req, res) {
+  try {
+    const { letterId } = req.params;
+    const letter = await Letter.findById(letterId).populate(
+      "clientId",
+      "firstName lastName email"
+    );
+    if (!letter) {
+      return res
+        .status(404)
+        .json({ success: false, message: "Letter not found" });
+    }
+
+    const html = `<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${letter.letterName || "Dispute Letter"}</title>
+    <style>
+      @page { margin: 1in; }
+      body { font-family: Arial, Helvetica, sans-serif; color: #111827; line-height: 1.5; }
+      .container { max-width: 800px; margin: 0 auto; }
+      .meta { font-size: 12px; color: #6b7280; margin-bottom: 16px; }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="meta">
+        <div>Bureau: ${letter.bureau}</div>
+        <div>Round: ${letter.round || 1}</div>
+        <div>Client: ${
+          letter.clientId
+            ? `${letter.clientId.firstName || ""} ${
+                letter.clientId.lastName || ""
+              }`.trim()
+            : letter.email || "N/A"
+        }</div>
+      </div>
+      ${letter.content}
+    </div>
+    <script>
+      // Auto-trigger print dialog when opened in a new tab/window
+      window.onload = function() { window.print(); };
+    </script>
+  </body>
+  </html>`;
+
+    res.setHeader("Content-Type", "text/html; charset=utf-8");
+    return res.status(200).send(html);
+  } catch (error) {
+    console.error("Error generating printable letter:", error);
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to generate printable letter" });
   }
 }
 
@@ -674,6 +800,49 @@ export async function rewriteLetter(req, res) {
     return res.json({ success: true, data: { body: sanitized } });
   } catch (error) {
     console.error("Error rewriting letter:", error);
-    return res.status(500).json({ success: false, message: "Failed to rewrite letter" });
+    return res
+      .status(500)
+      .json({ success: false, message: "Failed to rewrite letter" });
   }
 }
+
+const getAllLetters = async () => {
+  return await Letter.find().sort({ created: -1 });
+};
+
+export const getLetterStatsController = async (req, res) => {
+  try {
+    const letters = await getAllLetters();
+    const monthNames = [
+      "Jan",
+      "Feb",
+      "Mar",
+      "Apr",
+      "May",
+      "Jun",
+      "Jul",
+      "Aug",
+      "Sep",
+      "Oct",
+      "Nov",
+      "Dec",
+    ];
+
+    const monthlyCounts = monthNames.map((m) => ({ month: m, letters: 0 }));
+
+    letters.forEach((l) => {
+      const date = new Date(l.createdAt || l.createdDate);
+      const idx = date.getMonth();
+      if (idx >= 0 && idx < 12) monthlyCounts[idx].letters++;
+    });
+
+    res.json({
+      success: true,
+      total: letters.length,
+      monthlyCounts,
+    });
+  } catch (err) {
+    console.error("🔥 Error fetching letter stats:", err.message);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};

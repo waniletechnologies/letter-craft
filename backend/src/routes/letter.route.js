@@ -1,14 +1,16 @@
 import { Router } from 'express';
-import { 
-  listLetters, 
-  getLetter, 
-  saveLetter, 
-  getClientLetters, 
-  getLetterById, 
-  updateLetterStatus, 
+import {
+  listLetters,
+  getLetter,
+  saveLetter,
+  getClientLetters,
+  getLetterById,
+  updateLetterStatus,
   deleteLetter,
-  sendLetterEmail, 
-  rewriteLetter
+  sendLetterEmail,
+  rewriteLetter,
+  getPrintableLetter,
+  getLetterStatsController,
 } from "../controllers/letter.controller.js";
 import { requireAuth } from "../middlewares/auth.middleware.js";
 
@@ -16,6 +18,7 @@ const router = Router();
 
 // Public routes for letter templates
 router.get("/letters", listLetters);
+router.get("/letters/stats", getLetterStatsController)
 router.get("/letters/:category/:name", getLetter);
 
 // AI rewrite endpoint
@@ -44,5 +47,8 @@ router.get("/letters-all", requireAuth, async (req, res) => {
 
 // Send letter via email (localmail/cloudmail)
 router.post("/letters/:letterId/send", requireAuth, sendLetterEmail);
+
+// Get printable HTML for a letter (local print flow)
+router.get("/letters/:letterId/print", requireAuth, getPrintableLetter);
 
 export default router;

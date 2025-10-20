@@ -26,7 +26,7 @@ const DisputeWizardPage = () => {
       {/* Step panels */}
       <div className="space-y-6">
         <StepOne />
-        <StepTwo email={email} /> {/* Pass email prop to StepTwo */}
+        {/* <StepTwo email={email} /> Pass email prop to StepTwo */}
       </div>
     </div>
   );

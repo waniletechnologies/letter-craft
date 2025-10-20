@@ -55,28 +55,28 @@ interface TransformedAccountRow {
   accountName: string;
   accountNumber: string;
   highBalance: string;
-  lastVerified: string;
+  dateOpened: string;
   status: string;
   values: {
     Experian: {
       accountName: string;
       accountNumber: string;
       highBalance: string;
-      lastVerified: string;
+      dateOpened: string;
       status: string;
     };
     Equifax: {
       accountName: string;
       accountNumber: string;
       highBalance: string;
-      lastVerified: string;
+      dateOpened: string;
       status: string;
     };
     TransUnion: {
       accountName: string;
       accountNumber: string;
       highBalance: string;
-      lastVerified: string;
+      dateOpened: string;
       status: string;
     };
   };
@@ -415,28 +415,28 @@ export function transformAccountInfo(accountInfo: {
       accountName: account.accountName,
       accountNumber: account.accountNumber, // Use Experian's account number as main
       highBalance: account.highBalance,
-      lastVerified: account.lastVerified,
+      dateOpened: account.dateOpened,
       status: account.status,
       values: {
         Experian: {
           accountName: account.accountName,
           accountNumber: account.accountNumber, // Preserve Experian's format
           highBalance: account.highBalance,
-          lastVerified: account.lastVerified,
+          dateOpened: account.dateOpened,
           status: account.status,
         },
         Equifax: {
           accountName: "",
           accountNumber: "",
           highBalance: "",
-          lastVerified: "",
+          dateOpened: "",
           status: "",
         },
         TransUnion: {
           accountName: "",
           accountNumber: "",
           highBalance: "",
-          lastVerified: "",
+          dateOpened: "",
           status: "",
         },
       },
@@ -458,7 +458,7 @@ export function transformAccountInfo(accountInfo: {
         accountName: account.accountName,
         accountNumber: account.accountNumber, // Preserve Equifax's format
         highBalance: account.highBalance,
-        lastVerified: account.lastVerified,
+        dateOpened: account.dateOpened,
         status: account.status,
       };
     } else {
@@ -468,28 +468,28 @@ export function transformAccountInfo(accountInfo: {
         accountName: account.accountName,
         accountNumber: account.accountNumber, // Use Equifax's account number as main
         highBalance: account.highBalance,
-        lastVerified: account.lastVerified,
+        dateOpened: account.dateOpened,
         status: account.status,
         values: {
           Experian: {
             accountName: "",
             accountNumber: "",
             highBalance: "",
-            lastVerified: "",
+            dateOpened: "",
             status: "",
           },
           Equifax: {
             accountName: account.accountName,
             accountNumber: account.accountNumber,
             highBalance: account.highBalance,
-            lastVerified: account.lastVerified,
+            dateOpened: account.dateOpened,
             status: account.status,
           },
           TransUnion: {
             accountName: "",
             accountNumber: "",
             highBalance: "",
-            lastVerified: "",
+            dateOpened: "",
             status: "",
           },
         },
@@ -510,7 +510,7 @@ export function transformAccountInfo(accountInfo: {
         accountName: account.accountName,
         accountNumber: account.accountNumber, // Preserve TransUnion's format
         highBalance: account.highBalance,
-        lastVerified: account.lastVerified,
+        dateOpened: account.dateOpened,
         status: account.status,
       };
     } else {
@@ -519,14 +519,14 @@ export function transformAccountInfo(accountInfo: {
         accountName: account.accountName,
         accountNumber: account.accountNumber,
         highBalance: account.highBalance,
-        lastVerified: account.lastVerified,
+        dateOpened: account.dateOpened,
         status: account.status,
         values: {
           Experian: {
             accountName: "",
             accountNumber: "",
             highBalance: "",
-            lastVerified: "",
+            dateOpened: "",
             status: "",
           },
           Equifax: {
@@ -540,7 +540,7 @@ export function transformAccountInfo(accountInfo: {
             accountName: account.accountName,
             accountNumber: account.accountNumber,
             highBalance: account.highBalance,
-            lastVerified: account.lastVerified,
+            dateOpened: account.dateOpened,
             status: account.status,
           },
         },

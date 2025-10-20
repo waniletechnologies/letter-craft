@@ -41,7 +41,7 @@ export interface NegativeAccount {
   accountNumber: string;
   highBalance: string;
   currentBalance: string;
-  lastVerified: string;
+  dateOpened: string;
   status: string;
 }
 
@@ -55,7 +55,7 @@ export interface AccountInfo {
   accountNumber: string;
   highBalance: string;
   currentBalance: string;
-  lastVerified: string;
+  dateOpened: string;
   status: string;
   payStatus: string;
   worstPayStatus: string;

@@ -5,15 +5,16 @@ export interface AccountInfoRow {
   accountName: string;
   accountNumber: string;
   highBalance: string;
-  lastVerified: string;
+  dateOpened: string;
   status: string;
   values: Record<
     Bureau,
     {
+      lastVerified: string;
+      dateOpened: string;
       accountName: string;
       accountNumber: string;
       highBalance: string;
-      lastVerified: string;
       status: string;
     }
   >;

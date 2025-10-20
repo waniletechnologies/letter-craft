@@ -138,7 +138,7 @@ export interface UpdateAccountRequest {
     accountName?: string;
     accountNumber?: string;
     highBalance?: string;
-    lastVerified?: string;
+    dateOpened?: string;
     status?: string;
   };
 }

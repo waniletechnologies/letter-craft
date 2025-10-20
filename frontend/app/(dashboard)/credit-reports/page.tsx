@@ -98,7 +98,7 @@ const Page = () => {
             id: `${bureau}-${acc.accountNumber || idx}`,
             label: acc.worstPayStatus || acc.status || "N/A",
             bureau: acc.accountName,
-            date: acc.lastVerified || acc.dateOpened || "",
+            date: acc.dateOpened || "",
             impact: /charge off|collection/i.test(status) ? "Very High Impact" : "High Impact",
           });
         }

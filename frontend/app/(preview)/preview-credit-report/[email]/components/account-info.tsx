@@ -12,6 +12,7 @@ import {
   createAccountGroups,
   createCustomGroup,
 } from "@/lib/import";
+import { formatDateForDisplay, convertDateInputToMMYYYY } from "@/lib/dateUtils";
 import { createAccount } from "@/lib/creditReportApi";
 
 import { Bureau, AccountInfoRow, AccountInfoTableProps } from "@/lib/interface";
@@ -65,7 +66,7 @@ export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
           accountName: newAccountName,
           accountNumber: newAccountNumber,
           balance: sanitizedBalance,
-          dateOpened: newDateOpened,
+          dateOpened: convertDateInputToMMYYYY(newDateOpened),
         },
       });
 
@@ -135,7 +136,7 @@ export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
       "accountName",
       "accountNumber",
       "highBalance",
-      "lastVerified",
+      "dateOpened",
       "status",
     ];
 
@@ -269,11 +270,11 @@ export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
                 accountNumber: bureauData.accountNumber,
                 highBalance: bureauData.highBalance,
                 currentBalance: bureauData.highBalance,
-                lastVerified: bureauData.lastVerified,
+                dateOpened: bureauData.dateOpened,
                 status: bureauData.status,
                 payStatus: bureauData.status,
                 worstPayStatus: bureauData.status,
-                dateOpened: bureauData.lastVerified,
+                lastVerified: bureauData.lastVerified,
                 dateClosed: "",
                 remarks: [],
                 bureau: bureau,
@@ -352,11 +353,11 @@ export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
                 accountNumber: bureauData.accountNumber,
                 highBalance: bureauData.highBalance,
                 currentBalance: bureauData.highBalance,
-                lastVerified: bureauData.lastVerified,
+                dateOpened: bureauData.dateOpened,
                 status: bureauData.status,
                 payStatus: bureauData.status,
                 worstPayStatus: bureauData.status,
-                dateOpened: bureauData.lastVerified,
+                lastVerified: bureauData.lastVerified,
                 dateClosed: "",
                 remarks: [],
                 bureau: bureau,
@@ -417,8 +418,8 @@ export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={() => setIsCreateDialogOpen(true)}>Create Group</Button>
-            <Button
+            <Button onClick={() => setIsCreateDialogOpen(true)}>Create New Account</Button>
+            {/* <Button
               variant="outline"
               onClick={handleSelectAll}
               disabled={rows.length === 0}
@@ -456,7 +457,7 @@ export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
                   ? "Creating Custom Group..."
                   : "Create Custom Group"}
               </Button>
-            )}
+            )} */}
           </div>
         </div>
 

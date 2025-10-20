@@ -2,17 +2,18 @@
 
 import React, { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { useSearchParams, useRouter } from "next/navigation";
+import { useSearchParams, useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import { Equifax, Experian, TransUnion } from "@/public/images";
 import AddDisputeItemsDialog from "./AddDisputeItemsDialog";
 import { fetchStoredCreditReport } from "@/lib/creditReportApi"; // Assuming you have this client-side service
 import { saveDispute } from "@/lib/disputeAPI";
 import { DisputePayload, DisputedItemPayload } from "@/types/dispute";
-import {  PersonalInfo } from "@/types/creditReport";
+import { PersonalInfo } from "@/types/creditReport";
 import { useDispute, DisputeItem } from "@/context/disputeContext";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { fetchLetters, LetterCategory } from "@/lib/lettersApi";
 // The shape of personalInfo in CreditReportData
 type PersonalInfoByBureau = {
   Experian: PersonalInfo;
@@ -33,7 +34,6 @@ const getClientName = (personalInfo: PersonalInfoByBureau): string => {
   }
   return "Client";
 };
-
 
 const StepOne: React.FC = () => {
   const router = useRouter();
@@ -173,9 +173,7 @@ const StepOne: React.FC = () => {
       router.push("/disputes");
     } catch (error) {
       console.error("Failed to save disputes:", error);
-      toast.error(
-        "Dispute not saved. "
-      );
+      toast.error("Dispute not saved. ");
     } finally {
       setIsSaving(false);
     }
@@ -189,23 +187,91 @@ const StepOne: React.FC = () => {
       return;
     }
     setSaveAndContinue(true);
-    
+
     try {
       console.log("Saving disputes...");
       setSaveAndContinue(true);
       // Save dispute items to context and localStorage
       saveDisputeItems(disputeItems);
       toast.success("Disputes saved successfully!");
-
     } catch (error) {
       console.error("Failed to save disputes:", error);
-      toast.error(
-        "Dispute not saved. Please try again later."
-      );
+      toast.error("Dispute not saved. Please try again later.");
     } finally {
       setSaveAndContinue(false);
     }
   };
+    const pathname = usePathname();
+    const [categories, setCategories] = useState<LetterCategory[]>([]);
+    const [selectedCategory, setSelectedCategory] = useState<string>("");
+    const [selectedLetter, setSelectedLetter] = useState<string>("");
+    const [loading, setLoading] = useState(true);
+  
+    useEffect(() => {
+      loadLetters();
+    }, []);
+  
+    const loadLetters = async () => {
+      try {
+        setLoading(true);
+        const response = await fetchLetters();
+  
+        if (response.success && response.data) {
+          setCategories(response.data);
+          // Auto-select first category and first letter if available
+          if (response.data.length > 0) {
+            setSelectedCategory(response.data[0].category);
+            if (response.data[0].letters.length > 0) {
+              setSelectedLetter(response.data[0].letters[0].name);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Error loading letters:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+  
+    const [generating, setGenerating] = useState(false);
+
+  const handleGenerateLetter = () => {
+      if (selectedCategory && selectedLetter) {
+        setGenerating(true); // start loading
+  
+        // Create URL parameters with all necessary data
+        const params = new URLSearchParams({
+          category: selectedCategory,
+          letter: selectedLetter,
+        });
+  
+        if (email) {
+          params.append("email", email);
+        }
+  
+        // if (selectedAccounts.length > 0) {
+        //   params.append("accounts", JSON.stringify(selectedAccounts));
+        // }
+  
+        const targetUrl = `/dispute-wizard/generate-letter?${params.toString()}`;
+  
+        // If we're already on the generate page, replace URL and reset loading
+        if (pathname?.startsWith("/dispute-wizard/generate-letter")) {
+          toast.message("Generating letter...");
+          router.replace(targetUrl);
+          // Ensure the UI doesn't get stuck in loading state when staying on the same page
+          setTimeout(() => setGenerating(false), 400);
+          return;
+        }
+  
+        // Use setTimeout so the button shows spinner before route change
+        setTimeout(() => {
+          toast.message("Generating letter...");
+          router.push(targetUrl);
+        }, 300);
+      }
+    };
 
   return (
     <div className="rounded-lg border border-[#E5E7EB] bg-white">
@@ -320,7 +386,16 @@ const StepOne: React.FC = () => {
 
         {/* Buttons */}
         {disputeItems.length > 0 && (
-          <div className="flex justify-end mt-4">
+          <div className="flex justify-end mt-4 gap-2">
+            <Button
+              className="bg-primary hover:bg-primary/90 flex items-center gap-2"
+              onClick={handleGenerateLetter}
+              disabled={
+                !selectedCategory || !selectedLetter || loading || generating
+              }
+            >
+              {generating ? "Waiting..." : "Select Letter"}
+            </Button>
             <Button
               className="bg-[#2196F3] hover:bg-[#1976D2]"
               onClick={handleSaveAndContinue}

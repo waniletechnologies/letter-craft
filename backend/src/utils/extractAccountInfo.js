@@ -48,11 +48,10 @@ export function extractAccountInfo(reportData) {
             currentBalance: t.currentBalance
               ? `$${parseInt(t.currentBalance).toLocaleString()}`
               : "",
-            lastVerified: t.dateReported || "",
+            dateOpened: t.dateOpened || "",
             status: t.AccountCondition?.abbreviation || "",
             payStatus: t.PayStatus?.abbreviation || "",
             worstPayStatus: t.GrantedTrade?.WorstPayStatus?.abbreviation || "",
-            dateOpened: t.dateOpened || "",
             dateClosed: t.dateClosed || "",
             remarks: Array.isArray(t.Remark)
               ? t.Remark.map(

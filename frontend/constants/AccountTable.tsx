@@ -13,6 +13,7 @@ import {
 } from "@/lib/import";
 import {BureauHeader, ValueCell} from "@/constants/account-info";
 import { Bureau, AccountInfoRow } from "@/lib/interface";
+import { formatDateForDisplay } from "@/lib/dateUtils";
 
 export const AccountTable: React.FC<{
   account: AccountInfoRow;
@@ -142,7 +143,7 @@ export const AccountTable: React.FC<{
             ["ACCOUNT NAME:", "accountName", true],
             ["ACCOUNT #:", "accountNumber", true],
             ["HIGH BALANCE:", "highBalance", false],
-            ["LAST VERIFIED", "lastVerified", false],
+            ["DATE OPENED:", "dateOpened", false],
           ].map(([label, key, isEditable], index) => (
             <TableRow key={`${label}-${index}`} className="border-b border-[#00000014]">
               <TableCell className="font-medium text-xs leading-[1.5] -tracking-[0.03em] text-right w-[22%] text-[#292524] border-r border-[#00000014] p-3">
@@ -160,9 +161,13 @@ export const AccountTable: React.FC<{
                   >
                     <ValueCell
                       value={
-                        editableAccount.values[bureau][
-                          key as keyof (typeof editableAccount.values)[Bureau]
-                        ]
+                        key === "dateOpened" 
+                          ? formatDateForDisplay(editableAccount.values[bureau][
+                              key as keyof (typeof editableAccount.values)[Bureau]
+                            ])
+                          : editableAccount.values[bureau][
+                              key as keyof (typeof editableAccount.values)[Bureau]
+                            ]
                       }
                       isEditable={
                         (isEditable as boolean) && hasBureauData(bureau)

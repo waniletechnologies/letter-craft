@@ -634,8 +634,23 @@ const GenerateLetterPage = () => {
       .replace(/{SIGNATURE}/g, "\n")
       .replace(/{Today[''`'´'′'']?s Date mm-dd-yyyy}/gi, `: ${todayDate}`)
       .replace(/{Today[''`'´'′'']?s Date[^}]*}/gi, todayDate)
+      .replace(`{Today’s Date mm-dd-yyyy}`, `: ${todayDate}`)
+      .replace(`{Today’s Date ”September 25 2025”}`, `Date: ${todayDate}`)
       .replace(/{Experian Report Number}/gi, "")
       .replace(/{Transunion File Number}/gi, "")
+      .replace(
+        `I am contacting you today to have these accounts below removed`,
+        "I am contacting you today to have these accounts below removed.\n\n"
+      )
+      .replace(
+        `I am contacting you today to have these account below removed.`,
+        "I am contacting you today to have these accounts below removed.\n\n"
+      )
+      .replace(`Thank you!`, "Thank you!\n\n")
+      .replace(
+        `Please remove these accounts from my credit report.`,
+        "Please remove these accounts from my credit report.\n\n"
+      )
       .replace(
         /{FTC Report Number}/gi,
         selectedFtcReports.length > 0
@@ -868,67 +883,212 @@ const GenerateLetterPage = () => {
   };
 
   const handleDownload = () => {
-    // If user selected FTC reports, always generate a local DOCX with enclosures included
-    const mustIncludeFtc = Array.isArray(selectedFtcReports) && selectedFtcReports.length > 0;
-    if (downloadUrl && !mustIncludeFtc) {
-      window.open(downloadUrl, "_blank");
-      return;
+    // Prefer generating a real DOCX locally that includes addresses and (optional) enclosures
+    try {
+      generateRealDocx();
+    } catch (err) {
+      // Fallback: open the provided link if available
+      const mustIncludeFtc = Array.isArray(selectedFtcReports) && selectedFtcReports.length > 0;
+      if (downloadUrl && !mustIncludeFtc) {
+        window.open(downloadUrl, "_blank");
+        return;
+      }
     }
-
-    // Generate a simple DOCX-like file from current content with FTC attachments section
-    const content = generateDocxContent();
-    const blob = new Blob([content], {
-      type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-    });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `dispute-letter-${category || "letter"}-${
-      new Date().toISOString().split("T")[0]
-    }.docx`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
   };
 
-  const generateDocxContent = () => {
-    const senderAddress = getSenderAddress();
-    const toAddress = getToAddress();
+  // Build a proper DOCX file (with sender/receiver addresses + styled body + optional enclosures)
+  const generateRealDocx = async () => {
+    const { Document, Packer, Paragraph, TextRun, AlignmentType, HeadingLevel } = await import("docx");
 
-    const tempDiv = document.createElement("div");
-    tempDiv.innerHTML = letterContent;
+    const senderAddress = (getSenderAddress && getSenderAddress()) || "";
+    const toAddress = (getToAddress && getToAddress()) || "";
 
-    // Extract just the body content without any address headers
-    let plainTextContent = tempDiv.textContent || tempDiv.innerText || "";
+    // Convert the editor HTML to DOCX Paragraphs, preserving common styling
+    const htmlToParagraphs = (html: string): any[] => {
+      const container = document.createElement("div");
+      container.innerHTML = html || "";
 
-    // Remove any remaining address patterns from the content for ALL bureaus
-    plainTextContent = plainTextContent
-      .replace(/FROM:[\s\S]*?TO:[\s\S]*?(?=Subject:)/i, "")
-      .replace(/^\s*{[^}]*}[\s\S]*?{Today[''`'´'′'']?s Date[^}]*}\s*/i, "")
-      .replace(
-        /^\s*\S+[\s\S]*?\d{2}\/\d{2}\/\d{4}\s*\d{3}-\d{2}-\d{4}\s*/i,
-        ""
-      );
+      const parseRuns = (node: Node, inherited: any = {}): any[] => {
+        const runs: any[] = [];
+        const el = node as HTMLElement;
+        const nextStyle = { ...inherited } as any;
 
-    // For DOCX export, we want the addresses at the top, then the clean content
-    let fullContent = `FROM:\n${senderAddress}\n\nTO:\n${toAddress}\n\n${plainTextContent}`;
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          const tag = el.tagName?.toLowerCase();
+          if (tag === "strong" || tag === "b") nextStyle.bold = true;
+          if (tag === "em" || tag === "i") nextStyle.italics = true;
+          if (tag === "u") nextStyle.underline = {};
+          if (tag === "s" || tag === "strike") nextStyle.strike = true;
 
-    // Append FTC attachments as Enclosures if any are selected
+          // Inline style mapping (color, font-size)
+          const style = (el.getAttribute("style") || "").toLowerCase();
+          const colorMatch = style.match(/color:\s*([^;]+)/);
+          if (colorMatch) nextStyle.color = colorMatch[1].trim();
+          const sizeMatch = style.match(/font-size:\s*(\d+)px/);
+          if (sizeMatch) nextStyle.size = parseInt(sizeMatch[1], 10) * 2; // docx is half-points
+
+          // Recurse children
+          el.childNodes.forEach((child) => {
+            runs.push(...parseRuns(child, nextStyle));
+          });
+          return runs;
+        }
+
+        if (node.nodeType === Node.TEXT_NODE) {
+          const text = (node.textContent || "").replace(/\s+$/g, " ");
+          if (!text) return runs;
+          runs.push(new TextRun({ text, ...inherited }));
+          return runs;
+        }
+        return runs;
+      };
+
+      const elementToParagraphs = (el: HTMLElement): any[] => {
+        const paras: any[] = [];
+        const tag = el.tagName?.toLowerCase();
+
+        // Determine alignment
+        let alignment: any = undefined;
+        const alignAttr = el.getAttribute("align") || "";
+        const style = (el.getAttribute("style") || "").toLowerCase();
+        const textAlign = alignAttr || (style.match(/text-align:\s*(left|right|center|justify)/)?.[1] || "");
+        if (textAlign) {
+          alignment =
+            textAlign === "center"
+              ? AlignmentType.CENTER
+              : textAlign === "right"
+              ? AlignmentType.RIGHT
+              : textAlign === "justify"
+              ? AlignmentType.JUSTIFIED
+              : AlignmentType.LEFT;
+        }
+
+        // Headings
+        if (["h1","h2","h3","h4","h5","h6"].includes(tag)) {
+          const level = { h1: HeadingLevel.TITLE, h2: HeadingLevel.HEADING_1, h3: HeadingLevel.HEADING_2, h4: HeadingLevel.HEADING_3, h5: HeadingLevel.HEADING_4, h6: HeadingLevel.HEADING_5 }[tag as keyof any];
+          const runs = parseRuns(el);
+          paras.push(new Paragraph({ alignment, heading: level, children: runs.length ? runs : [new TextRun("")] }));
+          return paras;
+        }
+
+        // Paragraph-like blocks
+        if (["p","div"].includes(tag)) {
+          const runs = parseRuns(el);
+          paras.push(new Paragraph({ alignment, children: runs.length ? runs : [new TextRun("")] }));
+          return paras;
+        }
+
+        // Line break
+        if (tag === "br") {
+          paras.push(new Paragraph({ children: [new TextRun({ break: 1 })] }));
+          return paras;
+        }
+
+        // Lists: flatten to bullet lines (keeps visual meaning without numbering config)
+        if (tag === "ul" || tag === "ol") {
+          const isOrdered = tag === "ol";
+          let index = 1;
+          Array.from(el.children).forEach((li) => {
+            if ((li as HTMLElement).tagName?.toLowerCase() !== "li") return;
+            const runs = parseRuns(li);
+            const bulletPrefix = isOrdered ? `${index++}. ` : "• ";
+            paras.push(
+              new Paragraph({
+                alignment,
+                children: [new TextRun(bulletPrefix), ...(runs.length ? runs : [new TextRun("")])],
+              })
+            );
+          });
+          return paras;
+        }
+
+        // Fallback: descend children
+        el.childNodes.forEach((child) => {
+          if (child.nodeType === Node.ELEMENT_NODE) {
+            paras.push(...elementToParagraphs(child as HTMLElement));
+          } else if (child.nodeType === Node.TEXT_NODE) {
+            const text = (child.textContent || "").trim();
+            if (text) paras.push(new Paragraph({ children: [new TextRun(text)] }));
+          }
+        });
+        return paras;
+      };
+
+      const paragraphs: any[] = [];
+      Array.from(container.childNodes).forEach((n) => {
+        if (n.nodeType === Node.ELEMENT_NODE) {
+          paragraphs.push(...elementToParagraphs(n as HTMLElement));
+        } else if (n.nodeType === Node.TEXT_NODE) {
+          const text = (n.textContent || "").trim();
+          if (text) paragraphs.push(new Paragraph({ children: [new TextRun(text)] }));
+        }
+      });
+      return paragraphs.length ? paragraphs : [new Paragraph("")];
+    };
+
+    const docChildren: any[] = [];
+
+    // Sender address
+    if (senderAddress) {
+      senderAddress.split(/\r?\n/).forEach((line) => {
+        docChildren.push(new Paragraph({ alignment: AlignmentType.LEFT, children: [new TextRun(line)] }));
+      });
+      docChildren.push(new Paragraph({}));
+    }
+
+    // Recipient address
+    if (toAddress) {
+      toAddress.split(/\r?\n/).forEach((line) => {
+        docChildren.push(new Paragraph({ alignment: AlignmentType.LEFT, children: [new TextRun(line)] }));
+      });
+      docChildren.push(new Paragraph({}));
+    }
+
+    // Date
+    docChildren.push(new Paragraph({ alignment: AlignmentType.LEFT, children: [new TextRun(new Date().toLocaleDateString())] }));
+    docChildren.push(new Paragraph({}));
+
+    // Body (styled from HTML)
+    docChildren.push(...htmlToParagraphs(letterContent || ""));
+
+    // Optional Enclosures (FTC reports)
     try {
       if (Array.isArray(selectedFtcReports) && selectedFtcReports.length > 0) {
-        const allOptions = getFtcReportOptions();
+        const allOptions = (getFtcReportOptions && getFtcReportOptions()) || [];
         const selected = allOptions.filter((o: any) => selectedFtcReports.includes(o.value));
         if (selected.length > 0) {
-          const enclosureLines = selected
-            .map((r: any) => `- ${r.label || "FTC Report"}${r.url ? ` (${r.url})` : ""}`)
-            .join("\n");
-          fullContent += `\n\nEnclosures:\nFTC Reports:\n${enclosureLines}`;
+          docChildren.push(new Paragraph({}));
+          docChildren.push(new Paragraph({ children: [new TextRun({ text: "Enclosures:", bold: true })] }));
+          selected.forEach((r: any) => {
+            const label = r?.label || "FTC Report";
+            const url = r?.url ? ` (${r.url})` : "";
+            docChildren.push(new Paragraph({ children: [new TextRun(`- ${label}${url}`)] }));
+          });
         }
       }
     } catch {}
 
-    return fullContent;
+    const doc = new Document({
+      sections: [
+        {
+          properties: {
+            page: {
+              margin: { top: 720, right: 720, bottom: 720, left: 720 }, // 0.5 inch margins
+            },
+          },
+          children: docChildren,
+        },
+      ],
+    });
+    const blob = await Packer.toBlob(doc);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `dispute-letter-${category || "letter"}-${new Date().toISOString().split("T")[0]}.docx`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   };
 
   // In GenerateLetterPage.tsx - add this helper function

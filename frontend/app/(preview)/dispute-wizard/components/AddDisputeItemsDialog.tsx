@@ -38,6 +38,7 @@ import {
 } from "@dnd-kit/sortable";
 import SortableItem from "./SortableItem";
 import { toast } from "sonner";
+import { formatDateForDisplay, parseMMYYYYToDate } from "@/lib/dateUtils";
 
 // Add these imports for group functionality
 import {
@@ -60,7 +61,7 @@ interface AccountData {
   groupName?: string;
   // Add other properties that might exist in your account objects
   highBalance?: string;
-  lastVerified?: string;
+  dateOpened?: string;
   status?: string;
   worstPayStatus?: string;
   remarks?: string[];
@@ -100,6 +101,7 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
   const [loading, setLoading] = useState(true);
   const [groups, setGroups] = useState<Map<string, ItemRow[]>>(new Map());
   const [groupOrder, setGroupOrder] = useState<string[]>([]);
+  const [dateSortOrder, setDateSortOrder] = useState<'newest' | 'oldest' | 'none'>('none');
   const { disputeItems, addMultipleDisputeItems } = useDispute();
   const decodedEmail = decodeURIComponent(email as string);
 
@@ -249,6 +251,18 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
     const selectedItems = rows.filter((r) =>
       selectedGroups.includes(r.groupName)
     );
+    
+    // Check if any group has more than 5 accounts
+    const groupsWithTooManyAccounts = selectedGroups.filter(groupName => {
+      const groupAccounts = selectedItems.filter(item => item.groupName === groupName);
+      return groupAccounts.length > 5;
+    });
+    
+    if (groupsWithTooManyAccounts.length > 0) {
+      toast.error(`Groups ${groupsWithTooManyAccounts.join(', ')} have more than 5 accounts. Please reduce the number of accounts in these groups before submitting.`);
+      return;
+    }
+    
     addMultipleDisputeItems(
       selectedItems.map((r) => ({
         id: r.id,
@@ -276,13 +290,7 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
     const [sourceGroup, accountId] = (active.id as string).split("::");
     const [targetGroup] = (over.id as string).split("::");
 
-    // Check if target group already has 5 accounts
-    const targetAccounts = groups.get(targetGroup) || [];
-    if (targetAccounts.length >= 5) {
-      toast.error("Cannot add more than 5 accounts to a group");
-      return;
-    }
-
+    // Allow dragging to groups with more than 5 accounts (validation happens on submit)
     if (sourceGroup !== targetGroup) {
       // Remove from source group and add to target group locally
       const updatedGroups = new Map(groups);
@@ -322,6 +330,22 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
     }
   };
 
+  // Sort function for date opened
+  const sortByDateOpened = (accounts: ItemRow[], order: 'newest' | 'oldest' | 'none'): ItemRow[] => {
+    if (order === 'none') return accounts;
+    
+    return [...accounts].sort((a, b) => {
+      const dateA = parseMMYYYYToDate(a.dateOpened);
+      const dateB = parseMMYYYYToDate(b.dateOpened);
+      
+      if (order === 'newest') {
+        return dateB.getTime() - dateA.getTime();
+      } else {
+        return dateA.getTime() - dateB.getTime();
+      }
+    });
+  };
+
   // Group rows by group name for display
   const groupedRows = useMemo(() => {
     const grouped = new Map<string, ItemRow[]>();
@@ -331,8 +355,16 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
       }
       grouped.get(row.groupName)!.push(row);
     });
+    
+    // Apply sorting to each group
+    if (dateSortOrder !== 'none') {
+      grouped.forEach((accounts, groupName) => {
+        grouped.set(groupName, sortByDateOpened(accounts, dateSortOrder));
+      });
+    }
+    
     return grouped;
-  }, [rows]);
+  }, [rows, dateSortOrder]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -369,7 +401,27 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
                     </TableHead>
                     <TableHead className="w-[200px]">Group</TableHead>
                     <TableHead className="w-[260px]">Account #</TableHead>
-                    <TableHead className="w-[140px]">Date Opened</TableHead>
+                    <TableHead className="w-[140px]">
+                      <div className="flex items-center gap-1">
+                        Date Opened
+                        <div className="flex flex-col">
+                          <button
+                            onClick={() => setDateSortOrder(dateSortOrder === 'newest' ? 'none' : 'newest')}
+                            className={`text-xs ${dateSortOrder === 'newest' ? 'text-blue-600' : 'text-gray-400'}`}
+                            title="Sort by newest"
+                          >
+                            ↑
+                          </button>
+                          <button
+                            onClick={() => setDateSortOrder(dateSortOrder === 'oldest' ? 'none' : 'oldest')}
+                            className={`text-xs ${dateSortOrder === 'oldest' ? 'text-blue-600' : 'text-gray-400'}`}
+                            title="Sort by oldest"
+                          >
+                            ↓
+                          </button>
+                        </div>
+                      </div>
+                    </TableHead>
                     <TableHead className="w-[120px]">Balance</TableHead>
                     <TableHead className="w-[100px]">Type</TableHead>
                     <TableHead className="w-[90px]">Disputed</TableHead>
@@ -433,6 +485,11 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
                                   ✓ Full
                                 </span>
                               )}
+                              {groupAccounts.length > 5 && (
+                                <span className="ml-2 text-xs text-red-600">
+                                  ⚠ Too many accounts
+                                </span>
+                              )}
                             </TableCell>
                           </TableRow>
 
@@ -458,7 +515,7 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
                                       {r.account}
                                     </div>
                                   </TableCell>
-                                  <TableCell>{r.dateOpened}</TableCell>
+                                  <TableCell>{formatDateForDisplay(r.dateOpened)}</TableCell>
                                   <TableCell>{r.balance}</TableCell>
                                   <TableCell>{r.type}</TableCell>
                                   <TableCell>

@@ -45,11 +45,10 @@ const AccountInfoSchema = new mongoose.Schema({
   accountNumber: String,
   highBalance: String,
   currentBalance: String,
-  lastVerified: String,
+  dateOpened: String,
   status: String, // Will be "Negative" or "Positive"
   payStatus: String,
   worstPayStatus: String,
-  dateOpened: String,
   dateClosed: String,
   remarks: [String],
 });

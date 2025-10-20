@@ -103,6 +103,7 @@ export async function saveLetter(letterData: {
   selectedFtcReports?: string[];
   followUpDays?: number;
   createFollowUpTask?: boolean;
+  scheduleAt?: string;
 }): Promise<{
   success: boolean;
   data?: unknown;

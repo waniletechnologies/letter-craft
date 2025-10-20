@@ -105,10 +105,15 @@ const LetterSchema = new mongoose.Schema(
       type: Date,
     },
 
+    // Optional scheduled send datetime
+    scheduleAt: {
+      type: Date,
+    },
+
     // Follow-up task
     followUpDays: {
       type: Number,
-      default: 2,
+      default: 14,
     },
 
     createFollowUpTask: {

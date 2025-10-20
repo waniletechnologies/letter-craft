@@ -58,7 +58,7 @@ const SelectLetters: React.FC<SelectLettersProps> = ({
                 Letter To
               </TableHead>
               <TableHead className="font-medium text-[12.61px] leading-[18.02px] tracking-normal text-[#292524]">
-                Created
+                Schedule
               </TableHead>
               <TableHead className="font-medium text-[12.61px] leading-[18.02px] tracking-normal text-[#292524]">
                 Print Status

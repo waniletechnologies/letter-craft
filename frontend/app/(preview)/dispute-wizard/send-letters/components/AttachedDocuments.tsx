@@ -55,7 +55,7 @@ const AttachedDocuments: React.FC<AttachedDocumentsProps> = ({
           </Label>
         </div>
 
-        {includeIdAttachments && (
+        {/* {includeIdAttachments && (
           <div className="ml-6 flex gap-2">
             <div className="flex items-center space-x-2">
               <input
@@ -86,7 +86,7 @@ const AttachedDocuments: React.FC<AttachedDocumentsProps> = ({
               </Label>
             </div>
           </div>
-        )}
+        )} */}
 
         <div className="flex items-center gap-3">
           <Checkbox

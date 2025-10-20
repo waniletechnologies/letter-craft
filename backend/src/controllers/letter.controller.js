@@ -341,6 +341,12 @@ export async function saveLetter(req, res) {
     if (attachments && Array.isArray(attachments)) {
       letterData.attachments = attachments;
     }
+    if (req.body.scheduleAt) {
+      const d = new Date(req.body.scheduleAt);
+      if (!isNaN(d.getTime())) {
+        letterData.scheduleAt = d;
+      }
+    }
 
     console.log("Creating letter with data:", letterData);
 

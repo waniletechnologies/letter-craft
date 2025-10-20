@@ -11,6 +11,7 @@ import letterRoute from "./src/routes/letter.route.js";
 import creditReport from "./src/routes/creditReport.route.js";
 import accountGroupRoutes from "./src/routes/accountGroup.route.js";
 import disputeRoutes from "./src/routes/dispute.route.js";
+import recentActivityRoutes from "./src/routes/recentActivity.route.js";
 
 dotenv.config();
 
@@ -63,6 +64,7 @@ app.use("/api", letterRoute);
 app.use("/api", creditReport);
 app.use("/api", accountGroupRoutes);
 app.use("/api/disputes", disputeRoutes);
+app.use("/api", recentActivityRoutes);
 
 // 404 handler for undefined routes - Fixed the wildcard issue
 app.use((req, res) => {

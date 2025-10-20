@@ -6,6 +6,8 @@ import Typo from "typo-js";
 import RichTextEditor from "@/components/ui/rich-text-editor";
 import Stepper from "../components/Stepper";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import {
   Select,
   SelectContent,
@@ -17,12 +19,14 @@ import { FileText, Sparkles } from "lucide-react";
 import Image from "next/image";
 import { Experian, Equifax, TransUnion } from "@/public/images";
 import SaveLetterDialog, { SaveLetterData } from "./components/save-letter";
+import StepTwo from "../components/StepTwo";
 import { useSearchParams } from "next/navigation";
 import { fetchLetterContent, rewriteLetter } from "@/lib/lettersApi";
 import { fetchStoredCreditReport } from "@/lib/creditReportApi";
 import { useDispute } from "@/context/disputeContext";
 import { useGetClientFiles, UploadedFile } from "@/hooks/clients";
 import Loader from '@/components/Loader';
+import { toast } from "sonner";
 
 interface PersonalInfo {
   names: Array<{
@@ -94,6 +98,15 @@ const GenerateLetterPage = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [selectedFtcReport, setSelectedFtcReport] = useState<string>("");
   const [clientId, setClientId] = useState<string>("");
+  const [scheduleAt, setScheduleAt] = useState<string>("");
+  const [selectedAccounts, setSelectedAccounts] = useState<any[]>([]);
+  const [groupedAccounts, setGroupedAccounts] = useState<any[][]>([]);
+  const [selectedGroupIndex, setSelectedGroupIndex] = useState<number>(0);
+  const [originalTemplateText, setOriginalTemplateText] = useState<string>("");
+  // Per-letter scheduling
+  const [scheduleDateByGroup, setScheduleDateByGroup] = useState<Record<number, string>>({});
+  const [scheduleTimeByGroup, setScheduleTimeByGroup] = useState<Record<number, string>>({});
+  const [scheduleAtByGroup, setScheduleAtByGroup] = useState<Record<number, string>>({});
   const {
     disputeItems,
     loadSavedDisputeItems,
@@ -104,6 +117,7 @@ const GenerateLetterPage = () => {
   const category = searchParams.get("category");
   const letterName = searchParams.get("letter");
   const email = searchParams.get("email");
+  const accountsParam = searchParams.get("accounts");
 
   // Fetch client files using the hook - NOW THIS WILL WORK WHEN clientId IS SET
   const {
@@ -127,6 +141,62 @@ const GenerateLetterPage = () => {
       loadSavedDisputeItems();
     }
   }, [loadSavedDisputeItems]);
+
+  // Helper to split any account list into groups of 5
+  const makeGroupsOfFive = (items: any[]): any[][] => {
+    const groups: any[][] = [];
+    for (let i = 0; i < items.length; i += 5) {
+      groups.push(items.slice(i, i + 5));
+    }
+    return groups;
+  };
+
+  // Unified view of groups used by both selector and renderer
+  const getUiGroups = (): any[][] => {
+    if (groupedAccounts.length > 0) return groupedAccounts;
+    if (Array.isArray(disputeItems) && disputeItems.length > 0) {
+      return makeGroupsOfFive(disputeItems);
+    }
+    return [];
+  };
+
+  // Parse selected accounts from query and compute groups of 5
+  useEffect(() => {
+    try {
+      if (accountsParam) {
+        const parsed = JSON.parse(accountsParam);
+        if (Array.isArray(parsed)) {
+          setSelectedAccounts(parsed);
+          setGroupedAccounts(makeGroupsOfFive(parsed));
+          setSelectedGroupIndex(0);
+        }
+      }
+    } catch (e) {
+      console.warn("Failed to parse accounts from URL", e);
+    }
+  }, [accountsParam]);
+
+  // Ensure selectedGroupIndex is valid when groups change
+  useEffect(() => {
+    const uiGroups = getUiGroups();
+    if (selectedGroupIndex >= uiGroups.length && uiGroups.length > 0) {
+      setSelectedGroupIndex(0);
+    }
+  }, [groupedAccounts, disputeItems, selectedGroupIndex]);
+
+  // Combine schedule date/time into ISO string whenever inputs change for selected group
+  useEffect(() => {
+    const datePart = scheduleDateByGroup[selectedGroupIndex] || "";
+    const timePart = scheduleTimeByGroup[selectedGroupIndex] || "";
+    if (!datePart || !timePart) {
+      setScheduleAtByGroup((prev) => ({ ...prev, [selectedGroupIndex]: "" }));
+      return;
+    }
+    const combined = new Date(`${datePart}T${timePart}`);
+    if (!isNaN(combined.getTime())) {
+      setScheduleAtByGroup((prev) => ({ ...prev, [selectedGroupIndex]: combined.toISOString() }));
+    }
+  }, [scheduleDateByGroup, scheduleTimeByGroup, selectedGroupIndex]);
 
   // Load credit report data first
   useEffect(() => {
@@ -167,13 +237,22 @@ const GenerateLetterPage = () => {
 
   // Update context when FTC report is selected
   useEffect(() => {
-    if (selectedFtcReports.length > 0 && clientFiles?.ftcReport) {
+      if (selectedFtcReports.length > 0 && clientFiles?.ftcReport) {
       const selectedReports = clientFiles.ftcReport.filter(
         (report: UploadedFile) => selectedFtcReports.includes(report._id)
       );
       if (selectedReports.length > 0) {
         // Update your context to handle multiple reports
         setContextFtcReport(selectedReports);
+        // Persist selections into localStorage for send step hydration
+        try {
+          const saved = localStorage.getItem('savedLetterData');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            parsed.selectedFtcReports = selectedFtcReports;
+            localStorage.setItem('savedLetterData', JSON.stringify(parsed));
+          }
+        } catch {}
       }
     }
   }, [selectedFtcReports, clientFiles, setContextFtcReport]);
@@ -469,7 +548,7 @@ const GenerateLetterPage = () => {
     return correctedWords.join("");
   };
 
-  const populateLetterTemplate = (template: string) => {
+  const populateLetterTemplate = (template: string, overrideAccounts?: any[]) => {
     if (!personalInfo) {
       return template;
     }
@@ -512,8 +591,13 @@ const GenerateLetterPage = () => {
     const ssnFormatted = ssn?.number ? formatSSN(ssn.number) : "N/A";
 
     let accountDetails = "";
-    if (disputeItems && disputeItems.length > 0) {
-      accountDetails = disputeItems
+    const sourceItems =
+      (overrideAccounts && overrideAccounts.length > 0)
+        ? overrideAccounts
+        : (getUiGroups()[selectedGroupIndex] || []);
+
+    if (sourceItems && sourceItems.length > 0) {
+      accountDetails = sourceItems
         .map((item) => {
           const dateOpened = item.dateOpened
             ? new Date(item.dateOpened).toLocaleDateString("en-US", {
@@ -558,6 +642,12 @@ const GenerateLetterPage = () => {
           ? `FTC Report: ${selectedFtcReports.join(", ")}`
           : "FTC Report Number"
       );
+
+    // Inject schedule if template has placeholder
+    populatedTemplate = populatedTemplate.replace(
+      /{Scheduled Date\/?Time}?/gi,
+      scheduleAt ? new Date(scheduleAt).toLocaleString() : ""
+    );
 
     // Replace the disputed accounts placeholder
     populatedTemplate = populatedTemplate.replace(
@@ -641,6 +731,7 @@ const GenerateLetterPage = () => {
                 : match;
             });
 
+          setOriginalTemplateText(cleanedText);
           const populatedText = populateLetterTemplate(cleanedText);
           bodyContent = populatedText.replace(/\n/g, "<br>");
         }
@@ -659,23 +750,132 @@ const GenerateLetterPage = () => {
     }
   };
 
+  // Regenerate letter content when switching between groups
+  useEffect(() => {
+    if (!originalTemplateText) return;
+    try {
+      const populatedText = populateLetterTemplate(originalTemplateText);
+      const html = populatedText.replace(/\n/g, "<br>");
+      const formattedContent = formatLetterContent(html);
+      setLetterContent(formattedContent);
+    } catch (e) {
+      console.warn("Failed to refresh content for selected group", e);
+    }
+  }, [selectedGroupIndex, groupedAccounts]);
+
   const handleSaveLetter = (data: SaveLetterData) => {
     console.log("Saving letter with data:", data);
   };
 
   const handleSaveAndContinue = () => {
-    setIsSaving(true);
+    // Validate that each letter has schedule date & time
+    const groups = getUiGroups();
+    const missing = groups.findIndex((_, idx) => !scheduleAtByGroup[idx]);
+    if (groups.length > 0 && missing !== -1) {
+      // Ask user to select schedule for each letter
+      console.warn("Missing schedule for letter index", missing);
+      toast.error("First select the schedule for all letters");
+      return;
+    }
     setIsSaveDialogOpen(true);
   };
 
+  const getBureauFromCategory = (category: string | null) => {
+    if (!category) return "Equifax"; // Default to Equifax
+
+    const upperCategory = category.toUpperCase();
+    if (upperCategory.includes("EXPERIAN")) return "Experian";
+    if (upperCategory.includes("EQUIFAX")) return "Equifax";
+    if (upperCategory.includes("TRANSUNION")) return "TransUnion";
+
+    // Default to Equifax if no match found
+    return "Equifax";
+  };
+
+
+  // Build prepared letters (one per group of 5) for saving/next step
+  const preparedLetters = React.useMemo(() => {
+    if (!originalTemplateText) return [] as Array<{
+      category: string;
+      letterName: string;
+      bureau: string;
+      content: string;
+      personalInfo: PersonalInfo | null;
+      displayName: string;
+      scheduleAt?: string;
+    }>;
+    const base = [] as Array<{
+      category: string;
+      letterName: string;
+      bureau: string;
+      content: string;
+      personalInfo: PersonalInfo | null;
+      displayName: string;
+      scheduleAt?: string;
+    }>;
+    const groups = groupedAccounts.length > 0
+      ? groupedAccounts
+      : (Array.isArray(disputeItems) ? makeGroupsOfFive(disputeItems) : []);
+    groups.forEach((group, idx) => {
+      const populated = populateLetterTemplate(originalTemplateText, group);
+      const html = populated.replace(/\n/g, "<br>");
+      const formatted = formatLetterContent(html);
+      base.push({
+        category: category || "",
+        letterName: letterName || "",
+        bureau: getBureauFromCategory(category),
+        content: formatted,
+        personalInfo: personalInfo,
+        displayName: `${decodeURIComponent(letterName || "Letter")} - Letter ${idx + 1}`,
+        // include per-letter schedule
+        scheduleAt: scheduleAtByGroup[idx] || "",
+      });
+    });
+    return base;
+  }, [originalTemplateText, groupedAccounts, disputeItems, category, letterName, personalInfo, scheduleAtByGroup]);
+
+  // Auto-assign schedules (> 10 days from today) for all letters
+  const autoAssignSchedules = () => {
+    const groups = getUiGroups();
+    if (groups.length === 0) return;
+    const today = new Date();
+    const base = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    // Start at today + 11 days to ensure strictly more than 10 days
+    base.setDate(base.getDate() + 11);
+
+    const nextDates: Record<number, string> = {};
+    const nextTimes: Record<number, string> = {};
+    const nextIso: Record<number, string> = {};
+    for (let i = 0; i < groups.length; i++) {
+      const d = new Date(base);
+      d.setDate(base.getDate() + i);
+      const yyyy = d.getFullYear();
+      const mm = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      nextDates[i] = `${yyyy}-${mm}-${dd}`;
+      // Stagger time a bit: 09:00 + i*15 minutes, wrap at hour
+      const totalMinutes = 9 * 60 + (i * 15) % (8 * 60); // between 09:00 and 17:00
+      const hh = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
+      const min = String(totalMinutes % 60).padStart(2, '0');
+      nextTimes[i] = `${hh}:${min}`;
+      const iso = new Date(`${nextDates[i]}T${nextTimes[i]}`);
+      nextIso[i] = isNaN(iso.getTime()) ? '' : iso.toISOString();
+    }
+    setScheduleDateByGroup((prev) => ({ ...prev, ...nextDates }));
+    setScheduleTimeByGroup((prev) => ({ ...prev, ...nextTimes }));
+    setScheduleAtByGroup((prev) => ({ ...prev, ...nextIso }));
+    toast.success('Auto-assigned schedule for all letters');
+  };
+
   const handleDownload = () => {
-    // Prefer downloading the original DOCX from S3 if available
-    if (downloadUrl) {
+    // If user selected FTC reports, always generate a local DOCX with enclosures included
+    const mustIncludeFtc = Array.isArray(selectedFtcReports) && selectedFtcReports.length > 0;
+    if (downloadUrl && !mustIncludeFtc) {
       window.open(downloadUrl, "_blank");
       return;
     }
 
-    // Fallback: generate a simple DOCX-like file from current content
+    // Generate a simple DOCX-like file from current content with FTC attachments section
     const content = generateDocxContent();
     const blob = new Blob([content], {
       type: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
@@ -712,24 +912,27 @@ const GenerateLetterPage = () => {
       );
 
     // For DOCX export, we want the addresses at the top, then the clean content
-    const fullContent = `FROM:\n${senderAddress}\n\nTO:\n${toAddress}\n\n${plainTextContent}`;
+    let fullContent = `FROM:\n${senderAddress}\n\nTO:\n${toAddress}\n\n${plainTextContent}`;
+
+    // Append FTC attachments as Enclosures if any are selected
+    try {
+      if (Array.isArray(selectedFtcReports) && selectedFtcReports.length > 0) {
+        const allOptions = getFtcReportOptions();
+        const selected = allOptions.filter((o: any) => selectedFtcReports.includes(o.value));
+        if (selected.length > 0) {
+          const enclosureLines = selected
+            .map((r: any) => `- ${r.label || "FTC Report"}${r.url ? ` (${r.url})` : ""}`)
+            .join("\n");
+          fullContent += `\n\nEnclosures:\nFTC Reports:\n${enclosureLines}`;
+        }
+      }
+    } catch {}
 
     return fullContent;
   };
 
   // In GenerateLetterPage.tsx - add this helper function
-  const getBureauFromCategory = (category: string | null) => {
-    if (!category) return "Equifax"; // Default to Equifax
-
-    const upperCategory = category.toUpperCase();
-    if (upperCategory.includes("EXPERIAN")) return "Experian";
-    if (upperCategory.includes("EQUIFAX")) return "Equifax";
-    if (upperCategory.includes("TRANSUNION")) return "TransUnion";
-
-    // Default to Equifax if no match found
-    return "Equifax";
-  };
-
+  
   return (
     <div className="sm:p-6">
       {/* Title row with stepper on the right */}
@@ -742,7 +945,12 @@ const GenerateLetterPage = () => {
               ? `(${personalInfo.names[0]?.first} ${personalInfo.names[0]?.last})`
               : "(Michael Yaldo)"}
           </h1>
-          <div className="px-2 py-0 text-[11px]">Group 1</div>
+          {(groupedAccounts.length > 0 ||
+            (Array.isArray(disputeItems) && disputeItems.length > 0)) && (
+            <div className="px-2 py-0 text-[11px]">
+              Letter {selectedGroupIndex + 1}
+            </div>
+          )}
         </div>
         <Stepper current={phase} />
       </div>
@@ -798,17 +1006,36 @@ const GenerateLetterPage = () => {
               />
             </div>
             <div className="sm:col-span-1 col-span-2">
-              <Select>
+              <Select
+                value={String(selectedGroupIndex)}
+                onValueChange={(v) => setSelectedGroupIndex(Number(v))}
+                disabled={
+                  groupedAccounts.length === 0 &&
+                  (!Array.isArray(disputeItems) || disputeItems.length === 0)
+                }
+              >
                 <SelectTrigger className="shadow-none w-full h-9 bg-white">
-                  <SelectValue placeholder="Group 1" />
+                  <SelectValue placeholder="Letter 1" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="g1">Group 1</SelectItem>
-                  <SelectItem value="g2">Group 2</SelectItem>
+                  {(groupedAccounts.length > 0
+                    ? groupedAccounts
+                    : Array.isArray(disputeItems)
+                    ? makeGroupsOfFive(disputeItems)
+                    : []
+                  ).map((_, idx) => (
+                    <SelectItem key={idx} value={String(idx)}>
+                      {`Letter ${idx + 1}`}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
+        </div>
+        {/* Step Two Controls inline */}
+        <div className="px-4 pb-2">
+          <StepTwo email={email} selectedAccounts={selectedAccounts} />
         </div>
         {/* Selected Letter Info */}
         {category && letterName && (
@@ -837,6 +1064,62 @@ const GenerateLetterPage = () => {
             )}
           </div>
         )}
+        {/* Schedule Date/Time - improved UI */}
+        <div className="px-4 py-3">
+          <div className="grid grid-cols-1 sm:grid-cols-7 gap-4 max-w-5xl items-end">
+            <div className="sm:col-span-2 col-span-3">
+              <Label className="text-[11px] text-[#6B7280] mb-1 block">
+                Schedule Date
+              </Label>
+              <Input
+                type="date"
+                value={scheduleDateByGroup[selectedGroupIndex] || ""}
+                onChange={(e) =>
+                  setScheduleDateByGroup((prev) => ({
+                    ...prev,
+                    [selectedGroupIndex]: e.target.value,
+                  }))
+                }
+                className="shadow-none h-9"
+              />
+            </div>
+            <div className="sm:col-span-2 col-span-3">
+              <Label className="text-[11px] text-[#6B7280] mb-1 block">
+                Schedule Time
+              </Label>
+              <Input
+                type="time"
+                value={scheduleTimeByGroup[selectedGroupIndex] || ""}
+                onChange={(e) =>
+                  setScheduleTimeByGroup((prev) => ({
+                    ...prev,
+                    [selectedGroupIndex]: e.target.value,
+                  }))
+                }
+                className="shadow-none h-9"
+              />
+            </div>
+            <div className="sm:col-span-2 col-span-6">
+              <div className="text-xs text-[#6B7280]">Preview</div>
+              <div className="mt-1 inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs">
+                {scheduleAtByGroup[selectedGroupIndex]
+                  ? new Date(
+                      scheduleAtByGroup[selectedGroupIndex]
+                    ).toLocaleString()
+                  : "Not scheduled"}
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row px-4 sm:px-0 gap-2">
+              <Button
+                type="button"
+                className="bg-primary hover:bg-primary/90"
+                onClick={autoAssignSchedules}
+              >
+                Auto Schedule
+              </Button>
+            </div>
+          </div>
+        </div>
         {/* Letter Envelope Information */}
         <div className="rounded-xl bg-white py-6 sm:px-12 px-4 mb-4">
           <div className="font-medium text-xs leading-[150%] -tracking-[0.03em] capitalize text-[#292524] mb-2">
@@ -923,6 +1206,9 @@ const GenerateLetterPage = () => {
         }}
         clientId={clientId}
         email={email}
+        scheduleAt={scheduleAt}
+        accounts={groupedAccounts[selectedGroupIndex] || selectedAccounts}
+        preparedLetters={preparedLetters}
       />
     </div>
   );

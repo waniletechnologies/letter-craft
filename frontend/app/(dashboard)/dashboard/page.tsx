@@ -247,7 +247,7 @@ const DashboardPage = () => {
       />
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <RecentActivity />
+        <RecentActivity limit={10} />
         <ClientGrowthChart growthData={growthData} />
       </div>
     </div>

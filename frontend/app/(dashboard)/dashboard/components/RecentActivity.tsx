@@ -1,13 +1,81 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { FiClock } from "react-icons/fi";
 import { RecentActivity as RecentActivityType } from "@/types/dashboard";
-import { RECENT_ACTIVITIES } from "../constants/dashboard";
+import { useRecentActivities } from "@/hooks/useRecentActivities";
+import  Loader  from "@/components/Loader";
 
 export const RecentActivity = ({
-  activities = RECENT_ACTIVITIES,
+  activities,
+  limit = 4,
 }: {
   activities?: RecentActivityType[];
+  limit?: number;
 }) => {
+  const { activities: realActivities, isLoading, error } = useRecentActivities(limit);
+
+  // Use real data if available, otherwise fall back to passed activities or empty array
+  const displayActivities = realActivities.length > 0 ? realActivities : (activities || []);
+
+  if (isLoading) {
+    return (
+      <Card className="border border-gray-200 rounded-lg shadow-none">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-semibold text-gray-900">
+            Recent Activity
+          </CardTitle>
+          <p className="text-sm text-gray-600">
+            Latest updates from your credit repair workflow
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <Loader />
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card className="border border-gray-200 rounded-lg shadow-none">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-semibold text-gray-900">
+            Recent Activity
+          </CardTitle>
+          <p className="text-sm text-gray-600">
+            Latest updates from your credit repair workflow
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <p className="text-sm text-red-600">Failed to load recent activities</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (displayActivities.length === 0) {
+    return (
+      <Card className="border border-gray-200 rounded-lg shadow-none">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-lg font-semibold text-gray-900">
+            Recent Activity
+          </CardTitle>
+          <p className="text-sm text-gray-600">
+            Latest updates from your credit repair workflow
+          </p>
+        </CardHeader>
+        <CardContent>
+          <div className="flex items-center justify-center py-8">
+            <p className="text-sm text-gray-500">No recent activities found</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="border border-gray-200 rounded-lg shadow-none">
       <CardHeader className="pb-3">
@@ -20,7 +88,7 @@ export const RecentActivity = ({
       </CardHeader>
       <CardContent>
         <div className="space-y-3">
-          {activities.map((activity) => (
+          {displayActivities.map((activity) => (
             <div
               key={activity.id}
               className="flex items-start bg-[#F9FAFB] rounded-lg p-3"

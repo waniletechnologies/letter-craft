@@ -67,6 +67,24 @@ interface SaveLetterDialogProps {
   };
   clientId: string;
   email: string | null
+  scheduleAt?: string;
+  accounts?: Array<{
+    id?: string;
+    creditor?: string;
+    account?: string;
+    dateOpened?: string;
+    balance?: string;
+    type?: string;
+  }>;
+  preparedLetters?: Array<{
+    category: string;
+    letterName: string;
+    bureau: string;
+    content: string;
+    personalInfo: PersonalInfo | null;
+    displayName: string;
+    scheduleAt?: string;
+  }>;
 }
 
 export interface SaveLetterData {
@@ -84,13 +102,16 @@ const SaveLetterDialog: React.FC<SaveLetterDialogProps> = ({
   selectedFtcReports,
   letterData,
   clientId,
-  email
+  email,
+  scheduleAt,
+  accounts,
+  preparedLetters = [],
 }) => {
   const [formData, setFormData] = useState<SaveLetterData>({
     round: "2",
     letterName: "RD2",
     abbreviation: "",
-    followUpDays: 2,
+    followUpDays: 14,
     createFollowUpTask: true,
   });
 
@@ -151,6 +172,10 @@ const SaveLetterDialog: React.FC<SaveLetterDialogProps> = ({
         selectedFtcReports,
         clientId,
         email: decodedEmail,
+        scheduleAt,
+        accounts,
+        // include prepared letters for the next page to show all copies
+        preparedLetters,
         savedLetterId: undefined,
         savedAt: new Date().toISOString(),
       };
@@ -159,10 +184,12 @@ const SaveLetterDialog: React.FC<SaveLetterDialogProps> = ({
 
       onSave(formData);
       onClose();
+      setIsSaving(false);
       router.push("/dispute-wizard/send-letters");
     } catch (error) {
       console.error("Error saving letter:", error);
       toast.error("An error occurred while saving the letter. Please try again.");
+      setIsSaving(false);
     }
   };
 
@@ -177,7 +204,7 @@ const SaveLetterDialog: React.FC<SaveLetterDialogProps> = ({
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) { setIsSaving(false); onClose(); } }}>
       <DialogContent className="sm:max-w-[600px] max-h-[90vh] overflow-y-auto">
         <DialogHeader className="text-left">
           <DialogTitle className="text-lg font-semibold">

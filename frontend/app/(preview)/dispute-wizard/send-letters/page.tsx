@@ -21,6 +21,7 @@ const SendLettersPage = () => {
   // Define a type for saved letter data
   interface SavedLetterData {
     letterDetails: {
+      content: string;
       bureau: string;
       letterName: string;
       category?: string;
@@ -53,6 +54,7 @@ const SendLettersPage = () => {
     status?: string;
     content: string;
     createdAt: string | number | Date;
+    scheduleAt?: string | number | Date;
     // Add other fields as needed
   }
   const [clientLetters, setClientLetters] = useState<ClientLetter[]>([]);
@@ -62,7 +64,7 @@ const SendLettersPage = () => {
   // Load saved data on component mount
   useEffect(() => {
     const savedData = localStorage.getItem("savedLetterData");
-    if (savedData) {
+      if (savedData) {
       const parsedData = JSON.parse(savedData);
       setSavedLetterData(parsedData);
 
@@ -70,6 +72,31 @@ const SendLettersPage = () => {
       if (parsedData.clientId) {
         loadClientLetters(parsedData.clientId);
         loadFtcReports(parsedData.clientId, parsedData.selectedFtcReports);
+      }
+      // if preparedLetters present, synthesize clientLetters-like entries for step 1
+      if (Array.isArray(parsedData.preparedLetters) && parsedData.preparedLetters.length > 0) {
+        const synthetic = parsedData.preparedLetters.map((pl: any, idx: number) => ({
+          _id: `prepared-${idx + 1}`,
+          bureau: pl.bureau,
+          // Use the original letterName for routing, not the display label
+          letterName: pl.letterName,
+          // Add category so the route can include category=ROUND
+          category: parsedData.letterDetails?.category || 'ROUND',
+          abbreviation: parsedData.abbreviation || `RD${parsedData.round || 2}`,
+          round: Number(parsedData.round || 2),
+          status: 'draft',
+          content: pl.content,
+          createdAt: parsedData.savedAt || new Date().toISOString(),
+          scheduleAt: pl.scheduleAt || parsedData.scheduleAt,
+          // Keep a displayName field for UI labels if needed
+          displayName: pl.displayName,
+        }));
+        setClientLetters(synthetic);
+        setSelectedLetters(synthetic.map((s: any) => s._id));
+        // Seed selected FTC doc IDs from saved data for immediate UI feedback
+        if (Array.isArray(parsedData.selectedFtcReports)) {
+          setSelectedFtcDocIds(parsedData.selectedFtcReports);
+        }
       }
     } else {
       setLoading(false);
@@ -176,7 +203,8 @@ const SendLettersPage = () => {
 
   // Helper function to get description for step 2
   const getAttachedDocumentsDescription = () => {
-    const count = ftcReports.length + (includeIdAttachments ? 1 : 0);
+    // Count only actually selected FTC documents
+    const count = selectedFtcDocIds.length;
     return `${count} documents`;
   };
 
@@ -200,7 +228,7 @@ const SendLettersPage = () => {
     id: letter._id,
     name: `${letter.bureau.toUpperCase()} - ${letter.letterName}`,
     abbreviation: letter.abbreviation || `RD${letter.round}`,
-    created: new Date(letter.createdAt).toLocaleString(),
+    created: `${letter.scheduleAt ? new Date(letter.scheduleAt).toLocaleString() : new Date(letter.createdAt).toLocaleString()}`,
     printStatus:
       letter.status === "draft"
         ? "Pending Print"
@@ -258,27 +286,25 @@ const SendLettersPage = () => {
       localStorage.setItem("editLetterData", JSON.stringify(letterData));
 
       // Build URL with email parameter
-      let url = `/dispute-wizard/generate-letter?category=${letterData.category}&letter=${letterData.letterName}`;
+      // Prefer explicit fields from synthetic prepared letters; fallback to letterDetails
+      let category = (letterData as any).category || letterData.letterDetails?.category || "";
+      let letterName = letterData.letterName || letterData.letterDetails?.letterName || "";
+      // Preserve spacing as '+' by not decoding; use encodeURIComponent only for safety around special chars
+      const encodedCategory = encodeURIComponent(category).replace(/%20/g, '+');
+      // Do not append display suffixes like " - Letter 1"; ensure using raw template name
+      const encodedLetter = encodeURIComponent(letterName).replace(/%20/g, '+');
+      let url = `/dispute-wizard/generate-letter?category=${encodedCategory}&letter=${encodedLetter}`;
 
       // Add email to URL if available (from parameter or saved data)
       const emailToUse = email || letterData.email || savedLetterData?.email;
       if (emailToUse) {
-        url += `&email=${encodeURIComponent(emailToUse)}`;
+        // Keep double-encoded form intact if it already includes %25
+        const keepEncoded = /%25/i.test(emailToUse);
+        const emailParam = keepEncoded ? emailToUse : encodeURIComponent(emailToUse);
+        url += `&email=${emailParam}`;
       }
 
-      // If it's a saved letter from backend, use the letter details
-      if (letterData._id) {
         router.push(url);
-      } else {
-        // If it's from localStorage, use the saved data structure
-        router.push(
-          `/dispute-wizard/generate-letter?category=${
-            letterData.letterDetails?.category ?? ""
-          }&letter=${letterData.letterDetails?.letterName ?? ""}${
-            emailToUse ? `&email=${encodeURIComponent(emailToUse)}` : ""
-          }`
-        );
-      }
     }
   };
 
@@ -334,8 +360,7 @@ const SendLettersPage = () => {
           isFtcReport: true,
           url: report.url,
         }))
-      : (savedLetterData?.selectedFtcReports?.length ?? 0) > 0
-      ? [
+      : [
           {
             name: "No FTC Reports Available",
             type: "message",
@@ -344,7 +369,6 @@ const SendLettersPage = () => {
             url: undefined,
           },
         ]
-      : []
   );
 
   const handleLetterSelection = (letterId: string, checked: boolean) => {
@@ -398,6 +422,18 @@ const SendLettersPage = () => {
         return;
       }
 
+      // Build enclosures from selected FTC reports
+      const enclosureHtml = selectedFtcDocIds.length > 0
+        ? `<div style="margin-top: 24px; font-style: italic;">
+             Enclosures:
+             <ul>${selectedFtcDocIds.map((id) => {
+               const r = ftcReports.find((f) => f._id === id);
+               const name = r?.originalName || r?.fileName || 'FTC Report';
+               return `<li>${name}${r?.url ? ` - <a href="${r.url}" target="_blank">link</a>` : ''}</li>`;
+             }).join('')}</ul>
+           </div>`
+        : '';
+
       // Create print content with actual letter data
       const printContent = lettersToPrint
         .map(
@@ -413,6 +449,7 @@ const SendLettersPage = () => {
           }</h2>
           <p><strong>Bureau:</strong> ${letter.bureau}</p>
           <p><strong>Reference:</strong> ${letter.abbreviation}</p>
+          ${letter.scheduleAt ? `<p><strong>Scheduled:</strong> ${new Date(letter.scheduleAt).toLocaleString()}</p>` : ''}
         </div>
         
         <div style="margin-top: 40px; white-space: pre-wrap;">
@@ -422,11 +459,9 @@ const SendLettersPage = () => {
         <div style="margin-top: 60px;">
           <p>Sincerely,</p>
           <br /><br />
-          <p>${
-            savedLetterData?.letterDetails?.personalInfo?.fullName ||
-            "Client Name"
-          }</p>
+          <p>${"Client Name"}</p>
         </div>
+        ${enclosureHtml}
       </div>
     `
         )
@@ -553,6 +588,7 @@ const SendLettersPage = () => {
           followUpDays: parsed.followUpDays || 2,
           createFollowUpTask: parsed.createFollowUpTask !== false,
           email: parsed.email,
+          scheduleAt: parsed.scheduleAt,
           // Extra metadata
           sendMethod: mailMethod,
           attachments: selectedAttachments,
@@ -569,6 +605,7 @@ const SendLettersPage = () => {
           followUpDays: number;
           createFollowUpTask: boolean;
           email?: string;
+          scheduleAt?: string;
           sendMethod: string;
           attachments: {
             fileName: string;
@@ -578,27 +615,51 @@ const SendLettersPage = () => {
         };
         
 
-        const saveRes = await saveLetter(payload);
-        if (!saveRes.success) {
-          throw new Error(saveRes.message || "Failed to save letter");
-        }
-
-        // After save, update status to sent
-        interface SaveLetterResponse {
-          _id: string;
-          // add other fields if needed
-        }
-        const newLetterId = (saveRes.data as SaveLetterResponse)?._id;
-        if (newLetterId) {
-          await updateLetterStatus(newLetterId, {
-            status: "sent",
-            sendMethod: mailMethod,
-            trackingNumber: `TRK${Date.now()}`,
-          });
-
-          // Send email via selected provider
-          const provider = mailMethod === 'certified' ? 'localmail' : 'cloudmail';
-          await sendLetterEmail(newLetterId, provider as 'localmail' | 'cloudmail');
+        // If we have preparedLetters, persist each letter separately
+        const prepared = Array.isArray(parsed.preparedLetters) ? parsed.preparedLetters : [];
+        if (prepared.length > 0) {
+          for (let i = 0; i < prepared.length; i++) {
+            const pl = prepared[i];
+            const plPayload = {
+              ...payload,
+              letterName: pl.letterName,
+              bureau: pl.bureau,
+              content: pl.content,
+              category: parsed.letterDetails?.category || payload.category,
+            };
+            const saveRes = await saveLetter(plPayload);
+            if (!saveRes.success) {
+              throw new Error(saveRes.message || "Failed to save letter");
+            }
+            interface SaveLetterResponse { _id: string; }
+            const newLetterId = (saveRes.data as SaveLetterResponse)?._id;
+            if (newLetterId) {
+              await updateLetterStatus(newLetterId, {
+                status: "sent",
+                sendMethod: mailMethod,
+                trackingNumber: `TRK${Date.now()}`,
+              });
+              const provider = mailMethod === 'certified' ? 'localmail' : 'cloudmail';
+              await sendLetterEmail(newLetterId, provider as 'localmail' | 'cloudmail');
+            }
+          }
+        } else {
+          // Persist the single letter fallback
+          const saveRes = await saveLetter(payload);
+          if (!saveRes.success) {
+            throw new Error(saveRes.message || "Failed to save letter");
+          }
+          interface SaveLetterResponse { _id: string; }
+          const newLetterId = (saveRes.data as SaveLetterResponse)?._id;
+          if (newLetterId) {
+            await updateLetterStatus(newLetterId, {
+              status: "sent",
+              sendMethod: mailMethod,
+              trackingNumber: `TRK${Date.now()}`,
+            });
+            const provider = mailMethod === 'certified' ? 'localmail' : 'cloudmail';
+            await sendLetterEmail(newLetterId, provider as 'localmail' | 'cloudmail');
+          }
         }
       }
 

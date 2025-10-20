@@ -10,7 +10,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { fetchLetters, LetterCategory } from "@/lib/lettersApi";
 import Loader from "@/components/Loader";
 import {toast} from "sonner";
@@ -33,6 +33,7 @@ interface StepTwoProps {
 
 const StepTwo: React.FC<StepTwoProps> = ({ email, selectedAccounts = [] }) => {
   const router = useRouter();
+  const pathname = usePathname();
   const [categories, setCategories] = useState<LetterCategory[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>("");
   const [selectedLetter, setSelectedLetter] = useState<string>("");
@@ -84,10 +85,21 @@ const StepTwo: React.FC<StepTwoProps> = ({ email, selectedAccounts = [] }) => {
         params.append("accounts", JSON.stringify(selectedAccounts));
       }
 
+      const targetUrl = `/dispute-wizard/generate-letter?${params.toString()}`;
+
+      // If we're already on the generate page, replace URL and reset loading
+      if (pathname?.startsWith("/dispute-wizard/generate-letter")) {
+        toast.message("Generating letter...");
+        router.replace(targetUrl);
+        // Ensure the UI doesn't get stuck in loading state when staying on the same page
+        setTimeout(() => setGenerating(false), 400);
+        return;
+      }
+
       // Use setTimeout so the button shows spinner before route change
       setTimeout(() => {
         toast.message("Generating letter...");
-        router.push(`/dispute-wizard/generate-letter?${params.toString()}`);
+        router.push(targetUrl);
       }, 300);
     }
   };

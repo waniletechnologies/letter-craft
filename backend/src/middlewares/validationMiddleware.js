@@ -148,24 +148,6 @@ export const createClientSchema = Joi.object({
       'string.pattern.base': 'Please enter a valid mobile phone number'
     }),
   
-  phoneAlternate: Joi.string()
-    .pattern(/^\+?1?[-\.\s]?\(?([0-9]{3})\)?[-\.\s]?([0-9]{3})[-\.\s]?([0-9]{4})$/)
-    .trim()
-    .allow('')
-    .optional()
-    .messages({
-      'string.pattern.base': 'Please enter a valid alternate phone number'
-    }),
-  
-  phoneWork: Joi.string()
-    .pattern(/^\+?1?[-\.\s]?\(?([0-9]{3})\)?[-\.\s]?([0-9]{3})[-\.\s]?([0-9]{4})$/)
-    .trim()
-    .allow('')
-    .optional()
-    .messages({
-      'string.pattern.base': 'Please enter a valid work phone number'
-    }),
-  
   fax: Joi.string()
     .pattern(/^\+?1?[-\.\s]?\(?([0-9]{3})\)?[-\.\s]?([0-9]{3})[-\.\s]?([0-9]{4})$/)
     .trim()
@@ -202,23 +184,7 @@ export const createClientSchema = Joi.object({
       'string.max': 'TransUnion file number cannot exceed 50 characters'
     }),
 
-  // Dispute schedule
-  disputeScheduleDate: Joi.string()
-    .pattern(/^\d{4}-\d{2}-\d{2}$/)
-    .trim()
-    .allow('')
-    .optional()
-    .messages({
-      'string.pattern.base': 'Dispute schedule date must be in YYYY-MM-DD format'
-    }),
-  disputeScheduleTime: Joi.string()
-    .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
-    .trim()
-    .allow('')
-    .optional()
-    .messages({
-      'string.pattern.base': 'Dispute schedule time must be in HH:mm (24h) format'
-    })
+  // Dispute schedule fields removed
 });
 
 // Client update schema (all fields optional except ID)
@@ -334,24 +300,6 @@ export const updateClientSchema = Joi.object({
       'string.pattern.base': 'Please enter a valid mobile phone number'
     }),
   
-  phoneAlternate: Joi.string()
-    .pattern(/^\+?1?[-\.\s]?\(?([0-9]{3})\)?[-\.\s]?([0-9]{3})[-\.\s]?([0-9]{4})$/)
-    .trim()
-    .allow('')
-    .optional()
-    .messages({
-      'string.pattern.base': 'Please enter a valid alternate phone number'
-    }),
-  
-  phoneWork: Joi.string()
-    .pattern(/^\+?1?[-\.\s]?\(?([0-9]{3})\)?[-\.\s]?([0-9]{3})[-\.\s]?([0-9]{4})$/)
-    .trim()
-    .allow('')
-    .optional()
-    .messages({
-      'string.pattern.base': 'Please enter a valid work phone number'
-    }),
-  
   fax: Joi.string()
     .pattern(/^\+?1?[-\.\s]?\(?([0-9]{3})\)?[-\.\s]?([0-9]{3})[-\.\s]?([0-9]{4})$/)
     .trim()
@@ -390,23 +338,7 @@ export const updateClientSchema = Joi.object({
     .valid('active', 'inactive', 'pending', 'archived')
     .optional(),
 
-  // Dispute schedule
-  disputeScheduleDate: Joi.string()
-    .pattern(/^\d{4}-\d{2}-\d{2}$/)
-    .trim()
-    .allow('')
-    .optional()
-    .messages({
-      'string.pattern.base': 'Dispute schedule date must be in YYYY-MM-DD format'
-    }),
-  disputeScheduleTime: Joi.string()
-    .pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
-    .trim()
-    .allow('')
-    .optional()
-    .messages({
-      'string.pattern.base': 'Dispute schedule time must be in HH:mm (24h) format'
-    })
+  // Dispute schedule fields removed
 });
 
 // Query parameters schema for listing clients
@@ -499,3 +431,72 @@ export const validateQuery = (schema) => {
     next();
   };
 };
+
+// Account creation schema
+export const createAccountSchema = Joi.object({
+  email: Joi.string()
+    .email()
+    .required()
+    .messages({
+      'string.email': 'Please provide a valid email address',
+      'any.required': 'Email is required'
+    }),
+  
+  bureau: Joi.string()
+    .valid('Experian', 'Equifax', 'TransUnion')
+    .required()
+    .messages({
+      'any.only': 'Bureau must be one of: Experian, Equifax, TransUnion',
+      'any.required': 'Bureau is required'
+    }),
+  
+  accountData: Joi.object({
+    accountName: Joi.string()
+      .min(1)
+      .max(100)
+      .trim()
+      .required()
+      .messages({
+        'string.empty': 'Account name is required',
+        'string.min': 'Account name is required',
+        'string.max': 'Account name cannot exceed 100 characters'
+      }),
+    
+    accountNumber: Joi.string()
+      .min(1)
+      .max(50)
+      .trim()
+      .required()
+      .messages({
+        'string.empty': 'Account number is required',
+        'string.min': 'Account number is required',
+        'string.max': 'Account number cannot exceed 50 characters'
+      }),
+    
+    balance: Joi.number()
+      .min(0)
+      .optional()
+      .messages({
+        'number.min': 'Balance cannot be negative'
+      }),
+    
+    dateOpened: Joi.date()
+      .iso()
+      .max('now')
+      .optional()
+      .messages({
+        'date.format': 'Date opened must be a valid date',
+        'date.max': 'Date opened cannot be in the future'
+      }),
+    
+    status: Joi.string()
+      .valid('Positive', 'Negative')
+      .optional()
+      .messages({
+        'any.only': 'Status must be either Positive or Negative'
+      })
+  }).required()
+    .messages({
+      'any.required': 'Account data is required'
+    })
+});

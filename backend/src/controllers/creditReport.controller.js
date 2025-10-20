@@ -326,3 +326,108 @@ export const updateAccountInfo = async (req, res) => {
     });
   }
 };
+
+// Create a new account in credit report
+export const createAccount = async (req, res) => {
+  const { email, bureau, accountData } = req.body;
+
+  try {
+    console.log("📧 Email:", email);
+    console.log("🏢 Bureau:", bureau);
+    console.log("📊 Account Data:", JSON.stringify(accountData, null, 2));
+
+    // Validate required fields
+    if (!email || !bureau || !accountData) {
+      return res.status(400).json({
+        success: false,
+        message: "Email, bureau, and account data are required",
+      });
+    }
+
+    const { accountName, accountNumber, balance, dateOpened } = accountData;
+
+    if (!accountName || !accountNumber) {
+      return res.status(400).json({
+        success: false,
+        message: "Account name and account number are required",
+      });
+    }
+
+    // Find the credit report for this email
+    const creditReport = await CreditReport.findOne({ email });
+    if (!creditReport) {
+      return res.status(404).json({
+        success: false,
+        message: "Credit report not found for this email",
+      });
+    }
+
+    // Initialize accountInfo if it doesn't exist
+    if (!creditReport.accountInfo) {
+      creditReport.accountInfo = {
+        Experian: [],
+        Equifax: [],
+        TransUnion: []
+      };
+    }
+
+    // Initialize bureau array if it doesn't exist
+    if (!creditReport.accountInfo[bureau]) {
+      creditReport.accountInfo[bureau] = [];
+    }
+
+    // Check if account with same number already exists
+    const existingAccount = creditReport.accountInfo[bureau].find(
+      (acc) => acc.accountNumber === accountNumber
+    );
+
+    if (existingAccount) {
+      return res.status(409).json({
+        success: false,
+        message: `Account with number ${accountNumber} already exists in ${bureau} bureau`,
+      });
+    }
+
+    // Normalize balance (accept numbers or formatted strings like "$1,234.56")
+    const parsedBalance =
+      typeof balance === "number"
+        ? balance
+        : parseFloat(String(balance ?? "").replace(/[^0-9.-]/g, ""));
+    const safeBalance = Number.isFinite(parsedBalance) ? parsedBalance : 0;
+
+    // Create new account object
+    const newAccount = {
+      accountName: accountName.trim(),
+      accountNumber: accountNumber.trim(),
+      balance: safeBalance,
+      dateOpened: dateOpened || new Date().toISOString().split('T')[0],
+      status: "Negative",
+      createdAt: new Date(),
+      updatedAt: new Date()
+    };
+
+    // Add the new account to the bureau
+    creditReport.accountInfo[bureau].push(newAccount);
+
+    // Mark the accountInfo field as modified
+    creditReport.markModified('accountInfo');
+    
+    // Save the entire document
+    await creditReport.save();
+
+    console.log("✅ Account created successfully in database");
+    console.log("📊 New account:", newAccount);
+
+    res.json({
+      success: true,
+      message: "Account created successfully",
+      data: newAccount,
+    });
+  } catch (err) {
+    console.error("❌ Error creating account:", err);
+    res.status(500).json({ 
+      success: false, 
+      message: err.message 
+    });
+  }
+};

@@ -63,14 +63,12 @@ export default function AddClientPage() {
     zipCode: string;
     country: string;
     phoneMobile: string;
-    phoneAlternate: string;
-    phoneWork: string;
+    
     fax: string;
     ssn: string;
     experianReport: string;
     transunionFileNumber: string;
-    disputeScheduleDate: string;
-    disputeScheduleTime: string;
+    
   }
 
   const [formData, setFormData] = useState<ClientData>({
@@ -86,14 +84,12 @@ export default function AddClientPage() {
     zipCode: "",
     country: "United States",
     phoneMobile: "",
-    phoneAlternate: "",
-    phoneWork: "",
+    
     fax: "",
     ssn: "",
     experianReport: "",
     transunionFileNumber: "",
-    disputeScheduleDate: "",
-    disputeScheduleTime: "",
+    
   });
 
   const [uploadedFiles, setUploadedFiles] = useState<{
@@ -252,8 +248,6 @@ export default function AddClientPage() {
         ...formData,
         middleName: formData.middleName || undefined,
         suffix: formData.suffix || undefined,
-        phoneAlternate: formData.phoneAlternate || undefined,
-        phoneWork: formData.phoneWork || undefined,
         fax: formData.fax || undefined,
         ssn: (formData.ssn || "").replace(/\D/g, ""),
         experianReport: formData.experianReport || undefined,
@@ -727,7 +721,7 @@ export default function AddClientPage() {
               </div>
 
               {/* Phone Mobile */}
-              <div className="w-[148px]">
+              <div className="w-[311px]">
                 <Label
                   htmlFor="phoneMobile"
                   className="text-sm font-medium mb-2 block"
@@ -753,48 +747,10 @@ export default function AddClientPage() {
                 )}
               </div>
 
-              {/* Phone Alternate */}
-              <div className="w-[148px]">
-                <Label
-                  htmlFor="phoneAlternate"
-                  className="text-sm font-medium mb-2 block"
-                >
-                  Phone Alternate
-                </Label>
-                <Input
-                  id="phoneAlternate"
-                  value={formData.phoneAlternate}
-                  onChange={(e) =>
-                    handlePhoneChange("phoneAlternate", e.target.value)
-                  }
-                  className="h-10"
-                  placeholder="555-123-4567"
-                  maxLength={12}
-                />
-              </div>
-
-              {/* Phone Work */}
-              <div className="w-[148px]">
-                <Label
-                  htmlFor="phoneWork"
-                  className="text-sm font-medium mb-2 block"
-                >
-                  Phone Work
-                </Label>
-                <Input
-                  id="phoneWork"
-                  value={formData.phoneWork}
-                  onChange={(e) =>
-                    handlePhoneChange("phoneWork", e.target.value)
-                  }
-                  className="h-10"
-                  placeholder="555-123-4567"
-                  maxLength={12}
-                />
-              </div>
+          
 
               {/* Fax */}
-              <div className="w-[148px]">
+              <div className="w-[311px]">
                 <Label htmlFor="fax" className="text-sm font-medium mb-2 block">
                   Fax
                 </Label>
@@ -888,45 +844,7 @@ export default function AddClientPage() {
               </div>
             </div>
           </div>
-          {/* Dispute Schedule Information */}
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label
-                  htmlFor="disputeScheduleDate"
-                  className="text-sm font-medium mb-2 block"
-                >
-                  Dispute Schedule Date
-                </Label>
-                <Input
-                  id="disputeScheduleDate"
-                  type="date"
-                  value={formData.disputeScheduleDate}
-                  onChange={(e) =>
-                    handleInputChange("disputeScheduleDate", e.target.value)
-                  }
-                  className="h-10"
-                />
-              </div>
-              <div>
-                <Label
-                  htmlFor="disputeScheduleTime"
-                  className="text-sm font-medium mb-2 block"
-                >
-                  Dispute Schedule Time
-                </Label>
-                <Input
-                  id="disputeScheduleTime"
-                  type="time"
-                  value={formData.disputeScheduleTime}
-                  onChange={(e) =>
-                    handleInputChange("disputeScheduleTime", e.target.value)
-                  }
-                  className="h-10"
-                />
-              </div>
-            </div>
-          </div>
+          
           {/* Upload Documents */}
           <div className="space-y-6">
             <h2 className="text-lg font-medium text-gray-900">

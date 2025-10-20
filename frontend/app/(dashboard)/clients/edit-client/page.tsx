@@ -51,14 +51,12 @@ function EditClientForm() {
     zipCode: string;
     country: string;
     phoneMobile: string;
-    phoneAlternate: string;
-    phoneWork: string;
+    
     fax: string;
     ssn: string;
     experianReportNumber: string;
     transUnionFileNumber: string;
-    disputeScheduleDate: string;
-    disputeScheduleTime: string;
+    
   }
 
   const [formData, setFormData] = useState<ClientData>({
@@ -74,14 +72,12 @@ function EditClientForm() {
     zipCode: "",
     country: "United States",
     phoneMobile: "",
-    phoneAlternate: "",
-    phoneWork: "",
+    
     fax: "",
     ssn: "",
     experianReportNumber: "",
     transUnionFileNumber: "",
-    disputeScheduleDate: "",
-    disputeScheduleTime: "",
+    
   });
 
   const [tempFiles, setTempFiles] = useState<{
@@ -112,16 +108,12 @@ function EditClientForm() {
       zipCode: client.zipCode || "",
       country: client.country || "United States",
       phoneMobile: client.phoneMobile || "",
-      phoneAlternate: client.phoneAlternate || "",
-      phoneWork: client.phoneWork || "",
+      
       fax: client.fax || "",
       ssn: client.ssn || "", // keep hidden; not returned by API by default
       experianReportNumber: client.experianReport || "",
       transUnionFileNumber: client.transunionFileNumber || "",
-      disputeScheduleDate: client.disputeScheduleDate
-        ? new Date(client.disputeScheduleDate).toISOString().split("T")[0]
-        : "",
-      disputeScheduleTime: client.disputeScheduleTime || "",
+      
     });
   }, [data]);
 
@@ -220,13 +212,9 @@ function EditClientForm() {
         zipCode: formData.zipCode,
         country: formData.country,
         phoneMobile: formData.phoneMobile,
-        phoneAlternate: formData.phoneAlternate || undefined,
-        phoneWork: formData.phoneWork || undefined,
         fax: formData.fax || undefined,
         experianReport: formData.experianReportNumber || undefined,
         transunionFileNumber: formData.transUnionFileNumber || undefined,
-        disputeScheduleDate: formData.disputeScheduleDate || undefined,
-        disputeScheduleTime: formData.disputeScheduleTime || undefined,
       },
       {
         onSuccess: () => {
@@ -557,7 +545,7 @@ function EditClientForm() {
                 />
               </div>
 
-              <div className="w-[148px]">
+              <div className="w-[311px]">
                 <Label
                   htmlFor="phoneMobile"
                   className="text-sm font-medium mb-2 block"
@@ -574,41 +562,9 @@ function EditClientForm() {
                 />
               </div>
 
-              <div className="w-[148px]">
-                <Label
-                  htmlFor="phoneAlternate"
-                  className="text-sm font-medium mb-2 block"
-                >
-                  Phone Alternate
-                </Label>
-                <Input
-                  id="phoneAlternate"
-                  value={formData.phoneAlternate}
-                  onChange={(e) =>
-                    handleInputChange("phoneAlternate", e.target.value)
-                  }
-                  className="h-10"
-                />
-              </div>
+          
 
-              <div className="w-[148px]">
-                <Label
-                  htmlFor="phoneWork"
-                  className="text-sm font-medium mb-2 block"
-                >
-                  Phone Work
-                </Label>
-                <Input
-                  id="phoneWork"
-                  value={formData.phoneWork}
-                  onChange={(e) =>
-                    handleInputChange("phoneWork", e.target.value)
-                  }
-                  className="h-10"
-                />
-              </div>
-
-              <div className="w-[148px]">
+              <div className="w-[311px]">
                 <Label htmlFor="fax" className="text-sm font-medium mb-2 block">
                   Fax
                 </Label>
@@ -671,46 +627,7 @@ function EditClientForm() {
             </div>
           </div>
 
-          {/* Dispute Schedule Information */}
-          <div className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <Label
-                  htmlFor="disputeScheduleDate"
-                  className="text-sm font-medium mb-2 block"
-                >
-                  Dispute Schedule Date
-                </Label>
-                <Input
-                  id="disputeScheduleDate"
-                  type="date"
-                  value={formData.disputeScheduleDate}
-                  onChange={(e) =>
-                    handleInputChange("disputeScheduleDate", e.target.value)
-                  }
-                  className="h-10"
-                />
-              </div>
-
-              <div>
-                <Label
-                  htmlFor="disputeScheduleTime"
-                  className="text-sm font-medium mb-2 block"
-                >
-                  Dispute Schedule Time
-                </Label>
-                <Input
-                  id="disputeScheduleTime"
-                  type="time"
-                  value={formData.disputeScheduleTime}
-                  onChange={(e) =>
-                    handleInputChange("disputeScheduleTime", e.target.value)
-                  }
-                  className="h-10"
-                />
-              </div>
-            </div>
-          </div>
+          
 
           {/* Upload Documents */}
           <div className="space-y-6">

@@ -124,3 +124,16 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Ensure native date input calendar icon appears at the end across browsers */
+/* Hide native indicator so our custom icon shows cleanly */
+input[type="date"].date-input::-webkit-calendar-picker-indicator {
+  opacity: 0;
+  -webkit-appearance: none;
+}
+/* Safari */
+input[type="date"].date-input::-webkit-clear-button,
+input[type="date"].date-input::-webkit-inner-spin-button {
+  display: none;
+}
+/* Firefox: there's no pseudo-element, but the default icon aligns fine; using padding and custom icon instead */

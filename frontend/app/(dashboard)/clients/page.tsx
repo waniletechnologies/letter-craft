@@ -22,8 +22,6 @@ export type Client = {
   zipCode: string;
   country: string;
   phoneMobile: string;
-  phoneAlternate?: string;
-  phoneWork?: string;
   fax?: string;
   ssn: string;
   experianReport?: string;

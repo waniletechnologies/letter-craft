@@ -85,22 +85,22 @@ const clientSchema = new mongoose.Schema(
         "Please enter a valid mobile phone number",
       ],
     },
-    phoneAlternate: {
-      type: String,
-      trim: true,
-      match: [
-        /^\+?1?[-\.\s]?\(?([0-9]{3})\)?[-\.\s]?([0-9]{3})[-\.\s]?([0-9]{4})$/,
-        "Please enter a valid alternate phone number",
-      ],
-    },
-    phoneWork: {
-      type: String,
-      trim: true,
-      match: [
-        /^\+?1?[-\.\s]?\(?([0-9]{3})\)?[-\.\s]?([0-9]{3})[-\.\s]?([0-9]{4})$/,
-        "Please enter a valid work phone number",
-      ],
-    },
+    // phoneAlternate: {
+    //   type: String,
+    //   trim: true,
+    //   match: [
+    //     /^\+?1?[-\.\s]?\(?([0-9]{3})\)?[-\.\s]?([0-9]{3})[-\.\s]?([0-9]{4})$/,
+    //     "Please enter a valid alternate phone number",
+    //   ],
+    // },
+    // phoneWork: {
+    //   type: String,
+    //   trim: true,
+    //   match: [
+    //     /^\+?1?[-\.\s]?\(?([0-9]{3})\)?[-\.\s]?([0-9]{3})[-\.\s]?([0-9]{4})$/,
+    //     "Please enter a valid work phone number",
+    //   ],
+    // },
     fax: {
       type: String,
       trim: true,
@@ -129,18 +129,18 @@ const clientSchema = new mongoose.Schema(
       maxlength: [50, "TransUnion file number cannot exceed 50 characters"],
     },
 
-    disputeScheduleDate: {
-      type: Date,
-      required: false,
-    },
-    disputeScheduleTime: {
-      type: String, // keeping as string (HH:mm format) for flexibility
-      trim: true,
-      match: [
-        /^([01]\d|2[0-3]):([0-5]\d)$/,
-        "Please enter a valid time in HH:mm format",
-      ],
-    },
+    // disputeScheduleDate: {
+    //   type: Date,
+    //   required: false,
+    // },
+    // disputeScheduleTime: {
+    //   type: String, // keeping as string (HH:mm format) for flexibility
+    //   trim: true,
+    //   match: [
+    //     /^([01]\d|2[0-3]):([0-5]\d)$/,
+    //     "Please enter a valid time in HH:mm format",
+    //   ],
+    // },
 
     // Status and Metadata
     status: {

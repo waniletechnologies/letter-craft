@@ -1,7 +1,9 @@
 "use client";
 import {
   useState,
+  useRef,
   Trash2,
+  Calendar,
   Input,
   Button,
   toast,
@@ -10,9 +12,19 @@ import {
   createAccountGroups,
   createCustomGroup,
 } from "@/lib/import";
+import { createAccount } from "@/lib/creditReportApi";
 
 import { Bureau, AccountInfoRow, AccountInfoTableProps } from "@/lib/interface";
 import { AccountTable } from "@/constants/account-info";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
   rows,
@@ -24,6 +36,58 @@ export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
   const [selectedBureaus, setSelectedBureaus] = useState<
     Record<string, boolean>
   >({});
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [createGroupName, setCreateGroupName] = useState("");
+  const [newAccountName, setNewAccountName] = useState("");
+  const [newAccountNumber, setNewAccountNumber] = useState("");
+  const [newBalance, setNewBalance] = useState("");
+  const [newDateOpened, setNewDateOpened] = useState("");
+  const [newBureau, setNewBureau] = useState("Experian");
+
+  const handleCreateGroupDialogSubmit = async () => {
+    if (!newAccountName.trim() || !newAccountNumber.trim()) {
+      toast.error("Please provide account name and number");
+      return;
+    }
+    setIsCreatingGroups(true);
+    try {
+      const sanitizedBalance = (() => {
+        const raw = String(newBalance || "");
+        const cleaned = raw.replace(/[^0-9.-]/g, "");
+        const n = parseFloat(cleaned);
+        return Number.isFinite(n) ? n : 0;
+      })();
+
+      const response = await createAccount({
+        email,
+        bureau: newBureau as "Experian" | "Equifax" | "TransUnion",
+        accountData: {
+          accountName: newAccountName,
+          accountNumber: newAccountNumber,
+          balance: sanitizedBalance,
+          dateOpened: newDateOpened,
+        },
+      });
+
+      if (!response.success) {
+        throw new Error(response.message || "Failed to create group");
+      }
+
+      toast.success(`Account "${newAccountName}" created successfully`);
+      setIsCreateDialogOpen(false);
+      setCreateGroupName("");
+      setNewAccountName("");
+      setNewAccountNumber("");
+      setNewBalance("");
+      setNewDateOpened("");
+      setNewBureau("Experian");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to create account");
+    } finally {
+      setIsCreatingGroups(false);
+    }
+  };
 
   const handleAccountUpdate = async (
     accountId: string,
@@ -353,6 +417,7 @@ export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
           </div>
 
           <div className="flex gap-2">
+            <Button onClick={() => setIsCreateDialogOpen(true)}>Create Group</Button>
             <Button
               variant="outline"
               onClick={handleSelectAll}
@@ -464,6 +529,93 @@ export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
           selectedBureaus={selectedBureaus}
         />
       ))}
+
+      {/* Create Account Dialog */}
+      <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Account</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <div className="space-y-1">
+              <Label htmlFor="newAccountName">Account name</Label>
+              <Input
+                id="newAccountName"
+                placeholder="Account name"
+                value={newAccountName}
+                onChange={(e) => setNewAccountName(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="newAccountNumber">Account number</Label>
+              <Input
+                id="newAccountNumber"
+                placeholder="Account number"
+                value={newAccountNumber}
+                onChange={(e) => setNewAccountNumber(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="newBalance">Balance</Label>
+              <Input
+                id="newBalance"
+                placeholder="Balance (e.g. 1234 or $1,234)"
+                value={newBalance}
+                onChange={(e) => setNewBalance(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="newDateOpened">Date opened</Label>
+              <div className="relative">
+                {(() => {
+                  const ref = useRef<HTMLInputElement | null>(null)
+                  const openPicker = () => {
+                    try {
+                      ref.current?.showPicker?.()
+                    } catch {}
+                  }
+                  return (
+                    <Input
+                      ref={ref}
+                      id="newDateOpened"
+                      type="date"
+                      placeholder="Date opened"
+                      value={newDateOpened}
+                      onChange={(e) => setNewDateOpened(e.target.value)}
+                      onFocus={openPicker}
+                      onClick={openPicker}
+                      className="date-input pr-10 cursor-pointer"
+                    />
+                  )
+                })()}
+                <Calendar
+                  aria-hidden
+                  className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
+                />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="bureau">Select Bureau</Label>
+              <Select value={newBureau} onValueChange={setNewBureau}>
+                <SelectTrigger id="bureau" className="shadow-none w-full border-[#E4E4E7]">
+                  <SelectValue placeholder="Bureau" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Experian">Experian</SelectItem>
+                  <SelectItem value="Equifax">Equifax</SelectItem>
+                  <SelectItem value="TransUnion">TransUnion</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
+            <Button onClick={handleCreateGroupDialogSubmit} disabled={isCreatingGroups}>
+              {isCreatingGroups ? "Creating..." : "Create"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

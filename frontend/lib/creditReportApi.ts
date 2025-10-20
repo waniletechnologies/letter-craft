@@ -167,3 +167,40 @@ export async function updateAccountInfo(
     };
   }
 }
+
+export interface CreateAccountRequest {
+  email: string;
+  bureau: "Experian" | "Equifax" | "TransUnion";
+  accountData: {
+    accountName: string;
+    accountNumber: string;
+    balance?: number;
+    dateOpened?: string;
+    status?: "Positive" | "Negative";
+  };
+}
+
+export interface CreateAccountResponse {
+  success: boolean;
+  message?: string;
+  data?: AccountInfo;
+}
+
+export async function createAccount(
+  request: CreateAccountRequest
+): Promise<CreateAccountResponse> {
+  try {
+    const data = await apiFetch("/credit-report/account", {
+      method: "POST",
+      body: JSON.stringify(request),
+    });
+    return data;
+  } catch (error) {
+    console.error("Error creating account:", error);
+    return {
+      success: false,
+      message:
+        error instanceof Error ? error.message : "Unknown error occurred",
+    };
+  }
+}

@@ -34,14 +34,10 @@ export type ClientPayload = {
   zipCode: string;
   country?: string;
   phoneMobile: string;
-  phoneAlternate?: string;
-  phoneWork?: string;
   fax?: string;
   ssn: string;
   experianReport?: string;
   transunionFileNumber?: string;
-  disputeScheduleDate?: string;
-  disputeScheduleTime?: string;
 };
 
 export function useListClients(params?: {

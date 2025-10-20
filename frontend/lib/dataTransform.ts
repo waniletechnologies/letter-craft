@@ -89,6 +89,14 @@ export function transformPersonalInfo(personalInfo: {
   TransUnion: BureauPersonalInfo;
 }): TransformedRow[] {
   const rows: TransformedRow[] = [];
+  const formatPostal = (postal?: string) => {
+    if (!postal) return "";
+    const digits = String(postal).replace(/\D/g, "");
+    if (digits.length > 5) {
+      return `${digits.slice(0, 5)}-${digits.slice(5, 9)}`;
+    }
+    return postal;
+  };
 
   // Add credit score row
   rows.push({
@@ -134,23 +142,20 @@ export function transformPersonalInfo(personalInfo: {
     },
   });
 
-  // Add also known as row (additional names)
+  // Add also known as row (only the first alias name per bureau)
   const alsoKnownAs = {
     Experian:
-      personalInfo.Experian.names
-        .slice(1)
-        .map((n) => `${n.first} ${n.last}`.trim())
-        .join(", ") || "",
+      (personalInfo.Experian.names[1]
+        ? `${personalInfo.Experian.names[1].first} ${personalInfo.Experian.names[1].last}`.trim()
+        : "") || "",
     Equifax:
-      personalInfo.Equifax.names
-        .slice(1)
-        .map((n) => `${n.first} ${n.last}`.trim())
-        .join(", ") || "",
+      (personalInfo.Equifax.names[1]
+        ? `${personalInfo.Equifax.names[1].first} ${personalInfo.Equifax.names[1].last}`.trim()
+        : "") || "",
     TransUnion:
-      personalInfo.TransUnion.names
-        .slice(1)
-        .map((n) => `${n.first} ${n.last}`.trim())
-        .join(", ") || "",
+      (personalInfo.TransUnion.names[1]
+        ? `${personalInfo.TransUnion.names[1].first} ${personalInfo.TransUnion.names[1].last}`.trim()
+        : "") || "",
   };
 
   rows.push({
@@ -220,21 +225,21 @@ export function transformPersonalInfo(personalInfo: {
       personalInfo.Experian.previousAddresses
         .map(
           (addr) =>
-            `${addr.street}, ${addr.city}, ${addr.state} ${addr.postalCode}`
+            `${addr.street}, ${addr.city}, ${addr.state} ${formatPostal(addr.postalCode)}`
         )
         .join("; ") || "",
     Equifax:
       personalInfo.Equifax.previousAddresses
         .map(
           (addr) =>
-            `${addr.street}, ${addr.city}, ${addr.state} ${addr.postalCode}`
+            `${addr.street}, ${addr.city}, ${addr.state} ${formatPostal(addr.postalCode)}`
         )
         .join("; ") || "",
     TransUnion:
       personalInfo.TransUnion.previousAddresses
         .map(
           (addr) =>
-            `${addr.street}, ${addr.city}, ${addr.state} ${addr.postalCode}`
+            `${addr.street}, ${addr.city}, ${addr.state} ${formatPostal(addr.postalCode)}`
         )
         .join("; ") || "",
   };

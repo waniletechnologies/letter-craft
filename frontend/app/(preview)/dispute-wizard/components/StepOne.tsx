@@ -202,7 +202,6 @@ const StepOne: React.FC = () => {
     }
   };
     const pathname = usePathname();
-    const [categories, setCategories] = useState<LetterCategory[]>([]);
     const [selectedCategory, setSelectedCategory] = useState<string>("");
     const [selectedLetter, setSelectedLetter] = useState<string>("");
     const [loading, setLoading] = useState(true);
@@ -217,7 +216,6 @@ const StepOne: React.FC = () => {
         const response = await fetchLetters();
   
         if (response.success && response.data) {
-          setCategories(response.data);
           // Auto-select first category and first letter if available
           if (response.data.length > 0) {
             setSelectedCategory(response.data[0].category);
@@ -410,7 +408,6 @@ const StepOne: React.FC = () => {
       <AddDisputeItemsDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        onAdd={handleAddDisputeItems}
         email={email}
       />
     </div>

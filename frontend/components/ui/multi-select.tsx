@@ -29,9 +29,9 @@ const MultiSelect = ({
     }
   };
 
-  const selectedLabels = options
-    .filter((option) => value.includes(option.value))
-    .map((option) => option.label);
+  // const selectedLabels = options
+  //   .filter((option) => value.includes(option.value))
+  //   .map((option) => option.label);
 
   return (
     <div className="relative">

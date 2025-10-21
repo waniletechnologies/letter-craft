@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { fetchStoredCreditReport } from "@/lib/creditReportApi";
 import { transformCreditReportData } from "@/lib/dataTransform";
 
@@ -7,6 +7,37 @@ export const useCreditReport = (email?: string) => {
   const [userName, setUserName] = useState("Client");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const fetchData = useCallback(async () => {
+    if (!email) return;
+    
+    setLoading(true);
+    setError(null);
+
+    try {
+      const res = await fetchStoredCreditReport(email);
+      
+      if (res.success && res.data) {
+        const transformed = transformCreditReportData(res.data);
+        setData(transformed);
+
+        const nameObj = res.data.personalInfo?.Experian?.names?.[0];
+        if (nameObj) {
+          setUserName(
+            `${nameObj.first ?? ""} ${nameObj.last ?? ""}`.trim()
+          );
+        }
+        setError(null);
+      } else {
+        setError("Unable to fetch credit report.");
+      }
+    } catch (err) {
+      console.error("Fetch credit report error:", err);
+      setError("Unable to fetch credit report.");
+    } finally {
+      setLoading(false);
+    }
+  }, [email]);
 
   useEffect(() => {
     if (!email) return;
@@ -52,5 +83,5 @@ export const useCreditReport = (email?: string) => {
     };
   }, [email]);
 
-  return { data, userName, loading, error };
+  return { data, userName, loading, error, refresh: fetchData };
 };

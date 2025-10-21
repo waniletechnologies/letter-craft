@@ -11,10 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Calendar, Upload, X, FileText, Download, Trash2 } from "lucide-react";
+import { Calendar, Upload, Download, Trash2 } from "lucide-react";
 import { useRouter, useSearchParams } from "next/navigation";
-import Image from "next/image";
-import { UploadFile } from "../../../../public/images";
 import {
   useGetClient,
   useUpdateClient,
@@ -22,7 +20,6 @@ import {
   useDeleteClientFile,
   useGetClientFiles,
   type UploadedFile,
-  type ClientFiles,
 } from "@/hooks/clients";
 import { toast } from "sonner";
 import Loader from "@/components/Loader";

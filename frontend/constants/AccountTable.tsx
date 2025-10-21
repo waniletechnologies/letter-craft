@@ -46,6 +46,7 @@ export const AccountTable: React.FC<{
     if (!hasBureauData(bureau)) return;
 
     const bureauData = editableAccount.values[bureau];
+    console.log("Bureau Data: ", bureauData);
     const disputeId = `${editableAccount.id}-${bureau}`;
 
     if (checked) {

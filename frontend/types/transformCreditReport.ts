@@ -20,9 +20,9 @@ export interface TransformedAccountRow {
   dateOpened: string;
   status: string;
   values: {
-    Experian: any;
-    Equifax: any;
-    TransUnion: any;
+    Experian: string;
+    Equifax: string;
+    TransUnion: string | number;
   };
 }
 

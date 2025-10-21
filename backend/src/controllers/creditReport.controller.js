@@ -394,12 +394,16 @@ export const createAccount = async (req, res) => {
         ? balance
         : parseFloat(String(balance ?? "").replace(/[^0-9.-]/g, ""));
     const safeBalance = Number.isFinite(parsedBalance) ? parsedBalance : 0;
+    
+    // Format balance as string like extracted accounts (e.g., "$1,234")
+    const formattedHighBalance = safeBalance > 0 ? `$${safeBalance.toLocaleString()}` : "$0";
 
     // Create new account object
     const newAccount = {
       accountName: accountName.trim(),
       accountNumber: accountNumber.trim(),
-      balance: safeBalance,
+      highBalance: formattedHighBalance,
+      currentBalance: formattedHighBalance, // Use same value for both fields
       dateOpened: dateOpened || new Date().toISOString().split('T')[0],
       status: "Negative",
       createdAt: new Date(),

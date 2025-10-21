@@ -1,7 +1,6 @@
 "use client"
 
 import React from "react";
-import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Check } from "lucide-react";
@@ -17,21 +16,17 @@ export interface DocumentItem {
 
 interface AttachedDocumentsProps {
   includeIdAttachments: boolean;
-  idAttachmentScope: string;
   includeReturnAddress: boolean;
   documents: DocumentItem[];
   onIncludeIdAttachmentsChange: (checked: boolean) => void;
-  onIdAttachmentScopeChange: (scope: string) => void;
   onIncludeReturnAddressChange: (checked: boolean) => void;
 }
 
 const AttachedDocuments: React.FC<AttachedDocumentsProps> = ({
   includeIdAttachments,
-  idAttachmentScope,
   includeReturnAddress,
   documents,
   onIncludeIdAttachmentsChange,
-  onIdAttachmentScopeChange,
   onIncludeReturnAddressChange,
 }) => {
   return (

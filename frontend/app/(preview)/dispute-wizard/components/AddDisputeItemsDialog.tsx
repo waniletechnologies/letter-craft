@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState, useEffect } from "react";
+import React, { useMemo, useState, useEffect, useCallback } from "react";
 import {
   Dialog,
   DialogContent,
@@ -10,7 +10,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import Image from "next/image";
-import { Trash2 } from "lucide-react";
 import { Equifax, Experian, TransUnion } from "@/public/images";
 import {
   Table,
@@ -21,7 +20,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { fetchStoredCreditReport } from "@/lib/creditReportApi";
-import { CreditReportData } from "@/types/creditReport";
 import { useDispute } from "@/context/disputeContext";
 
 import {
@@ -61,7 +59,7 @@ interface AccountData {
   groupName?: string;
   // Add other properties that might exist in your account objects
   highBalance?: string;
-  dateOpened?: string;
+  lastVerified?: string;
   status?: string;
   worstPayStatus?: string;
   remarks?: string[];
@@ -86,14 +84,12 @@ interface ItemRow {
 export interface AddDisputeItemsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onAdd?: (ids: string[]) => void;
   email: string;
 }
 
 const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
   open,
   onOpenChange,
-  onAdd,
   email,
 }) => {
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
@@ -105,11 +101,7 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
   const { disputeItems, addMultipleDisputeItems } = useDispute();
   const decodedEmail = decodeURIComponent(email as string);
 
-  useEffect(() => {
-    if (open && decodedEmail) {
-      loadAccountGroups();
-    }
-  }, [open, decodedEmail]);
+  
 
   useEffect(() => {
     if (open && rows.length) {
@@ -124,7 +116,7 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
     }
   }, [open, rows, disputeItems]);
 
-  const loadAccountGroups = async () => {
+  const loadAccountGroups = useCallback(async () => {
     try {
       setLoading(true);
 
@@ -175,7 +167,13 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [decodedEmail]);
+
+  useEffect(() => {
+    if (open && decodedEmail) {
+      loadAccountGroups();
+    }
+  }, [open, decodedEmail, loadAccountGroups]);
 
   const createAccountGroupsFromReport = async () => {
     try {
@@ -499,7 +497,7 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
                             )}
                             strategy={verticalListSortingStrategy}
                           >
-                            {groupAccounts.map((r, idx) => (
+                            {groupAccounts.map((r) => (
                               <SortableItem
                                 key={`${groupName}::${r.id}`}
                                 id={`${groupName}::${r.id}`}

@@ -27,4 +27,5 @@ export interface AccountInfoTableProps {
     updates: Partial<AccountInfoRow>
   ) => void;
   email: string;
+  onRefresh?: () => void;
 }

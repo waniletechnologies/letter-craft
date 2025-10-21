@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import LetterCard from "./components/letter-card";
 import LetterPreview from "./components/letter-preview";
 import { Mail, PhoneCall, Printer } from "lucide-react";
@@ -113,11 +113,6 @@ const LettersPage = () => {
 
   const [letters, setLetters] = useState<Letter[]>([]);
   const [loading, setLoading] = useState(true);
-
-  // Load letters from backend
-  useEffect(() => {
-    loadLetters();
-  }, []);
 
   // Helper function to get client name from personalInfo
   const getClientName = (letter: BackendLetter): string => {
@@ -398,7 +393,7 @@ const LettersPage = () => {
     );
   };
 
-  const loadLetters = async () => {
+  const loadLetters = useCallback(async () => {
     try {
       setLoading(true);
       const res = await getAllLetters();
@@ -462,7 +457,12 @@ const LettersPage = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
+
+  // Load letters from backend
+  useEffect(() => {
+    loadLetters();
+  }, [loadLetters]);
 
   const handlePreview = (letter: Letter) => {
     setPreviewData({

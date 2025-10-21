@@ -59,7 +59,7 @@ export interface AccountInfo {
   status: string;
   payStatus: string;
   worstPayStatus: string;
-  dateOpened: string;
+  lastVerified: string;
   dateClosed: string;
   remarks: string[];
 }

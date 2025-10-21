@@ -27,8 +27,6 @@ import {
   Packer,
   Paragraph,
   TextRun,
-  HeadingLevel,
-  AlignmentType,
 } from "docx";
 
 interface RichTextEditorProps {

@@ -227,7 +227,6 @@ export const ExportCreditReport: React.FC<ExportCreditReportProps> = ({
   // Enhanced Credit Score Drawing Function
   const drawEnhancedCreditScore = (doc: jsPDF, startY: number) => {
     const scoreRating = getScoreRating(score);
-    const centerX = doc.internal.pageSize.getWidth() / 2;
     const sectionY = startY + 30;
 
     // Create elegant background card
@@ -291,8 +290,6 @@ export const ExportCreditReport: React.FC<ExportCreditReportProps> = ({
       const angle = (i / 100) * 2 * Math.PI - Math.PI / 2;
       const x1 = circleX + (progressRadius - progressWidth/2) * Math.cos(angle);
       const y1 = circleY + (progressRadius - progressWidth/2) * Math.sin(angle);
-      const x2 = circleX + (progressRadius + progressWidth/2) * Math.cos(angle);
-      const y2 = circleY + (progressRadius + progressWidth/2) * Math.sin(angle);
       
       if (i % 3 === 0) { // Draw every 3rd step to create a ring effect
         doc.setFillColor(scoreRating.color[0], scoreRating.color[1], scoreRating.color[2]);

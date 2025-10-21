@@ -533,7 +533,7 @@ export function transformAccountInfo(accountInfo: {
             accountName: "",
             accountNumber: "",
             highBalance: "",
-            lastVerified: "",
+            dateOpened: "",
             status: "",
           },
           TransUnion: {

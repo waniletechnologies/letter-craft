@@ -139,11 +139,11 @@ export function AppSidebar({ ...props }) {
     return pathname === tabPath;
   };
 
-  const handleFooterClick = () => {
-    if (isMobile) {
-      setOpenMobile(false);
-    }
-  };
+  // const handleFooterClick = () => {
+  //   if (isMobile) {
+  //     setOpenMobile(false);
+  //   }
+  // };
 
   const handleLogoClick = () => {
     if (isMobile) {

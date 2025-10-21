@@ -56,10 +56,6 @@ export default function LoginPage() {
       toast.dismiss();
 
       // Show error message
-      let errorMessage = "Login failed. Please try again.";
-      if (err && typeof err === "object" && "message" in err && typeof (err as { message?: string }).message === "string") {
-        errorMessage = (err as { message: string }).message;
-      }
       toast.error("Credentials are incorrect. Please try again.");
 
       console.error("❌ Login failed:", err);

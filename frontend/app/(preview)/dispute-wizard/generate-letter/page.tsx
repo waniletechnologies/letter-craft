@@ -1,6 +1,7 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 // app/dispute-wizard/generate-letter/page.tsx
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import MultiSelect from "@/components/ui/multi-select";
 import Typo from "typo-js";
 import RichTextEditor from "@/components/ui/rich-text-editor";
@@ -27,6 +28,19 @@ import { useDispute } from "@/context/disputeContext";
 import { useGetClientFiles, UploadedFile } from "@/hooks/clients";
 import Loader from '@/components/Loader';
 import { toast } from "sonner";
+
+interface AccountItem {
+  id: string;
+  creditor: string;
+  account: string;
+  dateOpened: string;
+  balance: string;
+  type: string;
+  disputed: boolean;
+  hasExperian: boolean;
+  hasEquifax: boolean;
+  hasTransUnion: boolean;
+}
 
 interface PersonalInfo {
   names: Array<{
@@ -99,8 +113,8 @@ const GenerateLetterPage = () => {
   const [selectedFtcReport, setSelectedFtcReport] = useState<string>("");
   const [clientId, setClientId] = useState<string>("");
   const [scheduleAt, setScheduleAt] = useState<string>("");
-  const [selectedAccounts, setSelectedAccounts] = useState<any[]>([]);
-  const [groupedAccounts, setGroupedAccounts] = useState<any[][]>([]);
+  const [selectedAccounts, setSelectedAccounts] = useState<AccountItem[]>([]);
+  const [groupedAccounts, setGroupedAccounts] = useState<AccountItem[][]>([]);
   const [selectedGroupIndex, setSelectedGroupIndex] = useState<number>(0);
   const [originalTemplateText, setOriginalTemplateText] = useState<string>("");
   // Per-letter scheduling
@@ -143,8 +157,8 @@ const GenerateLetterPage = () => {
   }, [loadSavedDisputeItems]);
 
   // Helper to split any account list into groups of 5
-  const makeGroupsOfFive = (items: any[]): any[][] => {
-    const groups: any[][] = [];
+  const makeGroupsOfFive = (items: AccountItem[]): AccountItem[][] => {
+    const groups: AccountItem[][] = [];
     for (let i = 0; i < items.length; i += 5) {
       groups.push(items.slice(i, i + 5));
     }
@@ -152,10 +166,10 @@ const GenerateLetterPage = () => {
   };
 
   // Unified view of groups used by both selector and renderer
-  const getUiGroups = (): any[][] => {
+  const getUiGroups = (): AccountItem[][] => {
     if (groupedAccounts.length > 0) return groupedAccounts;
     if (Array.isArray(disputeItems) && disputeItems.length > 0) {
-      return makeGroupsOfFive(disputeItems);
+      return makeGroupsOfFive(disputeItems as AccountItem[]);
     }
     return [];
   };
@@ -548,133 +562,154 @@ const GenerateLetterPage = () => {
     return correctedWords.join("");
   };
 
-  const populateLetterTemplate = (template: string, overrideAccounts?: any[]) => {
-    if (!personalInfo) {
-      return template;
-    }
+  const populateLetterTemplate = useCallback(
+    (template: string, overrideAccounts?: AccountItem[]) => {
+      if (!personalInfo) {
+        return template;
+      }
 
-    // First, clean the template of any address sections for ALL bureaus
-    let cleanedTemplate = template
-      .replace(/FROM:[\s\S]*?TO:[\s\S]*?(?=Subject:)/i, "")
-      .replace(/^\s*\S+[\s\S]*?ATLANTA, GA 30374\s*/i, "")
-      .replace(/^\s*\S+[\s\S]*?CHESTER, PA 19016\s*/i, "")
-      .replace(/^\s*\S+[\s\S]*?ALLEN, TX 75013\s*/i, "")
-      // Remove personal info patterns that appear before the actual letter content
-      .replace(/^\s*{[^}]*}[\s\S]*?{Today[''`'´'′'']?s Date[^}]*}\s*/i, "")
-      .replace(/^\s*\S+[\s\S]*?\d{2}\/\d{2}\/\d{4}\s*\d{3}-\d{2}-\d{4}\s*/i, "")
-      .replace(/^\s*\S+[\s\S]*?{Today[''`'´'′'']?s Date[^}]*}\s*/i, "");
+      // First, clean the template of any address sections for ALL bureaus
+      let cleanedTemplate = template
+        .replace(/FROM:[\s\S]*?TO:[\s\S]*?(?=Subject:)/i, "")
+        .replace(/^\s*\S+[\s\S]*?ATLANTA, GA 30374\s*/i, "")
+        .replace(/^\s*\S+[\s\S]*?CHESTER, PA 19016\s*/i, "")
+        .replace(/^\s*\S+[\s\S]*?ALLEN, TX 75013\s*/i, "")
+        // Remove personal info patterns that appear before the actual letter content
+        .replace(/^\s*{[^}]*}[\s\S]*?{Today[''`'´'′'']?s Date[^}]*}\s*/i, "")
+        .replace(
+          /^\s*\S+[\s\S]*?\d{2}\/\d{2}\/\d{4}\s*\d{3}-\d{2}-\d{4}\s*/i,
+          ""
+        )
+        .replace(/^\s*\S+[\s\S]*?{Today[''`'´'′'']?s Date[^}]*}\s*/i, "");
 
-    // Handle the creditor/account replacement pattern
-    cleanedTemplate = cleanedTemplate.replace(
-      /(Creditor:\s*{Creditors Name}[\s\S]*?{Date Opened mm\/yyyy}\s*)+/gi,
-      "{DisputedAccounts}"
-    );
-
-    // Handle the pattern without "Creditor:" label (like in TransUnion example)
-    cleanedTemplate = cleanedTemplate.replace(
-      /({Creditors Name}Account Number: {Account Number}Date Opened: {Date Opened mm\/yyyy}\s*)+/gi,
-      "{DisputedAccounts}"
-    );
-
-    const name = personalInfo.names[0];
-    const fullName = `${name?.first || ""} ${name?.middle || ""} ${
-      name?.last || ""
-    } ${name?.suffix || ""}`.trim();
-    const address = personalInfo.addresses[0];
-    const birth = personalInfo.births[0];
-    const ssn = personalInfo.ssns[0];
-
-    const addressLine = address
-      ? `${address.street}, ${address.city}, ${address.state} ${address.postalCode}`
-      : "";
-    const dob = birth?.date ? formatDate(birth.date) : "N/A";
-    const ssnFormatted = ssn?.number ? formatSSN(ssn.number) : "N/A";
-
-    let accountDetails = "";
-    const sourceItems =
-      (overrideAccounts && overrideAccounts.length > 0)
-        ? overrideAccounts
-        : (getUiGroups()[selectedGroupIndex] || []);
-
-    if (sourceItems && sourceItems.length > 0) {
-      accountDetails = sourceItems
-        .map((item) => {
-          const dateOpened = item.dateOpened
-            ? new Date(item.dateOpened).toLocaleDateString("en-US", {
-                month: "2-digit",
-                year: "numeric",
-              })
-            : "N/A";
-
-          // Check if the template uses the format with "Creditor:" label or without
-          if (template.includes("Creditor: {Creditors Name}")) {
-            return `\n\nCreditor: ${item.creditor}\nAccount Number: ${item.account}\nDate Opened: ${dateOpened}\n\n`;
-          } else {
-            // For templates like TransUnion that don't have "Creditor:" label
-            return `${item.creditor}\nAccount Number: ${item.account}\nDate Opened: ${dateOpened}\n\n`;
-          }
-        })
-        .join("\n\n");
-    }
-
-    let populatedTemplate = cleanedTemplate
-      .replace(/{First Name}/g, name?.first || "")
-      .replace(/{Middle Name}/g, name?.middle || "")
-      .replace(/{Last Name}/g, name?.last || "")
-      .replace(/{Suffix}/g, name?.suffix || "")
-      .replace(/{First Name} {Middle Name} {Last Name} {Suffix}/g, fullName)
-      .replace(/{Address}/g, address?.street || "")
-      .replace(/{City}/g, address?.city || "")
-      .replace(/{State}/g, address?.state || "")
-      .replace(/{Zip code}/g, address?.postalCode || "")
-      .replace(/{City}, {State} {Zip code}/g, addressLine)
-      .replace(/{Date of Birth mm\/dd\/yyyy}/g, dob)
-      .replace(/{Social Security Number XXX-XX-XXXX}/g, ssnFormatted)
-      .replace(/{Today's Date mm-dd-yyyy}/g, todayDate)
-      .replace(/{SIGNATURE}/g, "\n")
-      .replace(/{Today[''`'´'′'']?s Date mm-dd-yyyy}/gi, `: ${todayDate}`)
-      .replace(/{Today[''`'´'′'']?s Date[^}]*}/gi, todayDate)
-      .replace(`{Today’s Date mm-dd-yyyy}`, `: ${todayDate}`)
-      .replace(`{Today’s Date ”September 25 2025”}`, `Date: ${todayDate}`)
-      .replace(/{Experian Report Number}/gi, "")
-      .replace(/{Transunion File Number}/gi, "")
-      .replace(
-        `I am contacting you today to have these accounts below removed`,
-        "I am contacting you today to have these accounts below removed.\n\n"
-      )
-      .replace(
-        `I am contacting you today to have these account below removed.`,
-        "I am contacting you today to have these accounts below removed.\n\n"
-      )
-      .replace(`Thank you!`, "Thank you!\n\n")
-      .replace(
-        `Please remove these accounts from my credit report.`,
-        "Please remove these accounts from my credit report.\n\n"
-      )
-      .replace(
-        /{FTC Report Number}/gi,
-        selectedFtcReports.length > 0
-          ? `FTC Report: ${selectedFtcReports.join(", ")}`
-          : "FTC Report Number"
+      // Handle the creditor/account replacement pattern
+      cleanedTemplate = cleanedTemplate.replace(
+        /(Creditor:\s*{Creditors Name}[\s\S]*?{Date Opened mm\/yyyy}\s*)+/gi,
+        "{DisputedAccounts}"
       );
 
-    // Inject schedule if template has placeholder
-    populatedTemplate = populatedTemplate.replace(
-      /{Scheduled Date\/?Time}?/gi,
-      scheduleAt ? new Date(scheduleAt).toLocaleString() : ""
-    );
+      // Handle the pattern without "Creditor:" label (like in TransUnion example)
+      cleanedTemplate = cleanedTemplate.replace(
+        /({Creditors Name}Account Number: {Account Number}Date Opened: {Date Opened mm\/yyyy}\s*)+/gi,
+        "{DisputedAccounts}"
+      );
 
-    // Replace the disputed accounts placeholder
-    populatedTemplate = populatedTemplate.replace(
-      /{DisputedAccounts}/g,
-      accountDetails || "No disputed accounts listed"
-    );
+      const name = personalInfo.names[0];
+      const fullName = `${name?.first || ""} ${name?.middle || ""} ${
+        name?.last || ""
+      } ${name?.suffix || ""}`.trim();
+      const address = personalInfo.addresses[0];
+      const birth = personalInfo.births[0];
+      const ssn = personalInfo.ssns[0];
 
-    // Clean up any double line breaks
-    populatedTemplate = populatedTemplate.replace(/\n\n\n+/g, "\n\n");
+      const addressLine = address
+        ? `${address.street}, ${address.city}, ${address.state} ${address.postalCode}`
+        : "";
+      const dob = birth?.date ? formatDate(birth.date) : "N/A";
+      const ssnFormatted = ssn?.number ? formatSSN(ssn.number) : "N/A";
 
-    return populatedTemplate;
-  };
+      let accountDetails = "";
+
+      const sourceItems: AccountItem[] = (
+        overrideAccounts && overrideAccounts.length > 0
+          ? overrideAccounts
+          : getUiGroups()[selectedGroupIndex] || []
+      );
+
+      if (sourceItems && sourceItems.length > 0) {
+        accountDetails = sourceItems
+          .map((item) => {
+            const dateOpened = item.dateOpened
+              ? new Date(item.dateOpened).toLocaleDateString("en-US", {
+                  month: "2-digit",
+                  year: "numeric",
+                })
+              : "N/A";
+
+            // Check if the template uses the format with "Creditor:" label or without
+            if (template.includes("Creditor: {Creditors Name}")) {
+              return `\n\nCreditor: ${
+                item.creditor || "Unknown"
+              }\nAccount Number: ${
+                item.account || "Unknown"
+              }\nDate Opened: ${dateOpened}\n\n`;
+            } else {
+              // For templates like TransUnion that don't have "Creditor:" label
+              return `${item.creditor || "Unknown"}\nAccount Number: ${
+                item.account || "Unknown"
+              }\nDate Opened: ${dateOpened}\n\n`;
+            }
+          })
+          .join("\n\n");
+      }
+
+      let populatedTemplate = cleanedTemplate
+        .replace(/{First Name}/g, name?.first || "")
+        .replace(/{Middle Name}/g, name?.middle || "")
+        .replace(/{Last Name}/g, name?.last || "")
+        .replace(/{Suffix}/g, name?.suffix || "")
+        .replace(/{First Name} {Middle Name} {Last Name} {Suffix}/g, fullName)
+        .replace(/{Address}/g, address?.street || "")
+        .replace(/{City}/g, address?.city || "")
+        .replace(/{State}/g, address?.state || "")
+        .replace(/{Zip code}/g, address?.postalCode || "")
+        .replace(/{City}, {State} {Zip code}/g, addressLine)
+        .replace(/{Date of Birth mm\/dd\/yyyy}/g, dob)
+        .replace(/{Social Security Number XXX-XX-XXXX}/g, ssnFormatted)
+        .replace(/{Today's Date mm-dd-yyyy}/g, todayDate)
+        .replace(/{SIGNATURE}/g, "\n")
+        .replace(/{Today[''`'´'′'']?s Date mm-dd-yyyy}/gi, `: ${todayDate}`)
+        .replace(/{Today[''`'´'′'']?s Date[^}]*}/gi, todayDate)
+        .replace(`{Today's Date mm-dd-yyyy}`, `: ${todayDate}`)
+        .replace(`{Today's Date "September 25 2025"}`, `Date: ${todayDate}`)
+        .replace(/{Experian Report Number}/gi, "")
+        .replace(/{Transunion File Number}/gi, "")
+        .replace(
+          `I am contacting you today to have these accounts below removed`,
+          "I am contacting you today to have these accounts below removed.\n\n"
+        )
+        .replace(
+          `I am contacting you today to have these account below removed.`,
+          "I am contacting you today to have these accounts below removed.\n\n"
+        )
+        .replace(`Thank you!`, "Thank you!\n\n")
+        .replace(
+          `Please remove these accounts from my credit report.`,
+          "Please remove these accounts from my credit report.\n\n"
+        )
+        .replace(
+          /{FTC Report Number}/gi,
+          selectedFtcReports.length > 0
+            ? `FTC Report: ${selectedFtcReports.join(", ")}`
+            : "FTC Report Number"
+        );
+
+      // Inject schedule if template has placeholder
+      populatedTemplate = populatedTemplate.replace(
+        /{Scheduled Date\/?Time}?/gi,
+        scheduleAt ? new Date(scheduleAt).toLocaleString() : ""
+      );
+
+      // Replace the disputed accounts placeholder
+      populatedTemplate = populatedTemplate.replace(
+        /{DisputedAccounts}/g,
+        accountDetails || "No disputed accounts listed"
+      );
+
+      // Clean up any double line breaks
+      populatedTemplate = populatedTemplate.replace(/\n\n\n+/g, "\n\n");
+
+      return populatedTemplate;
+    },
+    [
+      personalInfo,
+      todayDate,
+      selectedFtcReports,
+      selectedGroupIndex,
+      getUiGroups,
+      scheduleAt,
+    ]
+  );
 
   const handleRewriteWithAI = async () => {
     setIsRewriting(true);
@@ -830,7 +865,7 @@ const GenerateLetterPage = () => {
     }>;
     const groups = groupedAccounts.length > 0
       ? groupedAccounts
-      : (Array.isArray(disputeItems) ? makeGroupsOfFive(disputeItems) : []);
+      : (Array.isArray(disputeItems) ? makeGroupsOfFive(disputeItems as AccountItem[]) : []);
     groups.forEach((group, idx) => {
       const populated = populateLetterTemplate(originalTemplateText, group);
       const html = populated.replace(/\n/g, "<br>");
@@ -965,7 +1000,8 @@ const GenerateLetterPage = () => {
 
         // Headings
         if (["h1","h2","h3","h4","h5","h6"].includes(tag)) {
-          const level = { h1: HeadingLevel.TITLE, h2: HeadingLevel.HEADING_1, h3: HeadingLevel.HEADING_2, h4: HeadingLevel.HEADING_3, h5: HeadingLevel.HEADING_4, h6: HeadingLevel.HEADING_5 }[tag as keyof any];
+          const levelMap: Record<string, any> = { h1: "Title", h2: "Heading1", h3: "Heading2", h4: "Heading3", h5: "Heading4", h6: "Heading5" };
+          const level = levelMap[tag];
           const runs = parseRuns(el);
           paras.push(new Paragraph({ alignment, heading: level, children: runs.length ? runs : [new TextRun("")] }));
           return paras;
@@ -1181,7 +1217,7 @@ const GenerateLetterPage = () => {
                   {(groupedAccounts.length > 0
                     ? groupedAccounts
                     : Array.isArray(disputeItems)
-                    ? makeGroupsOfFive(disputeItems)
+                    ? makeGroupsOfFive(disputeItems as AccountItem[])
                     : []
                   ).map((_, idx) => (
                     <SelectItem key={idx} value={String(idx)}>

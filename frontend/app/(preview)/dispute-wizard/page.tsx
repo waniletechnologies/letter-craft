@@ -5,12 +5,10 @@ import React from "react";
 import { useSearchParams } from "next/navigation";
 import Stepper from "./components/Stepper";
 import StepOne from "./components/StepOne";
-import StepTwo from "./components/StepTwo";
 
 const DisputeWizardPage = () => {
   const searchParams = useSearchParams();
   const name = searchParams.get("name") || "Client"; // Fallback if no name
-  const email = searchParams.get("email"); // Get email from URL params
 
   return (
     <div className="sm:p-6 p-0">

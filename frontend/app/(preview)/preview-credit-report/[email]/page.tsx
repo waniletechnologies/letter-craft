@@ -18,7 +18,7 @@ import AddDisputeItemsDialog from "../../dispute-wizard/components/AddDisputeIte
 const Page = () => {
   const router = useRouter();
   const { email } = useParams();
-  const { data, userName, loading, error } = useCreditReport(email as string);
+  const { data, userName, loading, error, refresh } = useCreditReport(email as string);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [isSavingToWizard, setIsSavingToWizard] = useState(false);
   const [isSavingToShowItems, setIsSavingToShowItems] = useState(false);
@@ -200,7 +200,10 @@ const Page = () => {
             // This will now trigger the API call to update the database
             console.log("Account updated:", decodedEmail);
             toast.success("Account information updated successfully!");
+            // Refresh the data to show the updated account immediately
+            refresh();
           }}
+          onRefresh={refresh}
         />
       </section>
 
@@ -248,7 +251,6 @@ const Page = () => {
       <AddDisputeItemsDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
-        onAdd={handleAddDisputeItems}
         email={(email as string) ?? ""}
       />
     </div>

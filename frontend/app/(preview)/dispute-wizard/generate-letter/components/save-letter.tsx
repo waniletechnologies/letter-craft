@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
-import { Plus } from "lucide-react";
 import { useRouter } from "next/navigation";
 import {toast} from "sonner";
 // NOTE: Saving now happens on the final step (Confirm Options)

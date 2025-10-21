@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 "use client"
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Stepper from "../components/Stepper";
 import IntegratedStepper from "./components/IntegratedStepper";
-import { License, Proof, Address } from "@/public/images";
 import { Pdf } from "@/public/images";
 import { getClientLetters, updateLetterStatus, saveLetter, sendLetterEmail } from "@/lib/lettersApi";
 import { toast } from "sonner";
@@ -58,54 +57,10 @@ const SendLettersPage = () => {
     // Add other fields as needed
   }
   const [clientLetters, setClientLetters] = useState<ClientLetter[]>([]);
-  const [loading, setLoading] = useState(true);
   const [isSending, setIsSending] = useState(false);
 
-  // Load saved data on component mount
-  useEffect(() => {
-    const savedData = localStorage.getItem("savedLetterData");
-      if (savedData) {
-      const parsedData = JSON.parse(savedData);
-      setSavedLetterData(parsedData);
-
-      // Load client letters from backend
-      if (parsedData.clientId) {
-        loadClientLetters(parsedData.clientId);
-        loadFtcReports(parsedData.clientId, parsedData.selectedFtcReports);
-      }
-      // if preparedLetters present, synthesize clientLetters-like entries for step 1
-      if (Array.isArray(parsedData.preparedLetters) && parsedData.preparedLetters.length > 0) {
-        const synthetic = parsedData.preparedLetters.map((pl: any, idx: number) => ({
-          _id: `prepared-${idx + 1}`,
-          bureau: pl.bureau,
-          // Use the original letterName for routing, not the display label
-          letterName: pl.letterName,
-          // Add category so the route can include category=ROUND
-          category: parsedData.letterDetails?.category || 'ROUND',
-          abbreviation: parsedData.abbreviation || `RD${parsedData.round || 2}`,
-          round: Number(parsedData.round || 2),
-          status: 'draft',
-          content: pl.content,
-          createdAt: parsedData.savedAt || new Date().toISOString(),
-          scheduleAt: pl.scheduleAt || parsedData.scheduleAt,
-          // Keep a displayName field for UI labels if needed
-          displayName: pl.displayName,
-        }));
-        setClientLetters(synthetic);
-        setSelectedLetters(synthetic.map((s: any) => s._id));
-        // Seed selected FTC doc IDs from saved data for immediate UI feedback
-        if (Array.isArray(parsedData.selectedFtcReports)) {
-          setSelectedFtcDocIds(parsedData.selectedFtcReports);
-        }
-      }
-    } else {
-      setLoading(false);
-    }
-  }, []);
-
-  const loadClientLetters = async (clientId: string) => {
+  const loadClientLetters = useCallback(async (clientId: string) => {
     try {
-      setLoading(true);
       const response = await getClientLetters(clientId);
       if (response.success && response.data) {
         const backendLetters = response.data as ClientLetter[];
@@ -116,10 +71,8 @@ const SendLettersPage = () => {
       }
     } catch (error) {
       console.error("Error loading client letters:", error);
-    } finally {
-      setLoading(false);
     }
-  };
+  }, []);
 
   const loadFtcReports = async (
     clientId: string,
@@ -138,7 +91,12 @@ const SendLettersPage = () => {
         return;
       }
 
-      console.log("Loading FTC reports for client:", clientId, "with reports:", selectedReportIds);
+      console.log(
+        "Loading FTC reports for client:",
+        clientId,
+        "with reports:",
+        selectedReportIds
+      );
 
       // Get the auth token from localStorage or your auth context
       const token =
@@ -176,11 +134,13 @@ const SendLettersPage = () => {
           fileName?: string;
           url?: string;
         }
-        const selectedReports = ftcReportData.filter((report: FtcReport) => selectedReportIds.includes(report._id));
+        const selectedReports = ftcReportData.filter((report: FtcReport) =>
+          selectedReportIds.includes(report._id)
+        );
 
         console.log("Selected FTC reports:", selectedReports);
         setFtcReports(selectedReports);
-        setSelectedFtcDocIds(selectedReports.map((r: { _id: any; }) => r._id));
+        setSelectedFtcDocIds(selectedReports.map((r: { _id: any }) => r._id));
       } else {
         console.log("Failed to fetch client files, status:", response.status);
         setFtcReports([]);
@@ -192,6 +152,54 @@ const SendLettersPage = () => {
       setSelectedFtcDocIds([]);
     }
   };
+
+  // Load saved data on component mount
+  useEffect(() => {
+    const savedData = localStorage.getItem("savedLetterData");
+    if (savedData) {
+      const parsedData = JSON.parse(savedData);
+      setSavedLetterData(parsedData);
+
+      // Load client letters from backend
+      if (parsedData.clientId) {
+        loadClientLetters(parsedData.clientId);
+        loadFtcReports(parsedData.clientId, parsedData.selectedFtcReports);
+      }
+      // if preparedLetters present, synthesize clientLetters-like entries for step 1
+      if (
+        Array.isArray(parsedData.preparedLetters) &&
+        parsedData.preparedLetters.length > 0
+      ) {
+        const synthetic = parsedData.preparedLetters.map(
+          (pl: any, idx: number) => ({
+            _id: `prepared-${idx + 1}`,
+            bureau: pl.bureau,
+            // Use the original letterName for routing, not the display label
+            letterName: pl.letterName,
+            // Add category so the route can include category=ROUND
+            category: parsedData.letterDetails?.category || "ROUND",
+            abbreviation:
+              parsedData.abbreviation || `RD${parsedData.round || 2}`,
+            round: Number(parsedData.round || 2),
+            status: "draft",
+            content: pl.content,
+            createdAt: parsedData.savedAt || new Date().toISOString(),
+            scheduleAt: pl.scheduleAt || parsedData.scheduleAt,
+            // Keep a displayName field for UI labels if needed
+            displayName: pl.displayName,
+          })
+        );
+        setClientLetters(synthetic);
+        setSelectedLetters(synthetic.map((s: any) => s._id));
+        // Seed selected FTC doc IDs from saved data for immediate UI feedback
+        if (Array.isArray(parsedData.selectedFtcReports)) {
+          setSelectedFtcDocIds(parsedData.selectedFtcReports);
+        }
+      }
+    } else {
+      // No saved data
+    }
+  }, [loadClientLetters]);
 
   // Helper function to get description for step 1
   const getSelectedLettersDescription = () => {
@@ -228,7 +236,11 @@ const SendLettersPage = () => {
     id: letter._id,
     name: `${letter.bureau.toUpperCase()} - ${letter.letterName}`,
     abbreviation: letter.abbreviation || `RD${letter.round}`,
-    created: `${letter.scheduleAt ? new Date(letter.scheduleAt).toLocaleString() : new Date(letter.createdAt).toLocaleString()}`,
+    created: `${
+      letter.scheduleAt
+        ? new Date(letter.scheduleAt).toLocaleString()
+        : new Date(letter.createdAt).toLocaleString()
+    }`,
     printStatus:
       letter.status === "draft"
         ? "Pending Print"
@@ -287,12 +299,16 @@ const SendLettersPage = () => {
 
       // Build URL with email parameter
       // Prefer explicit fields from synthetic prepared letters; fallback to letterDetails
-      let category = (letterData as any).category || letterData.letterDetails?.category || "";
-      let letterName = letterData.letterName || letterData.letterDetails?.letterName || "";
+      const category =
+        (letterData as any).category ||
+        letterData.letterDetails?.category ||
+        "";
+      const letterName =
+        letterData.letterName || letterData.letterDetails?.letterName || "";
       // Preserve spacing as '+' by not decoding; use encodeURIComponent only for safety around special chars
-      const encodedCategory = encodeURIComponent(category).replace(/%20/g, '+');
+      const encodedCategory = encodeURIComponent(category).replace(/%20/g, "+");
       // Do not append display suffixes like " - Letter 1"; ensure using raw template name
-      const encodedLetter = encodeURIComponent(letterName).replace(/%20/g, '+');
+      const encodedLetter = encodeURIComponent(letterName).replace(/%20/g, "+");
       let url = `/dispute-wizard/generate-letter?category=${encodedCategory}&letter=${encodedLetter}`;
 
       // Add email to URL if available (from parameter or saved data)
@@ -300,11 +316,13 @@ const SendLettersPage = () => {
       if (emailToUse) {
         // Keep double-encoded form intact if it already includes %25
         const keepEncoded = /%25/i.test(emailToUse);
-        const emailParam = keepEncoded ? emailToUse : encodeURIComponent(emailToUse);
+        const emailParam = keepEncoded
+          ? emailToUse
+          : encodeURIComponent(emailToUse);
         url += `&email=${emailParam}`;
       }
 
-        router.push(url);
+      router.push(url);
     }
   };
 
@@ -350,7 +368,7 @@ const SendLettersPage = () => {
   }
 
   // Build documents strictly from selected FTC reports
-  const documents = (
+  const documents =
     ftcReports.length > 0
       ? ftcReports.map((report) => ({
           id: report._id,
@@ -368,8 +386,7 @@ const SendLettersPage = () => {
             isFtcReport: false,
             url: undefined,
           },
-        ]
-  );
+        ];
 
   const handleLetterSelection = (letterId: string, checked: boolean) => {
     if (checked) {
@@ -377,15 +394,6 @@ const SendLettersPage = () => {
     } else {
       setSelectedLetters((prev) => prev.filter((id) => id !== letterId));
     }
-  };
-
-  const handleToggleDocument = (docId: string, checked: boolean) => {
-    setSelectedFtcDocIds(prev => {
-      if (checked) {
-        return Array.from(new Set([...prev, docId]));
-      }
-      return prev.filter(id => id !== docId);
-    });
   };
 
   const handleSelectAll = (checked: boolean) => {
@@ -423,16 +431,23 @@ const SendLettersPage = () => {
       }
 
       // Build enclosures from selected FTC reports
-      const enclosureHtml = selectedFtcDocIds.length > 0
-        ? `<div style="margin-top: 24px; font-style: italic;">
+      const enclosureHtml =
+        selectedFtcDocIds.length > 0
+          ? `<div style="margin-top: 24px; font-style: italic;">
              Enclosures:
-             <ul>${selectedFtcDocIds.map((id) => {
-               const r = ftcReports.find((f) => f._id === id);
-               const name = r?.originalName || r?.fileName || 'FTC Report';
-               return `<li>${name}${r?.url ? ` - <a href="${r.url}" target="_blank">link</a>` : ''}</li>`;
-             }).join('')}</ul>
+             <ul>${selectedFtcDocIds
+               .map((id) => {
+                 const r = ftcReports.find((f) => f._id === id);
+                 const name = r?.originalName || r?.fileName || "FTC Report";
+                 return `<li>${name}${
+                   r?.url
+                     ? ` - <a href="${r.url}" target="_blank">link</a>`
+                     : ""
+                 }</li>`;
+               })
+               .join("")}</ul>
            </div>`
-        : '';
+          : "";
 
       // Create print content with actual letter data
       const printContent = lettersToPrint
@@ -449,7 +464,13 @@ const SendLettersPage = () => {
           }</h2>
           <p><strong>Bureau:</strong> ${letter.bureau}</p>
           <p><strong>Reference:</strong> ${letter.abbreviation}</p>
-          ${letter.scheduleAt ? `<p><strong>Scheduled:</strong> ${new Date(letter.scheduleAt).toLocaleString()}</p>` : ''}
+          ${
+            letter.scheduleAt
+              ? `<p><strong>Scheduled:</strong> ${new Date(
+                  letter.scheduleAt
+                ).toLocaleString()}</p>`
+              : ""
+          }
         </div>
         
         <div style="margin-top: 40px; white-space: pre-wrap;">
@@ -567,11 +588,13 @@ const SendLettersPage = () => {
         }
 
         // Build attachments list from documents that are FTC reports
-        const selectedAttachments = ftcReports.filter(r => selectedFtcDocIds.includes(r._id)).map((r) => ({
-          fileName: r.originalName || r.fileName || "FTC Report",
-          s3Key: undefined,
-          originalName: r.originalName || r.fileName,
-        }));
+        const selectedAttachments = ftcReports
+          .filter((r) => selectedFtcDocIds.includes(r._id))
+          .map((r) => ({
+            fileName: r.originalName || r.fileName || "FTC Report",
+            s3Key: undefined,
+            originalName: r.originalName || r.fileName,
+          }));
 
         // Persist the letter now
         const payload = {
@@ -613,10 +636,11 @@ const SendLettersPage = () => {
             originalName?: string;
           }[];
         };
-        
 
         // If we have preparedLetters, persist each letter separately
-        const prepared = Array.isArray(parsed.preparedLetters) ? parsed.preparedLetters : [];
+        const prepared = Array.isArray(parsed.preparedLetters)
+          ? parsed.preparedLetters
+          : [];
         if (prepared.length > 0) {
           for (let i = 0; i < prepared.length; i++) {
             const pl = prepared[i];
@@ -631,7 +655,9 @@ const SendLettersPage = () => {
             if (!saveRes.success) {
               throw new Error(saveRes.message || "Failed to save letter");
             }
-            interface SaveLetterResponse { _id: string; }
+            interface SaveLetterResponse {
+              _id: string;
+            }
             const newLetterId = (saveRes.data as SaveLetterResponse)?._id;
             if (newLetterId) {
               await updateLetterStatus(newLetterId, {
@@ -639,8 +665,12 @@ const SendLettersPage = () => {
                 sendMethod: mailMethod,
                 trackingNumber: `TRK${Date.now()}`,
               });
-              const provider = mailMethod === 'certified' ? 'localmail' : 'cloudmail';
-              await sendLetterEmail(newLetterId, provider as 'localmail' | 'cloudmail');
+              const provider =
+                mailMethod === "certified" ? "localmail" : "cloudmail";
+              await sendLetterEmail(
+                newLetterId,
+                provider as "localmail" | "cloudmail"
+              );
             }
           }
         } else {
@@ -649,7 +679,9 @@ const SendLettersPage = () => {
           if (!saveRes.success) {
             throw new Error(saveRes.message || "Failed to save letter");
           }
-          interface SaveLetterResponse { _id: string; }
+          interface SaveLetterResponse {
+            _id: string;
+          }
           const newLetterId = (saveRes.data as SaveLetterResponse)?._id;
           if (newLetterId) {
             await updateLetterStatus(newLetterId, {
@@ -657,8 +689,12 @@ const SendLettersPage = () => {
               sendMethod: mailMethod,
               trackingNumber: `TRK${Date.now()}`,
             });
-            const provider = mailMethod === 'certified' ? 'localmail' : 'cloudmail';
-            await sendLetterEmail(newLetterId, provider as 'localmail' | 'cloudmail');
+            const provider =
+              mailMethod === "certified" ? "localmail" : "cloudmail";
+            await sendLetterEmail(
+              newLetterId,
+              provider as "localmail" | "cloudmail"
+            );
           }
         }
       }
@@ -688,7 +724,7 @@ const SendLettersPage = () => {
 
       // Show success message
       toast.success("Letters sent successfully!");
-      
+
       // Navigate to dashboard or letters page
       router.push("/letters");
     } catch (error) {

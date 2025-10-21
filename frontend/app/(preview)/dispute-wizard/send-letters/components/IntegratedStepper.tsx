@@ -6,7 +6,6 @@ import AttachedDocuments, { DocumentItem } from "./AttachedDocuments";
 import PrintMailMethods from "./PrintMailMethods";
 import ConfirmOptions from "./ConfirmOptions";
 import { Button } from "@/components/ui/button";
-import { useRouter } from "next/navigation";
 
 interface Step {
   id: number;
@@ -65,7 +64,6 @@ const IntegratedStepper: React.FC<IntegratedStepperProps> = ({
   selectedFtcDocCount = 0,
   isSending,  
 }) => {
-  const router = useRouter();
 
   const renderStepContent = (stepId: number) => {
     switch (stepId) {
@@ -83,11 +81,11 @@ const IntegratedStepper: React.FC<IntegratedStepperProps> = ({
         return (
           <AttachedDocuments
             includeIdAttachments={includeIdAttachments}
-            idAttachmentScope={idAttachmentScope}
+            // idAttachmentScope={idAttachmentScope}
             includeReturnAddress={includeReturnAddress}
             documents={documents}
             onIncludeIdAttachmentsChange={onIncludeIdAttachmentsChange}
-            onIdAttachmentScopeChange={onIdAttachmentScopeChange}
+            // onIdAttachmentScopeChange={onIdAttachmentScopeChange}
             onIncludeReturnAddressChange={onIncludeReturnAddressChange}
           />
         );

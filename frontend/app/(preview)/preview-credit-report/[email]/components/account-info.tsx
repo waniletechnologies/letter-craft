@@ -2,7 +2,6 @@
 import {
   useState,
   useRef,
-  Trash2,
   Calendar,
   Input,
   Button,
@@ -26,13 +25,23 @@ import {
 } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
+import { Trash2 } from "lucide-react";
 
 export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
   rows,
   onAccountUpdate,
   email,
+  onRefresh,
 }) => {
   const [isCreatingGroups, setIsCreatingGroups] = useState(false);
+  // Add near the top of your component
+  const dateRef = useRef<HTMLInputElement | null>(null);
+  const openPicker = () => {
+    try {
+      dateRef.current?.showPicker?.();
+    } catch {}
+  };
+
   const [customGroupName, setCustomGroupName] = useState("");
   const [selectedBureaus, setSelectedBureaus] = useState<
     Record<string, boolean>
@@ -74,7 +83,7 @@ export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
         throw new Error(response.message || "Failed to create group");
       }
 
-      toast.success(`Account "${newAccountName}" created successfully`);
+      toast.success(`Account "${newAccountName}" created successfully! Use "Auto Group" button to include it in groups.`);
       setIsCreateDialogOpen(false);
       setCreateGroupName("");
       setNewAccountName("");
@@ -82,6 +91,11 @@ export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
       setNewBalance("");
       setNewDateOpened("");
       setNewBureau("Experian");
+      
+      // Refresh the data to show the new account immediately
+      if (onRefresh) {
+        onRefresh();
+      }
     } catch (err) {
       console.error(err);
       toast.error("Failed to create account");
@@ -304,6 +318,29 @@ export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
     }
   };
 
+  const handleAutoGroupAllAccounts = async () => {
+    setIsCreatingGroups(true);
+    try {
+      // Create account groups for all accounts in the database
+      const response = await createAccountGroups(email);
+
+      if (response.success) {
+        toast.success("Auto groups created successfully for all accounts!");
+        // Refresh the data to show any updates
+        if (onRefresh) {
+          onRefresh();
+        }
+      } else {
+        throw new Error(response.message || "Failed to create auto groups");
+      }
+    } catch (error) {
+      console.error("Error creating auto groups:", error);
+      toast.error("Failed to create auto groups");
+    } finally {
+      setIsCreatingGroups(false);
+    }
+  };
+
   const handleCreateCustomGroup = async () => {
     const selectedCount = Object.values(selectedBureaus).filter(Boolean).length;
 
@@ -418,7 +455,16 @@ export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
           </div>
 
           <div className="flex gap-2">
-            <Button onClick={() => setIsCreateDialogOpen(true)}>Create New Account</Button>
+            <Button onClick={() => setIsCreateDialogOpen(true)}>
+              Create New Account
+            </Button>
+            <Button 
+              variant="outline"
+              onClick={handleAutoGroupAllAccounts}
+              disabled={isCreatingGroups}
+            >
+              {isCreatingGroups ? "Creating Groups..." : "Auto Group"}
+            </Button>
             {/* <Button
               variant="outline"
               onClick={handleSelectAll}
@@ -568,37 +614,31 @@ export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
             <div className="space-y-1">
               <Label htmlFor="newDateOpened">Date opened</Label>
               <div className="relative">
-                {(() => {
-                  const ref = useRef<HTMLInputElement | null>(null)
-                  const openPicker = () => {
-                    try {
-                      ref.current?.showPicker?.()
-                    } catch {}
-                  }
-                  return (
-                    <Input
-                      ref={ref}
-                      id="newDateOpened"
-                      type="date"
-                      placeholder="Date opened"
-                      value={newDateOpened}
-                      onChange={(e) => setNewDateOpened(e.target.value)}
-                      onFocus={openPicker}
-                      onClick={openPicker}
-                      className="date-input pr-10 cursor-pointer"
-                    />
-                  )
-                })()}
+                <Input
+                  ref={dateRef}
+                  id="newDateOpened"
+                  type="date"
+                  placeholder="Date opened"
+                  value={newDateOpened}
+                  onChange={(e) => setNewDateOpened(e.target.value)}
+                  onFocus={openPicker}
+                  onClick={openPicker}
+                  className="date-input pr-10 cursor-pointer"
+                />
                 <Calendar
                   aria-hidden
                   className="pointer-events-none absolute right-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground"
                 />
               </div>
             </div>
+
             <div className="space-y-1">
               <Label htmlFor="bureau">Select Bureau</Label>
               <Select value={newBureau} onValueChange={setNewBureau}>
-                <SelectTrigger id="bureau" className="shadow-none w-full border-[#E4E4E7]">
+                <SelectTrigger
+                  id="bureau"
+                  className="shadow-none w-full border-[#E4E4E7]"
+                >
                   <SelectValue placeholder="Bureau" />
                 </SelectTrigger>
                 <SelectContent>
@@ -610,8 +650,16 @@ export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>Cancel</Button>
-            <Button onClick={handleCreateGroupDialogSubmit} disabled={isCreatingGroups}>
+            <Button
+              variant="outline"
+              onClick={() => setIsCreateDialogOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleCreateGroupDialogSubmit}
+              disabled={isCreatingGroups}
+            >
               {isCreatingGroups ? "Creating..." : "Create"}
             </Button>
           </DialogFooter>

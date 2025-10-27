@@ -15,12 +15,14 @@ import {
   AlertCircle,
   FileText,
 } from "lucide-react";
+import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { useGetClient } from "@/hooks/clients";
 import { getAccountGroupsByEmail } from "@/lib/accountGroupApi";
+import { Equifax, Experian, TransUnion } from "@/public/images";
 
 /* ------------------------------- TYPES ------------------------------- */
 interface Account {
@@ -288,9 +290,73 @@ export default function ClientDetailPage() {
                             <h4 className="font-semibold text-gray-900 text-sm">
                               {account.accountName || "Unknown Account"}
                             </h4>
-                            <Badge className="text-xs bg-blue-50 text-blue-700 border-blue-200 w-fit">
-                              {account.groupName || "Ungrouped"}
-                            </Badge>
+                            <div className="flex items-center gap-2">
+                              <Badge className="text-xs bg-blue-50 text-blue-700 border-blue-200">
+                                {account.groupName || "Ungrouped"}
+                              </Badge>
+                              <div className="flex gap-1">
+                                <div
+                                  className={`w-6 h-6 flex items-center justify-center rounded ${
+                                    account.bureau === "Experian"
+                                      ? "bg-blue-100"
+                                      : "bg-gray-100"
+                                  }`}
+                                >
+                                  {account.bureau === "Experian" ? (
+                                    <Image
+                                      src={Experian}
+                                      alt="Experian"
+                                      width={20}
+                                      height={10}
+                                    />
+                                  ) : (
+                                    <span className="text-gray-400 text-xs">
+                                      E
+                                    </span>
+                                  )}
+                                </div>
+                                <div
+                                  className={`w-6 h-6 flex items-center justify-center rounded ${
+                                    account.bureau === "Equifax"
+                                      ? "bg-green-100"
+                                      : "bg-gray-100"
+                                  }`}
+                                >
+                                  {account.bureau === "Equifax" ? (
+                                    <Image
+                                      src={Equifax}
+                                      alt="Equifax"
+                                      width={20}
+                                      height={10}
+                                    />
+                                  ) : (
+                                    <span className="text-gray-400 text-xs">
+                                      E
+                                    </span>
+                                  )}
+                                </div>
+                                <div
+                                  className={`w-6 h-6 flex items-center justify-center rounded ${
+                                    account.bureau === "TransUnion"
+                                      ? "bg-purple-100"
+                                      : "bg-gray-100"
+                                  }`}
+                                >
+                                  {account.bureau === "TransUnion" ? (
+                                    <Image
+                                      src={TransUnion}
+                                      alt="TransUnion"
+                                      width={20}
+                                      height={10}
+                                    />
+                                  ) : (
+                                    <span className="text-gray-400 text-xs">
+                                      T
+                                    </span>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
                           </div>
                           <p className="text-xs text-gray-500 mb-3">
                             Account #: {account.accountNumber}

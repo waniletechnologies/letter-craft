@@ -4,7 +4,8 @@ export const ValueCell: React.FC<{
   value?: string;
   isEditable?: boolean;
   onEdit?: (newValue: string) => void;
-}> = ({ value, isEditable = false, onEdit }) => {
+  className?: string;
+}> = ({ value, isEditable = false, onEdit, className = "" }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [editValue, setEditValue] = useState(value || "");
 
@@ -51,7 +52,7 @@ export const ValueCell: React.FC<{
 
   return (
     <div className="py-2 flex items-center justify-between">
-      <div className="font-medium text-xs leading-[150%] -tracking-[0.03em] text-[#292524] flex-1">
+      <div className={`font-medium text-xs leading-[150%] -tracking-[0.03em] text-[#292524] flex-1 ${className}`}>
         {value ?? ""}
       </div>
       {isEditable && (

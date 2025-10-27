@@ -10,6 +10,25 @@ export interface AccountGroup {
   updatedAt?: string;
 }
 
+export async function reorderAllGroups(
+  email: string,
+  sortOrder: 'newest' | 'oldest'
+): Promise<AccountGroupResponse> {
+  try {
+    const data = await apiFetch("/account-groups/reorder-all", {
+      method: "POST",
+      body: JSON.stringify({ email, sortOrder }),
+    });
+    return data;
+  } catch (error) {
+    console.error("Error reordering all groups:", error);
+    return {
+      success: false,
+      message: error instanceof Error ? error.message : "Unknown error occurred",
+    };
+  }
+}
+
 export interface AccountGroupResponse {
   success: boolean;
   message?: string;

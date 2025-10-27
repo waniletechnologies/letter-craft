@@ -29,9 +29,11 @@ interface StepTwoProps {
     hasEquifax: boolean;
     hasTransUnion: boolean;
   }>;
+  currentGroupIndex?: number;
+  onLetterGenerated?: (category: string, letterName: string) => void;
 }
 
-const StepTwo: React.FC<StepTwoProps> = ({ email, selectedAccounts = [] }) => {
+const StepTwo: React.FC<StepTwoProps> = ({ email, selectedAccounts = [], currentGroupIndex = 0, onLetterGenerated }) => {
   const router = useRouter();
   const pathname = usePathname();
   const [categories, setCategories] = useState<LetterCategory[]>([]);
@@ -71,6 +73,14 @@ const StepTwo: React.FC<StepTwoProps> = ({ email, selectedAccounts = [] }) => {
     if (selectedCategory && selectedLetter) {
       setGenerating(true); // start loading
 
+      // If we're already on the generate page and have a callback, use that instead of navigation
+      if (pathname?.startsWith("/dispute-wizard/generate-letter") && onLetterGenerated) {
+        toast.message(`Generating letter for Letter ${currentGroupIndex + 1}...`);
+        onLetterGenerated(selectedCategory, selectedLetter);
+        setTimeout(() => setGenerating(false), 400);
+        return;
+      }
+
       // Create URL parameters with all necessary data
       const params = new URLSearchParams({
         category: selectedCategory,
@@ -86,15 +96,6 @@ const StepTwo: React.FC<StepTwoProps> = ({ email, selectedAccounts = [] }) => {
       }
 
       const targetUrl = `/dispute-wizard/generate-letter?${params.toString()}`;
-
-      // If we're already on the generate page, replace URL and reset loading
-      if (pathname?.startsWith("/dispute-wizard/generate-letter")) {
-        toast.message("Generating letter...");
-        router.replace(targetUrl);
-        // Ensure the UI doesn't get stuck in loading state when staying on the same page
-        setTimeout(() => setGenerating(false), 400);
-        return;
-      }
 
       // Use setTimeout so the button shows spinner before route change
       setTimeout(() => {

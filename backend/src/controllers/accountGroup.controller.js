@@ -2,6 +2,37 @@
 import AccountGroup from "../models/accountGroup.model.js";
 import CreditReport from "../models/creditReport.model.js";
 
+// Helper: parse various date formats
+const parseDate = (d) => {
+  if (!d) return new Date(0);
+  const iso = new Date(d);
+  if (!isNaN(iso.getTime())) return iso;
+  const mmYyyyMatch = /^(\d{1,2})\/(\d{4})$/.exec(String(d));
+  if (mmYyyyMatch) {
+    const m = parseInt(mmYyyyMatch[1], 10) - 1;
+    const y = parseInt(mmYyyyMatch[2], 10);
+    return new Date(y, m, 1);
+  }
+  return new Date(0);
+};
+
+// Helper: unique key for an account
+const accountKey = (acc) => `${acc?.bureau || ""}:${(acc?.accountNumber || "").trim()}`;
+
+// Helper: dedupe by account key, keep first occurrence
+const dedupeAccounts = (arr) => {
+  const seen = new Set();
+  const out = [];
+  for (const a of arr || []) {
+    const k = accountKey(a);
+    if (!k) continue;
+    if (seen.has(k)) continue;
+    seen.add(k);
+    out.push(a);
+  }
+  return out;
+};
+
 // Create initial groups from credit report
 export const createAccountGroups = async (req, res) => {
   const { email } = req.body;
@@ -28,34 +59,62 @@ export const createAccountGroups = async (req, res) => {
 
     // Extract all accounts from all bureaus
     let allAccounts = [];
-    Object.entries(creditReport.accountInfo || {}).forEach(
-      ([bureau, accounts]) => {
-        accounts.forEach((account, index) => {
-          allAccounts.push({
-            ...account,
-            bureau,
-            originalIndex: index,
-            order: allAccounts.length,
-          });
+    Object.entries(creditReport.accountInfo || {}).forEach(([bureau, accounts]) => {
+      accounts.forEach((account, index) => {
+        allAccounts.push({
+          ...account,
+          bureau,
+          originalIndex: index,
+          order: allAccounts.length,
         });
-      }
-    );
+      });
+    });
 
-    // Group accounts into groups of 5
+    // Dedupe accounts first
+    allAccounts = dedupeAccounts(allAccounts);
+
+    // Group accounts by bureau first, then by date within each bureau
+    const bureauGroups = {
+      Experian: [],
+      Equifax: [],
+      TransUnion: []
+    };
+
+    // Separate accounts by bureau
+    allAccounts.forEach(account => {
+      if (account.bureau && bureauGroups[account.bureau]) {
+        bureauGroups[account.bureau].push(account);
+      }
+    });
+
+    // Sort each bureau's accounts by newest to oldest
+    Object.keys(bureauGroups).forEach(bureau => {
+      bureauGroups[bureau].sort((a, b) => parseDate(b.dateOpened) - parseDate(a.dateOpened));
+    });
+
+    // Create groups of 5, prioritizing same bureau
     const groups = new Map();
     const groupOrder = [];
+    let groupCounter = 1;
 
-    for (let i = 0; i < allAccounts.length; i += 5) {
-      const groupName = `Group${Math.floor(i / 5) + 1}`;
-      const groupAccounts = allAccounts.slice(i, i + 5).map((acc, idx) => ({
-        ...acc,
-        groupName,
-        order: idx,
-      }));
+    // Process each bureau separately
+    Object.entries(bureauGroups).forEach(([bureau, accounts]) => {
+      if (accounts.length === 0) return;
 
-      groups.set(groupName, groupAccounts);
-      groupOrder.push(groupName);
-    }
+      // Create groups of 5 for this bureau
+      for (let i = 0; i < accounts.length; i += 5) {
+        const groupName = `${bureau} Group ${groupCounter}`;
+        const groupAccounts = accounts.slice(i, i + 5).map((acc, idx) => ({
+          ...acc,
+          groupName,
+          order: idx,
+        }));
+
+        groups.set(groupName, groupAccounts);
+        groupOrder.push(groupName);
+        groupCounter++;
+      }
+    });
 
     // Create account group document
     const accountGroup = new AccountGroup({
@@ -361,16 +420,21 @@ export const createCustomGroup = async (req, res) => {
       });
     }
 
-    // Convert groups Map to plain object for manipulation
-    const groupsObj = Object.fromEntries(accountGroup.groups);
-    
-    // Add the new group
-    groupsObj[groupName] = accounts;
-    
-    // Convert back to Map
-    accountGroup.groups = new Map(Object.entries(groupsObj));
-    
-    // Add to group order if it's a new group
+    // Flatten all accounts and remove any that match the incoming accounts (to avoid duplicates across groups)
+    const incomingKeys = new Set((accounts || []).map(accountKey));
+    const cleanedGroups = new Map();
+    for (const [gName, accs] of accountGroup.groups.entries()) {
+      if (gName === groupName) continue; // we'll overwrite this group below
+      const filtered = (accs || []).filter((a) => !incomingKeys.has(accountKey(a)));
+      cleanedGroups.set(gName, filtered);
+    }
+
+    // Ensure group exists and set provided accounts (deduped)
+    const uniqueIncoming = dedupeAccounts((accounts || []).map((a, idx) => ({ ...a, groupName, order: idx })));
+    cleanedGroups.set(groupName, uniqueIncoming);
+
+    // Reassign groups and rebuild group order to include groupName (append if new)
+    accountGroup.groups = cleanedGroups;
     if (!accountGroup.groupOrder.includes(groupName)) {
       accountGroup.groupOrder.push(groupName);
     }
@@ -384,6 +448,100 @@ export const createCustomGroup = async (req, res) => {
     });
   } catch (err) {
     console.error("Error creating custom group:", err);
+    res.status(500).json({ success: false, message: err.message });
+  }
+};
+
+// New: globally reorder all groups by sort order ("oldest" | "newest")
+export const reorderAllGroups = async (req, res) => {
+  const { email, sortOrder } = req.body;
+
+  try {
+    console.log(`🔄 Reordering groups for ${email} with sortOrder: ${sortOrder}`);
+    
+    const accountGroup = await AccountGroup.findOne({ email });
+    if (!accountGroup) {
+      return res.status(404).json({
+        success: false,
+        message: "Account groups not found for this email",
+      });
+    }
+
+    // Flatten all accounts from all groups
+    const merged = Array.from(accountGroup.groups.entries()).flatMap(([g, accs]) =>
+      (accs || []).map((a, idx) => ({ ...a.toObject?.() ?? a, groupName: g, order: idx }))
+    );
+    console.log(`📊 Total accounts before deduplication: ${merged.length}`);
+
+    // Dedupe across all groups
+    const unique = dedupeAccounts(merged);
+    console.log(`✨ Unique accounts after deduplication: ${unique.length}`);
+
+    // Log before sorting
+    console.log('📅 Before sorting - First 3 dates:', unique.slice(0, 3).map(a => a.dateOpened));
+
+    // Sort globally - explicit for clarity
+    if (sortOrder === "oldest") {
+      // Ascending: oldest dates first (2023, 2024, 2025, 2026)
+      unique.sort((a, b) => parseDate(a.dateOpened) - parseDate(b.dateOpened));
+      console.log('📅 OLDEST first sorting applied');
+    } else {
+      // Descending: newest dates first (2026, 2025, 2024, 2023)
+      unique.sort((a, b) => parseDate(b.dateOpened) - parseDate(a.dateOpened));
+      console.log('📅 NEWEST first sorting applied');
+    }
+
+    // Log after sorting
+    console.log('📅 After sorting - First 3 dates:', unique.slice(0, 3).map(a => a.dateOpened));
+    console.log('📅 After sorting - Last 3 dates:', unique.slice(-3).map(a => a.dateOpened));
+
+    // Group by bureau first, then slice into groups of 5
+    const bureauGroups = {
+      Experian: [],
+      Equifax: [],
+      TransUnion: []
+    };
+
+    // Separate accounts by bureau
+    unique.forEach(account => {
+      if (account.bureau && bureauGroups[account.bureau]) {
+        bureauGroups[account.bureau].push(account);
+      }
+    });
+
+    // Create groups of 5, maintaining bureau separation
+    const newGroups = new Map();
+    const newOrder = [];
+    let groupCounter = 1;
+
+    // Process each bureau separately
+    Object.entries(bureauGroups).forEach(([bureau, accounts]) => {
+      if (accounts.length === 0) return;
+
+      // Create groups of 5 for this bureau
+      for (let i = 0; i < accounts.length; i += 5) {
+        const gName = `${bureau} Group ${groupCounter}`;
+        const chunk = accounts.slice(i, i + 5).map((acc, idx) => ({ ...acc, groupName: gName, order: idx }));
+        newGroups.set(gName, chunk);
+        newOrder.push(gName);
+        console.log(`📁 ${gName}: ${chunk.length} accounts, dates: ${chunk.map(a => a.dateOpened).join(', ')}`);
+        groupCounter++;
+      }
+    });
+
+    accountGroup.groups = newGroups;
+    accountGroup.groupOrder = newOrder;
+    await accountGroup.save();
+
+    console.log(`✅ Successfully reordered into ${newOrder.length} groups`);
+
+    res.json({
+      success: true,
+      message: `Groups globally reordered (${sortOrder})`,
+      data: accountGroup,
+    });
+  } catch (err) {
+    console.error("❌ Error reordering groups:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };

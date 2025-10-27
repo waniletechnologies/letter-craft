@@ -201,6 +201,22 @@ const SendLettersPage = () => {
     }
   }, [loadClientLetters]);
 
+  // Helper function to format date/time in EST
+  const formatDateInEST = (dateString: string | number | Date): string => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    // Format in EST timezone
+    return date.toLocaleString('en-US', { 
+      timeZone: 'America/New_York',
+      month: '2-digit',
+      day: '2-digit', 
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true
+    });
+  };
+
   // Helper function to get description for step 1
   const getSelectedLettersDescription = () => {
     if (savedLetterData) {
@@ -236,11 +252,9 @@ const SendLettersPage = () => {
     id: letter._id,
     name: `${letter.bureau.toUpperCase()} - ${letter.letterName}`,
     abbreviation: letter.abbreviation || `RD${letter.round}`,
-    created: `${
-      letter.scheduleAt
-        ? new Date(letter.scheduleAt).toLocaleString()
-        : new Date(letter.createdAt).toLocaleString()
-    }`,
+    created: letter.scheduleAt
+      ? formatDateInEST(letter.scheduleAt)
+      : formatDateInEST(letter.createdAt),
     printStatus:
       letter.status === "draft"
         ? "Pending Print"
@@ -262,7 +276,7 @@ const SendLettersPage = () => {
         savedLetterData.letterDetails.letterName
       )}`,
       abbreviation: savedLetterData.abbreviation || "RD2",
-      created: new Date(savedLetterData.savedAt ?? Date.now()).toLocaleString(),
+      created: formatDateInEST(savedLetterData.savedAt ?? Date.now()),
       printStatus: "Pending Print",
       pages: 2,
       onEdit: () => handleEditLetter(savedLetterData),
@@ -355,7 +369,7 @@ const SendLettersPage = () => {
         savedLetterData.letterDetails.letterName
       )}`,
       abbreviation: savedLetterData.abbreviation || "RD2",
-      created: new Date(savedLetterData.savedAt ?? Date.now()).toLocaleString(),
+      created: formatDateInEST(savedLetterData.savedAt ?? Date.now()),
       printStatus: "Pending Print",
       pages: 2,
       onEdit: (email?: string) => handleEditLetter(savedLetterData, email),
@@ -466,9 +480,7 @@ const SendLettersPage = () => {
           <p><strong>Reference:</strong> ${letter.abbreviation}</p>
           ${
             letter.scheduleAt
-              ? `<p><strong>Scheduled:</strong> ${new Date(
-                  letter.scheduleAt
-                ).toLocaleString()}</p>`
+              ? `<p><strong>Scheduled:</strong> ${formatDateInEST(letter.scheduleAt)}</p>`
               : ""
           }
         </div>

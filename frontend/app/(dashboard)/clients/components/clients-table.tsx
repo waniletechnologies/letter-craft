@@ -24,12 +24,14 @@ import { toast } from "sonner";
 interface Props {
   clients: Client[];
   onEdit: (client: Client) => void;
+  onViewClient?: (client: Client) => void;
   isLoading?: boolean;
 }
 
 export function ClientsTable({
   clients,
   onEdit,
+  onViewClient,
   isLoading = false,
 }: Readonly<Props>) {
   const [popupType, setPopupType] = useState<"delete" | "inactive" | null>(
@@ -150,7 +152,11 @@ export function ClientsTable({
         </TableHeader>
         <TableBody>
           {clients.map((client) => (
-            <TableRow key={client._id} className="text-[#595858] text-[12px]">
+            <TableRow 
+              key={client._id} 
+              className="text-[#595858] text-[12px] cursor-pointer hover:bg-gray-50"
+              onClick={() => onViewClient?.(client)}
+            >
               <TableCell className="font-medium">
                 {client.fullName || `${client.firstName} ${client.lastName}`}
               </TableCell>
@@ -176,24 +182,38 @@ export function ClientsTable({
               <TableCell>
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
-                    <button className="p-2 rounded-full hover:bg-gray-100">
+                    <button 
+                      className="p-2 rounded-full hover:bg-gray-100"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <EllipsisIcon className="h-4 w-4" />
                     </button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end" className="w-48">
-                    <DropdownMenuItem onClick={() => onEdit(client)}>
+                    <DropdownMenuItem 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onEdit(client);
+                      }}
+                    >
                       Edit
                       <PencilIcon className="ml-auto w-4 h-4" />
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => openPopup("inactive", client)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openPopup("inactive", client);
+                      }}
                       className="flex items-center gap-2 cursor-pointer"
                     >
                       {client.status === "active" ? "In-Active" : "Active"}
                       <Minus className="ml-auto w-4 h-4" />
                     </DropdownMenuItem>
                     <DropdownMenuItem
-                      onClick={() => openPopup("delete", client)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openPopup("delete", client);
+                      }}
                       className="text-[#E63E65] focus:text-[#E63E65]"
                       variant="destructive"
                     >

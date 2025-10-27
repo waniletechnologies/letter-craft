@@ -9,6 +9,7 @@ import {
   renameGroup,
   deleteGroup,
   createCustomGroup,
+  reorderAllGroups,
 } from "../controllers/accountGroup.controller.js";
 
 const router = express.Router();
@@ -21,5 +22,6 @@ router.patch("/account-groups/move-account", moveAccount);
 router.post("/account-groups/create-group", createGroup);
 router.patch("/account-groups/rename-group", renameGroup);
 router.delete("/account-groups/delete-group", deleteGroup);
+router.post("/account-groups/reorder-all", reorderAllGroups);
 
 export default router;

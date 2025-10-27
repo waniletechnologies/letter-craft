@@ -43,6 +43,7 @@ import {
   createAccountGroups,
   getAccountGroups,
   moveAccount,
+  reorderAllGroups,
 } from "@/lib/accountGroupApi";
 
 // Define proper interfaces for account data
@@ -133,7 +134,7 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
           groupsMap.set(
             groupName,
             typedAccounts.map((account) => ({
-              id: account._id || account.accountNumber,
+              id: `${account._id || account.accountNumber}-${account.bureau || ""}`,
               creditor: account.accountName || "",
               account: account.accountNumber || "",
               dateOpened: account.dateOpened || "",
@@ -194,7 +195,7 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
             groupsMap.set(
               groupName,
               accounts.map((account) => ({
-                id: account._id || account.accountNumber,
+                id: `${account._id || account.accountNumber}-${account.bureau || ""}`,
                 creditor: account.accountName || "",
                 account: account.accountNumber || "",
                 dateOpened: account.dateOpened || "",
@@ -328,23 +329,68 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
     }
   };
 
-  // Sort function for date opened
-  const sortByDateOpened = (accounts: ItemRow[], order: 'newest' | 'oldest' | 'none'): ItemRow[] => {
-    if (order === 'none') return accounts;
-    
-    return [...accounts].sort((a, b) => {
-      const dateA = parseMMYYYYToDate(a.dateOpened);
-      const dateB = parseMMYYYYToDate(b.dateOpened);
-      
-      if (order === 'newest') {
-        return dateB.getTime() - dateA.getTime();
-      } else {
-        return dateA.getTime() - dateB.getTime();
-      }
-    });
-  };
+  // Apply global sort via backend and refresh groups
+  const applyGlobalSort = useCallback(
+    async (order: 'newest' | 'oldest') => {
+      try {
+        console.log(`🔄 Applying global sort: ${order}`);
+        setLoading(true);
+        setDateSortOrder(order);
+        
+        const resp = await reorderAllGroups(decodedEmail, order);
+        console.log('📦 Reorder response:', resp);
+        
+        if (resp.success && resp.data) {
+          const groupsObj = resp.data.groups as Record<string, AccountData[]>;
+          const groupOrderData = resp.data.groupOrder || [];
 
-  // Group rows by group name for display
+          console.log('📊 Groups received:', Object.keys(groupsObj));
+          console.log('📋 Group order:', groupOrderData);
+
+          const groupsMap = new Map<string, ItemRow[]>();
+          Object.entries(groupsObj).forEach(([groupName, accounts]) => {
+            const mappedAccounts = (accounts as AccountData[]).map((account) => ({
+              id: `${account._id || account.accountNumber}-${account.bureau || ""}`,
+              creditor: account.accountName || "",
+              account: account.accountNumber || "",
+              dateOpened: account.dateOpened || "",
+              balance: account.currentBalance || account.highBalance || "",
+              type: account.payStatus || account.status || "",
+              disputed: account.disputed || false,
+              hasExperian: account.bureau === "Experian",
+              hasEquifax: account.bureau === "Equifax",
+              hasTransUnion: account.bureau === "TransUnion",
+              groupName,
+              order: account.order || 0,
+              bureau: account.bureau || "",
+            }));
+            groupsMap.set(groupName, mappedAccounts);
+            console.log(`📁 ${groupName}: ${mappedAccounts.length} accounts, dates:`, mappedAccounts.map(a => a.dateOpened));
+          });
+
+          setGroups(groupsMap);
+          setGroupOrder(groupOrderData);
+
+          const allAccounts = Array.from(groupsMap.entries()).flatMap(
+            ([groupName, accounts]) => accounts.map((a) => ({ ...a, groupName }))
+          );
+          setRows(allAccounts);
+          
+          toast.success(`Accounts sorted globally by ${order === 'newest' ? 'newest' : 'oldest'} first`);
+        } else {
+          toast.error('Failed to sort accounts');
+        }
+      } catch (e) {
+        console.error('❌ Failed to apply global sort', e);
+        toast.error('Failed to sort accounts');
+      } finally {
+        setLoading(false);
+      }
+    },
+    [decodedEmail]
+  );
+
+  // Group rows by group name for display (no per-group sorting; sorting is global via backend)
   const groupedRows = useMemo(() => {
     const grouped = new Map<string, ItemRow[]>();
     rows.forEach((row) => {
@@ -353,16 +399,8 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
       }
       grouped.get(row.groupName)!.push(row);
     });
-    
-    // Apply sorting to each group
-    if (dateSortOrder !== 'none') {
-      grouped.forEach((accounts, groupName) => {
-        grouped.set(groupName, sortByDateOpened(accounts, dateSortOrder));
-      });
-    }
-    
     return grouped;
-  }, [rows, dateSortOrder]);
+  }, [rows]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -404,16 +442,18 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
                         Date Opened
                         <div className="flex flex-col">
                           <button
-                            onClick={() => setDateSortOrder(dateSortOrder === 'newest' ? 'none' : 'newest')}
-                            className={`text-xs ${dateSortOrder === 'newest' ? 'text-blue-600' : 'text-gray-400'}`}
-                            title="Sort by newest"
+                            onClick={() => applyGlobalSort('newest')}
+                            disabled={loading}
+                            className={`text-xs ${dateSortOrder === 'newest' ? 'text-blue-600 font-bold' : 'text-gray-400'} ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:text-blue-500'}`}
+                            title="Sort globally: Newest first (2026 → 2023)"
                           >
                             ↑
                           </button>
                           <button
-                            onClick={() => setDateSortOrder(dateSortOrder === 'oldest' ? 'none' : 'oldest')}
-                            className={`text-xs ${dateSortOrder === 'oldest' ? 'text-blue-600' : 'text-gray-400'}`}
-                            title="Sort by oldest"
+                            onClick={() => applyGlobalSort('oldest')}
+                            disabled={loading}
+                            className={`text-xs ${dateSortOrder === 'oldest' ? 'text-blue-600 font-bold' : 'text-gray-400'} ${loading ? 'opacity-50 cursor-not-allowed' : 'hover:text-blue-500'}`}
+                            title="Sort globally: Oldest first (2023 → 2026)"
                           >
                             ↓
                           </button>

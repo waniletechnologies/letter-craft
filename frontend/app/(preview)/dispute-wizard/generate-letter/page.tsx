@@ -117,6 +117,9 @@ const GenerateLetterPage = () => {
   const [groupedAccounts, setGroupedAccounts] = useState<AccountItem[][]>([]);
   const [selectedGroupIndex, setSelectedGroupIndex] = useState<number>(0);
   const [originalTemplateText, setOriginalTemplateText] = useState<string>("");
+  // Track letter selection per group
+  const [letterSelectionByGroup, setLetterSelectionByGroup] = useState<Record<number, { category: string; letterName: string; originalTemplate: string }>>({});
+  const [letterContentByGroup, setLetterContentByGroup] = useState<Record<number, string>>({});
   // Per-letter scheduling
   const [scheduleDateByGroup, setScheduleDateByGroup] = useState<Record<number, string>>({});
   const [scheduleTimeByGroup, setScheduleTimeByGroup] = useState<Record<number, string>>({});
@@ -199,6 +202,7 @@ const GenerateLetterPage = () => {
   }, [groupedAccounts, disputeItems, selectedGroupIndex]);
 
   // Combine schedule date/time into ISO string whenever inputs change for selected group
+  // Treat all input dates/times as EST timezone
   useEffect(() => {
     const datePart = scheduleDateByGroup[selectedGroupIndex] || "";
     const timePart = scheduleTimeByGroup[selectedGroupIndex] || "";
@@ -206,9 +210,10 @@ const GenerateLetterPage = () => {
       setScheduleAtByGroup((prev) => ({ ...prev, [selectedGroupIndex]: "" }));
       return;
     }
-    const combined = new Date(`${datePart}T${timePart}`);
-    if (!isNaN(combined.getTime())) {
-      setScheduleAtByGroup((prev) => ({ ...prev, [selectedGroupIndex]: combined.toISOString() }));
+    // Convert to ISO string treating the input as EST timezone
+    const isoString = convertToESTIso(datePart, timePart);
+    if (isoString) {
+      setScheduleAtByGroup((prev) => ({ ...prev, [selectedGroupIndex]: isoString }));
     }
   }, [scheduleDateByGroup, scheduleTimeByGroup, selectedGroupIndex]);
 
@@ -251,7 +256,7 @@ const GenerateLetterPage = () => {
 
   // Update context when FTC report is selected
   useEffect(() => {
-      if (selectedFtcReports.length > 0 && clientFiles?.ftcReport) {
+    if (selectedFtcReports.length > 0 && clientFiles?.ftcReport) {
       const selectedReports = clientFiles.ftcReport.filter(
         (report: UploadedFile) => selectedFtcReports.includes(report._id)
       );
@@ -270,6 +275,58 @@ const GenerateLetterPage = () => {
       }
     }
   }, [selectedFtcReports, clientFiles, setContextFtcReport]);
+
+  // Helper to get current date/time in EST
+  const getESTDateTime = () => {
+    const now = new Date();
+    // Convert to EST (UTC-5) or EDT (UTC-4) depending on daylight saving
+    const estTime = new Date(now.toLocaleString('en-US', { timeZone: 'America/New_York' }));
+    return estTime;
+  };
+
+  // Helper to format date for input (YYYY-MM-DD)
+  const formatDateForInput = (date: Date) => {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  };
+
+  // Helper to format time for input (HH:MM)
+  const formatTimeForInput = (date: Date) => {
+    const hh = String(date.getHours()).padStart(2, '0');
+    const mm = String(date.getMinutes()).padStart(2, '0');
+    return `${hh}:${mm}`;
+  };
+
+  // Helper to convert date/time string to EST timezone and return ISO string
+  const convertToESTIso = (dateStr: string, timeStr: string): string => {
+    if (!dateStr || !timeStr) return '';
+    
+    // Parse date components
+    const parts = dateStr.split('-');
+    const timeParts = timeStr.split(':');
+    const year = parseInt(parts[0]);
+    const month = parseInt(parts[1]) - 1; // JS months are 0-indexed
+    const day = parseInt(parts[2]);
+    const hour = parseInt(timeParts[0]);
+    const minute = parseInt(timeParts[1]);
+    
+    // Determine if date falls in DST (roughly March-November)
+    // More accurate: check actual DST rules for the specific date
+    const testDate = new Date(year, month, day, 12, 0, 0);
+    const jan = new Date(year, 0, 1);
+    const jul = new Date(year, 6, 1);
+    const stdOffset = Math.max(jan.getTimezoneOffset(), jul.getTimezoneOffset());
+    const isDST = testDate.getTimezoneOffset() < stdOffset;
+    
+    // EST is UTC-5, EDT is UTC-4
+    const estOffset = isDST ? '-04:00' : '-05:00';
+    
+    // Create ISO string with EST timezone
+    const result = new Date(`${dateStr}T${timeStr}:00${estOffset}`);
+    return result.toISOString();
+  };
 
   const loadCreditReportData = async (userEmail: string) => {
     try {
@@ -734,6 +791,8 @@ const GenerateLetterPage = () => {
         const nextHtml = /<[^>]+>/.test(ai) ? ai : ai.replace(/\n/g, "<br>");
         const formatted = formatLetterContent(nextHtml);
         setLetterContent(formatted);
+        // Persist AI-rewritten content for current group
+        setLetterContentByGroup(prev => ({ ...prev, [selectedGroupIndex]: formatted }));
       }
     } catch (error) {
       console.error("Error rewriting content:", error);
@@ -742,7 +801,7 @@ const GenerateLetterPage = () => {
     }
   };
 
-  const loadLetterContent = async (cat: string, name: string) => {
+  const loadLetterContent = async (cat: string, name: string, groupIndex?: number) => {
     try {
       setLoading(true);
       setError("");
@@ -784,10 +843,22 @@ const GenerateLetterPage = () => {
           setOriginalTemplateText(cleanedText);
           const populatedText = populateLetterTemplate(cleanedText);
           bodyContent = populatedText.replace(/\n/g, "<br>");
+          
+          // Store per-group (use groupIndex or default to 0 for initial load)
+          const targetGroupIndex = groupIndex !== undefined ? groupIndex : 0;
+          setLetterSelectionByGroup(prev => ({
+            ...prev,
+            [targetGroupIndex]: { category: cat, letterName: name, originalTemplate: cleanedText }
+          }));
+
         }
 
         const formattedContent = formatLetterContent(bodyContent);
         setLetterContent(formattedContent);
+        
+        // Store content per-group (reuse targetGroupIndex from above)
+        const contentGroupIndex = groupIndex !== undefined ? groupIndex : 0;
+        setLetterContentByGroup(prev => ({ ...prev, [contentGroupIndex]: formattedContent }));
         setDownloadUrl(response.data.downloadUrl);
       } else {
         setError(response.message || "Failed to load letter content");
@@ -800,18 +871,69 @@ const GenerateLetterPage = () => {
     }
   };
 
+  // Set default schedule to today's date and current time in EST for new groups
+  useEffect(() => {
+    const groups = getUiGroups();
+    if (groups.length === 0) return;
+
+    const estNow = getESTDateTime();
+    const todayDate = formatDateForInput(estNow);
+    const currentTime = formatTimeForInput(estNow);
+
+    // Set default schedule for groups that don't have one yet
+    const newDates: Record<number, string> = {};
+    const newTimes: Record<number, string> = {};
+    const newIso: Record<number, string> = {};
+    
+    let hasChanges = false;
+    for (let i = 0; i < groups.length; i++) {
+      if (!scheduleDateByGroup[i]) {
+        newDates[i] = todayDate;
+        hasChanges = true;
+      }
+      if (!scheduleTimeByGroup[i]) {
+        newTimes[i] = currentTime;
+        hasChanges = true;
+      }
+    }
+
+    if (hasChanges) {
+      if (Object.keys(newDates).length > 0) {
+        setScheduleDateByGroup((prev) => ({ ...prev, ...newDates }));
+      }
+      if (Object.keys(newTimes).length > 0) {
+        setScheduleTimeByGroup((prev) => ({ ...prev, ...newTimes }));
+      }
+    }
+  }, [groupedAccounts, disputeItems]);
+
   // Regenerate letter content when switching between groups
   useEffect(() => {
-    if (!originalTemplateText) return;
-    try {
-      const populatedText = populateLetterTemplate(originalTemplateText);
-      const html = populatedText.replace(/\n/g, "<br>");
-      const formattedContent = formatLetterContent(html);
-      setLetterContent(formattedContent);
-    } catch (e) {
-      console.warn("Failed to refresh content for selected group", e);
+    // Check if this group has its own letter selection
+    const groupSelection = letterSelectionByGroup[selectedGroupIndex];
+    if (groupSelection?.originalTemplate) {
+      // Use group-specific template
+      try {
+        const populatedText = populateLetterTemplate(groupSelection.originalTemplate);
+        const html = populatedText.replace(/\n/g, "<br>");
+        const formattedContent = formatLetterContent(html);
+        setLetterContent(formattedContent);
+        setLetterContentByGroup(prev => ({ ...prev, [selectedGroupIndex]: formattedContent }));
+      } catch (e) {
+        console.warn("Failed to refresh content for selected group", e);
+      }
+    } else if (originalTemplateText) {
+      // Fallback to global template for backward compatibility
+      try {
+        const populatedText = populateLetterTemplate(originalTemplateText);
+        const html = populatedText.replace(/\n/g, "<br>");
+        const formattedContent = formatLetterContent(html);
+        setLetterContent(formattedContent);
+      } catch (e) {
+        console.warn("Failed to refresh content for selected group", e);
+      }
     }
-  }, [selectedGroupIndex, groupedAccounts]);
+  }, [selectedGroupIndex, groupedAccounts, letterSelectionByGroup]);
 
   const handleSaveLetter = (data: SaveLetterData) => {
     console.log("Saving letter with data:", data);
@@ -842,18 +964,8 @@ const GenerateLetterPage = () => {
     return "Equifax";
   };
 
-
   // Build prepared letters (one per group of 5) for saving/next step
   const preparedLetters = React.useMemo(() => {
-    if (!originalTemplateText) return [] as Array<{
-      category: string;
-      letterName: string;
-      bureau: string;
-      content: string;
-      personalInfo: PersonalInfo | null;
-      displayName: string;
-      scheduleAt?: string;
-    }>;
     const base = [] as Array<{
       category: string;
       letterName: string;
@@ -867,54 +979,87 @@ const GenerateLetterPage = () => {
       ? groupedAccounts
       : (Array.isArray(disputeItems) ? makeGroupsOfFive(disputeItems as AccountItem[]) : []);
     groups.forEach((group, idx) => {
-      const populated = populateLetterTemplate(originalTemplateText, group);
-      const html = populated.replace(/\n/g, "<br>");
-      const formatted = formatLetterContent(html);
-      base.push({
-        category: category || "",
-        letterName: letterName || "",
-        bureau: getBureauFromCategory(category),
-        content: formatted,
-        personalInfo: personalInfo,
-        displayName: `${decodeURIComponent(letterName || "Letter")} - Letter ${idx + 1}`,
-        // include per-letter schedule
-        scheduleAt: scheduleAtByGroup[idx] || "",
-      });
+      // Use per-group selection if available, otherwise fall back to global
+      const groupSelection = letterSelectionByGroup[idx];
+      const groupContent = letterContentByGroup[idx];
+
+      if (groupSelection && groupContent) {
+        // Use stored per-group data
+        base.push({
+          category: groupSelection.category,
+          letterName: groupSelection.letterName,
+          bureau: getBureauFromCategory(groupSelection.category),
+          content: groupContent,
+          personalInfo: personalInfo,
+          displayName: `${decodeURIComponent(groupSelection.letterName)} - Letter ${idx + 1}`,
+          scheduleAt: scheduleAtByGroup[idx] || "",
+        });
+      } else if (originalTemplateText) {
+        // Fallback to global template
+        const populated = populateLetterTemplate(originalTemplateText, group);
+        const html = populated.replace(/\n/g, "<br>");
+        const formatted = formatLetterContent(html);
+        base.push({
+          category: category || "",
+          letterName: letterName || "",
+          bureau: getBureauFromCategory(category),
+          content: formatted,
+          personalInfo: personalInfo,
+          displayName: `${decodeURIComponent(letterName || "Letter")} - Letter ${idx + 1}`,
+          scheduleAt: scheduleAtByGroup[idx] || "",
+        });
+      }
     });
     return base;
-  }, [originalTemplateText, groupedAccounts, disputeItems, category, letterName, personalInfo, scheduleAtByGroup]);
+  }, [originalTemplateText, groupedAccounts, disputeItems, category, letterName, personalInfo, scheduleAtByGroup, letterSelectionByGroup, letterContentByGroup]);
 
-  // Auto-assign schedules (> 10 days from today) for all letters
+  // Auto-assign schedules using today's date in EST with random times for each letter
   const autoAssignSchedules = () => {
     const groups = getUiGroups();
     if (groups.length === 0) return;
-    const today = new Date();
-    const base = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    // Start at today + 11 days to ensure strictly more than 10 days
-    base.setDate(base.getDate() + 11);
+    
+    // Get current EST date and time
+    const estNow = getESTDateTime();
+    const todayDate = formatDateForInput(estNow);
+    
+    // Get current hour
+    const currentHour = estNow.getHours();
 
     const nextDates: Record<number, string> = {};
     const nextTimes: Record<number, string> = {};
     const nextIso: Record<number, string> = {};
+    
+    // Generate random times for each letter (between 2-6 hours from current time)
+    const usedHours = new Set<number>();
+    
     for (let i = 0; i < groups.length; i++) {
-      const d = new Date(base);
-      d.setDate(base.getDate() + i);
-      const yyyy = d.getFullYear();
-      const mm = String(d.getMonth() + 1).padStart(2, '0');
-      const dd = String(d.getDate()).padStart(2, '0');
-      nextDates[i] = `${yyyy}-${mm}-${dd}`;
-      // Stagger time a bit: 09:00 + i*15 minutes, wrap at hour
-      const totalMinutes = 9 * 60 + (i * 15) % (8 * 60); // between 09:00 and 17:00
-      const hh = String(Math.floor(totalMinutes / 60)).padStart(2, '0');
-      const min = String(totalMinutes % 60).padStart(2, '0');
-      nextTimes[i] = `${hh}:${min}`;
-      const iso = new Date(`${nextDates[i]}T${nextTimes[i]}`);
-      nextIso[i] = isNaN(iso.getTime()) ? '' : iso.toISOString();
+      nextDates[i] = todayDate;
+      
+      // Generate a random hour offset between 2 and 6 hours ahead
+      let randomHour: number;
+      let attempts = 0;
+      do {
+        const offset = Math.floor(Math.random() * 5) + 2; // Random number between 2-6
+        randomHour = (currentHour + offset) % 24;
+        attempts++;
+      } while (usedHours.has(randomHour) && attempts < 50); // Avoid duplicates
+      
+      usedHours.add(randomHour);
+      
+      // Random minutes (0, 15, 30, or 45)
+      const randomMinute = [0, 15, 30, 45][Math.floor(Math.random() * 4)];
+      const timeString = `${String(randomHour).padStart(2, '0')}:${String(randomMinute).padStart(2, '0')}`;
+      nextTimes[i] = timeString;
+      
+      // Create ISO string for storage, treating input as EST timezone
+      const isoString = convertToESTIso(todayDate, timeString);
+      nextIso[i] = isoString;
     }
+    
     setScheduleDateByGroup((prev) => ({ ...prev, ...nextDates }));
     setScheduleTimeByGroup((prev) => ({ ...prev, ...nextTimes }));
     setScheduleAtByGroup((prev) => ({ ...prev, ...nextIso }));
-    toast.success('Auto-assigned schedule for all letters');
+    toast.success('Auto-assigned today\'s date with random times (EST) for all letters');
   };
 
   const handleDownload = () => {
@@ -1231,41 +1376,55 @@ const GenerateLetterPage = () => {
         </div>
         {/* Step Two Controls inline */}
         <div className="px-4 pb-2">
-          <StepTwo email={email} selectedAccounts={selectedAccounts} />
+          <StepTwo 
+            email={email} 
+            selectedAccounts={selectedAccounts}
+            currentGroupIndex={selectedGroupIndex}
+            onLetterGenerated={(cat, name) => {
+              // Load letter for current group
+              loadLetterContent(cat, name, selectedGroupIndex);
+            }}
+          />
         </div>
-        {/* Selected Letter Info */}
-        {category && letterName && (
-          <div className="px-4 py-2 bg-blue-50 border-b">
-            <div className="text-sm font-medium">
-              Selected: {decodeURIComponent(category)} →{" "}
-              {decodeURIComponent(letterName)}
-            </div>
-            {selectedFtcReports.length > 0 && (
-              <div className="text-xs text-green-600 mt-1">
-                Selected {selectedFtcReports.length} FTC Report(s):{" "}
-                {selectedFtcReports
-                  .map((reportId) => {
-                    const report = getFtcReportOptions().find(
-                      (r: {
-                        value: string;
-                        label: string;
-                        url: string;
-                        selected: boolean;
-                      }) => r.value === reportId
-                    );
-                    return report?.label;
-                  })
-                  .join(", ")}
+        {/* Selected Letter Info - Show per-group selection */}
+        {(() => {
+          const groupSelection = letterSelectionByGroup[selectedGroupIndex];
+          const displayCategory = groupSelection?.category || category;
+          const displayLetterName = groupSelection?.letterName || letterName;
+          
+          return displayCategory && displayLetterName ? (
+            <div className="px-4 py-2 bg-blue-50 border-b">
+              <div className="text-sm font-medium">
+                Letter {selectedGroupIndex + 1} Template: {decodeURIComponent(displayCategory)} →{" "}
+                {decodeURIComponent(displayLetterName)}
               </div>
-            )}
-          </div>
-        )}
+              {selectedFtcReports.length > 0 && (
+                <div className="text-xs text-green-600 mt-1">
+                  Selected {selectedFtcReports.length} FTC Report(s):{" "}
+                  {selectedFtcReports
+                    .map((reportId) => {
+                      const report = getFtcReportOptions().find(
+                        (r: {
+                          value: string;
+                          label: string;
+                          url: string;
+                          selected: boolean;
+                        }) => r.value === reportId
+                      );
+                      return report?.label;
+                    })
+                    .join(", ")}
+                </div>
+              )}
+            </div>
+          ) : null;
+        })()}
         {/* Schedule Date/Time - improved UI */}
         <div className="px-4 py-3">
           <div className="grid grid-cols-1 sm:grid-cols-7 gap-4 max-w-5xl items-end">
             <div className="sm:col-span-2 col-span-3">
               <Label className="text-[11px] text-[#6B7280] mb-1 block">
-                Schedule Date
+                Schedule Date (EST)
               </Label>
               <Input
                 type="date"
@@ -1281,7 +1440,7 @@ const GenerateLetterPage = () => {
             </div>
             <div className="sm:col-span-2 col-span-3">
               <Label className="text-[11px] text-[#6B7280] mb-1 block">
-                Schedule Time
+                Schedule Time (EST)
               </Label>
               <Input
                 type="time"
@@ -1296,12 +1455,10 @@ const GenerateLetterPage = () => {
               />
             </div>
             <div className="sm:col-span-2 col-span-6">
-              <div className="text-xs text-[#6B7280]">Preview</div>
+              <div className="text-xs text-[#6B7280]">Preview (EST)</div>
               <div className="mt-1 inline-flex items-center gap-2 px-3 py-1 rounded-full border text-xs">
-                {scheduleAtByGroup[selectedGroupIndex]
-                  ? new Date(
-                      scheduleAtByGroup[selectedGroupIndex]
-                    ).toLocaleString()
+                {scheduleDateByGroup[selectedGroupIndex] && scheduleTimeByGroup[selectedGroupIndex]
+                  ? `${scheduleDateByGroup[selectedGroupIndex]} ${scheduleTimeByGroup[selectedGroupIndex]}`
                   : "Not scheduled"}
               </div>
             </div>
@@ -1355,7 +1512,11 @@ const GenerateLetterPage = () => {
           ) : (
             <RichTextEditor
               value={letterContent}
-              onChange={setLetterContent}
+              onChange={(newContent) => {
+                setLetterContent(newContent);
+                // Persist edited content for current group
+                setLetterContentByGroup(prev => ({ ...prev, [selectedGroupIndex]: newContent }));
+              }}
               className="sm:px-12 px-4"
               onDownload={handleDownload}
               senderAddress={getSenderAddress()}

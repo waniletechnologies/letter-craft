@@ -52,7 +52,7 @@ export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
   const [newAccountNumber, setNewAccountNumber] = useState("");
   const [newBalance, setNewBalance] = useState("");
   const [newDateOpened, setNewDateOpened] = useState("");
-  const [newBureau, setNewBureau] = useState("Experian");
+  const [newBureaus, setNewBureaus] = useState<string[]>(["Experian"]);
 
   const handleCreateGroupDialogSubmit = async () => {
     if (!newAccountName.trim() || !newAccountNumber.trim()) {
@@ -68,19 +68,21 @@ export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
         return Number.isFinite(n) ? n : 0;
       })();
 
-      const response = await createAccount({
-        email,
-        bureau: newBureau as "Experian" | "Equifax" | "TransUnion",
-        accountData: {
-          accountName: newAccountName,
-          accountNumber: newAccountNumber,
-          balance: sanitizedBalance,
-          dateOpened: convertDateInputToMMYYYY(newDateOpened),
-        },
-      });
-
-      if (!response.success) {
-        throw new Error(response.message || "Failed to create group");
+      // Create the account for each selected bureau
+      for (const bureau of newBureaus) {
+        const response = await createAccount({
+          email,
+          bureau: bureau as "Experian" | "Equifax" | "TransUnion",
+          accountData: {
+            accountName: newAccountName,
+            accountNumber: newAccountNumber,
+            balance: sanitizedBalance,
+            dateOpened: convertDateInputToMMYYYY(newDateOpened),
+          },
+        });
+        if (!response.success) {
+          throw new Error(response.message || `Failed to create account for ${bureau}`);
+        }
       }
 
       toast.success(`Account "${newAccountName}" created successfully! Use "Auto Group" button to include it in groups.`);
@@ -90,7 +92,7 @@ export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
       setNewAccountNumber("");
       setNewBalance("");
       setNewDateOpened("");
-      setNewBureau("Experian");
+      setNewBureaus(["Experian"]);
       
       // Refresh the data to show the new account immediately
       if (onRefresh) {
@@ -633,20 +635,25 @@ export const AccountInfoTable: React.FC<AccountInfoTableProps> = ({
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="bureau">Select Bureau</Label>
-              <Select value={newBureau} onValueChange={setNewBureau}>
-                <SelectTrigger
-                  id="bureau"
-                  className="shadow-none w-full border-[#E4E4E7]"
-                >
-                  <SelectValue placeholder="Bureau" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Experian">Experian</SelectItem>
-                  <SelectItem value="Equifax">Equifax</SelectItem>
-                  <SelectItem value="TransUnion">TransUnion</SelectItem>
-                </SelectContent>
-              </Select>
+              <Label>Select Bureaus</Label>
+              <div className="flex gap-4 p-2 border rounded-md">
+                {(["Experian","Equifax","TransUnion"] as const).map(b => (
+                  <label key={b} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={newBureaus.includes(b)}
+                      onChange={(e) => {
+                        setNewBureaus((prev) =>
+                          e.target.checked
+                            ? Array.from(new Set([...prev, b]))
+                            : prev.filter((x) => x !== b)
+                        );
+                      }}
+                    />
+                    {b}
+                  </label>
+                ))}
+              </div>
             </div>
           </div>
           <DialogFooter>

@@ -422,6 +422,84 @@ export const createAccount = async (req, res) => {
     console.log("✅ Account created successfully in database");
     console.log("📊 New account:", newAccount);
 
+    // Also insert/update this account into Account Groups (newest-first regrouping)
+    try {
+      const accountGroupModule = await import("./accountGroup.controller.js");
+      const AccountGroup = (await import("../models/accountGroup.model.js")).default;
+
+      // Load or create AccountGroup document
+      let accountGroupDoc = await AccountGroup.findOne({ email });
+      if (!accountGroupDoc) {
+        // If no groups exist, initialize groups from the report
+        if (typeof accountGroupModule.createAccountGroups === "function") {
+          // Mimic req/res for internal call
+          await accountGroupModule.createAccountGroups(
+            { body: { email } },
+            { json: () => {}, status: () => ({ json: () => {} }) }
+          );
+          accountGroupDoc = await AccountGroup.findOne({ email });
+        }
+      }
+
+      if (accountGroupDoc) {
+        // Pull all existing accounts from groups
+        const allExisting = Array.from(accountGroupDoc.groups.entries()).flatMap(
+          ([groupName, accounts]) =>
+            (accounts || []).map((acc, idx) => ({ ...acc.toObject?.() ?? acc, groupName, order: idx }))
+        );
+
+        // Push new account with bureau and default fields
+        const enrichedNew = {
+          ...newAccount,
+          bureau,
+          originalIndex: allExisting.length,
+          groupName: "",
+          order: 0,
+        };
+
+        // Merge and dedupe by bureau + accountNumber
+        const byKey = new Map();
+        const keyOf = (a) => `${a?.bureau || ""}:${(a?.accountNumber || "").trim()}`;
+        for (const a of [...allExisting, enrichedNew]) {
+          const k = keyOf(a);
+          if (!k) continue;
+          if (!byKey.has(k)) byKey.set(k, a);
+        }
+        const merged = Array.from(byKey.values());
+
+        // Sort newest to oldest by dateOpened
+        const parseDate = (d) => {
+          if (!d) return new Date(0);
+          const iso = new Date(d);
+          if (!isNaN(iso.getTime())) return iso;
+          const mmYyyy = /^(\d{1,2})\/(\d{4})$/.exec(String(d));
+          if (mmYyyy) {
+            const m = parseInt(mmYyyy[1], 10) - 1;
+            const y = parseInt(mmYyyy[2], 10);
+            return new Date(y, m, 1);
+          }
+          return new Date(0);
+        };
+        merged.sort((a, b) => parseDate(b.dateOpened) - parseDate(a.dateOpened));
+
+        // Re-slice into groups of 5
+        const newGroups = new Map();
+        const newOrder = [];
+        for (let i = 0; i < merged.length; i += 5) {
+          const groupName = `Group${Math.floor(i / 5) + 1}`;
+          const chunk = merged.slice(i, i + 5).map((acc, idx) => ({ ...acc, groupName, order: idx }));
+          newGroups.set(groupName, chunk);
+          newOrder.push(groupName);
+        }
+
+        accountGroupDoc.groups = newGroups;
+        accountGroupDoc.groupOrder = newOrder;
+        await accountGroupDoc.save();
+      }
+    } catch (e) {
+      console.warn("⚠ Failed to update account groups after account creation:", e?.message || e);
+    }
+
     res.json({
       success: true,
       message: "Account created successfully",

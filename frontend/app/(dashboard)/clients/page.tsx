@@ -88,6 +88,7 @@ export default function ClientsPage() {
       <ClientsTable
         clients={clients}
         onEdit={(client) => router.push(`/clients/edit-client?id=${client._id}`)}
+        onViewClient={(client) => router.push(`/clients/${client._id}`)}
         isLoading={isLoading}
       />
 

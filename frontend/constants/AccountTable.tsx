@@ -146,7 +146,10 @@ export const AccountTable: React.FC<{
             ["HIGH BALANCE:", "highBalance", false],
             ["DATE OPENED:", "dateOpened", false],
           ].map(([label, key, isEditable], index) => (
-            <TableRow key={`${label}-${index}`} className="border-b border-[#00000014]">
+            <TableRow
+              key={`${label}-${index}`}
+              className="border-b border-[#00000014]"
+            >
               <TableCell className="font-medium text-xs leading-[1.5] -tracking-[0.03em] text-right w-[22%] text-[#292524] border-r border-[#00000014] p-3">
                 {label}
               </TableCell>
@@ -158,14 +161,22 @@ export const AccountTable: React.FC<{
                       i < 2 ? "border-r" : ""
                     } border-[#00000014] py-2 ${
                       isNegative ? "bg-[#FFE2E2]" : ""
-                    } ${!hasBureauData(bureau) ? "bg-gray-100" : ""}`}
+                    } ${!hasBureauData(bureau) ? "bg-gray-100" : ""} ${
+                      bureau === "Equifax" ? "bg-red-400" : ""
+                    } ${
+                      !hasBureauData(bureau) && bureau === "Equifax"
+                        ? "bg-gray-100"
+                        : ""
+                    }`}
                   >
                     <ValueCell
                       value={
-                        key === "dateOpened" 
-                          ? formatDateForDisplay(editableAccount.values[bureau][
-                              key as keyof (typeof editableAccount.values)[Bureau]
-                            ])
+                        key === "dateOpened"
+                          ? formatDateForDisplay(
+                              editableAccount.values[bureau][
+                                key as keyof (typeof editableAccount.values)[Bureau]
+                              ]
+                            )
                           : editableAccount.values[bureau][
                               key as keyof (typeof editableAccount.values)[Bureau]
                             ]
@@ -176,6 +187,7 @@ export const AccountTable: React.FC<{
                       onEdit={(newValue) =>
                         handleBureauDataUpdate(bureau, key as string, newValue)
                       }
+                      className={bureau === "Equifax" ? " font-semibold" : ""}
                     />
                   </TableCell>
                 )
@@ -190,11 +202,16 @@ export const AccountTable: React.FC<{
               (bureau, i) => (
                 <TableCell
                   key={i}
-                  className={`px-2 w-[26%] border-r border-[#00000014] py-2 bg-[#F6F6F6] ${
-                    !hasBureauData(bureau) ? "bg-gray-100" : ""
-                  }`}
+                  className={`px-2 w-[26%] border-r border-[#00000014] py-2 ${
+                    bureau === "Equifax" ? "bg-red-50" : "bg-[#F6F6F6]"
+                  } ${!hasBureauData(bureau) ? "bg-gray-100" : ""}`}
                 >
-                  <ValueCell value={editableAccount.values[bureau].status} />
+                  <ValueCell
+                    value={editableAccount.values[bureau].status}
+                    className={
+                      bureau === "Equifax" ? "text-red-600 font-semibold" : ""
+                    }
+                  />
                 </TableCell>
               )
             )}

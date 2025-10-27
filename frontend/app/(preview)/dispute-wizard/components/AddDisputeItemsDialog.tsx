@@ -440,7 +440,7 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
                     <TableHead className="w-[140px]">
                       <div className="flex items-center gap-1">
                         Date Opened
-                        <div className="flex flex-col">
+                        {/* <div className="flex flex-col">
                           <button
                             onClick={() => applyGlobalSort('newest')}
                             disabled={loading}
@@ -457,7 +457,7 @@ const AddDisputeItemsDialog: React.FC<AddDisputeItemsDialogProps> = ({
                           >
                             ↓
                           </button>
-                        </div>
+                        </div> */}
                       </div>
                     </TableHead>
                     <TableHead className="w-[120px]">Balance</TableHead>
